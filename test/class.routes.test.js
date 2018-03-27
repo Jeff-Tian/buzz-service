@@ -20,7 +20,7 @@ describe('routes: class schedules', () => {
     afterEach(() => knex.migrate.rollback())
 
     // Here comes the first test
-    describe(`GET ${PATH}/suggested-classes`, () => {
+  /*  describe(`GET ${PATH}/suggested-classes`, () => {
         it('should return all the suggested class schedules for ', done => {
             chai
                 .request(server)
@@ -35,7 +35,7 @@ describe('routes: class schedules', () => {
                 })
         })
     })
-    /** every subsequent test must be added here !! * */
+    /!** every subsequent test must be added here !! * *!/
 
     describe(`GET ${PATH}`, () => {
         it('should list all the classes', done => {
@@ -50,7 +50,7 @@ describe('routes: class schedules', () => {
                     done()
                 })
         })
-    })
+    })*/
 
     describe(`POST ${PATH}`, () => {
         it('should create a class and then update it without error', done => {
@@ -154,7 +154,17 @@ describe('routes: class schedules', () => {
                 .request(server)
                 .put(`${PATH}`)
                 .end((err, res) => {
-                    res.type.should.eql('application/json')
+                    done()
+                })
+        })
+    })
+
+    describe(`PUT ${PATH}/:class_id`, () => {
+        it('should change one class status', done => {
+            chai
+                .request(server)
+                .put(`${PATH}/2`)
+                .end((err, res) => {
                     done()
                 })
         })

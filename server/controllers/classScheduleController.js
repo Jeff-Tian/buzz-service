@@ -1,3 +1,4 @@
+const axios = require('axios')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
@@ -5,6 +6,7 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const classSchedules = require('../bll/class-schedules')
+const PATH = 'https://localhost/16999'
 
 const listSuggested = async ctx => {
     try {
@@ -73,7 +75,6 @@ function searchClasses(search) {
             knex.raw('group_concat(student_class_schedule.user_id) as students')
         )
 }
-
 const getClassByClassId = async ctx => {
     const result = await selectClassesWithCompanionInfo()
         .where('classes.class_id', ctx.params.class_id)
@@ -82,6 +83,48 @@ const getClassByClassId = async ctx => {
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
     ctx.body = result || {}
 }
+
+/*设置定时任务  start*/
+function selectClassInfo(classId) {
+    return knex('classes')
+        .select()
+        .where({class_id: classId})
+}
+
+function cronTime(time) {
+    let seconds = time.getSeconds()
+    let minutes = time.getMinutes()
+    let hours = time.getHours()
+    let date = time.getDate()
+    let month = time.getMonth()
+    let year = time.getFullYear()
+    const cron = `${seconds} ${minutes} ${hours} ${date} ${month} ${year}`
+
+    return cron
+}
+
+async function changeClassStatus(cronTime, classId){
+    return axios({
+        url:`${PATH}/api/v1/task/index`,
+        method: 'GET',
+        data: {
+            cron: cronTime,
+            classId: classId
+        }.then(function (res){
+            console.log('__________________________________________________________________________')
+            console.log(res.body)
+            console.log('回调成功')
+        })
+    })
+}
+
+async function task(classId) {
+    const classInfo = await selectClassInfo(classId)
+    let time = new Date(classInfo[0].end_time)
+    let cron = cronTime(time)
+    await changeClassStatus(cron, classId)
+}
+/*设置定时任务  end*/
 
 const list = async ctx => {
     try {
@@ -139,6 +182,9 @@ const upsert = async ctx => {
         }))
 
         if (body.class_id) {
+            //修改定时任务
+            await task(body.class_id)
+
             console.error('body class i d= ', body.class_id)
             await trx('classes')
                 .returning('class_id')
@@ -198,6 +244,8 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
+            //创建定时任务
+            await task(classIds)
         }
 
         if (studentSchedules.length) {
@@ -215,6 +263,8 @@ const upsert = async ctx => {
 
         await trx.commit()
 
+
+
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await selectClasses().where({ 'classes.class_id': classIds[0] }))[0]
@@ -230,9 +280,9 @@ const upsert = async ctx => {
 }
 
 const change = async ctx => {
-    /* let trx = await promisify(knex.transaction); */
+    const trx = await promisify(knex.transaction);
     try {
-        const listAll = await knex('classes')
+        let listAll = await trx('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
             .select()
 
@@ -248,24 +298,72 @@ const change = async ctx => {
             }
         }
 
-        await knex('classes')
+        await trx('classes')
             .where('class_id', 'in', arr)
             .update({
                 status: 'ended',
             })
 
-        /* await trx.commit(); */
+        await trx('companion_class_schedule')
+            .where('class_id', 'in', arr)
+            .update({
+                status: 'ended'
+            })
 
-        const listEnd = await knex('classes')
-            .select()
+        await trx('student_class_schedule')
+            .where('class_id', 'in', arr)
+            .update({
+                status: 'ended'
+            })
+
+         await trx.commit();
 
         ctx.body = listEnd
         ctx.status = 200
         console.log(ctx.body)
     } catch (error) {
         console.log(error)
-    /* await trx.rollback(); */
+        await trx.rollback();
     }
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId }
+const changeOneClassStatus = async ctx => {
+    const trx = await promisify(knex.transaction);
+    try {
+        const classId = ctx.params.class_id
+
+        await trx('classes')
+            .where('class_id', classId)
+            .update({
+                status: 'ended',
+            })
+
+        await trx('companion_class_schedule')
+            .where('class_id', classId)
+            .update({
+                status: 'ended'
+            })
+
+        await trx('student_class_schedule')
+            .where('class_id', classId)
+            .update({
+                status: 'ended'
+            })
+
+         await trx.commit();
+
+        const listEnd = await knex('classes')
+            .select()
+            .where('class_id', classId)
+
+        ctx.body = listEnd
+        ctx.status = 200
+        console.log(ctx.body)
+
+    } catch (error) {
+        console.log(error)
+         await trx.rollback();
+    }
+}
+
+module.exports = { listSuggested, list, upsert, change, getClassByClassId, changeOneClassStatus}

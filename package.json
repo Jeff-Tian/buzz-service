@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "agenda": "^1.0.3",
+    "axios": "^0.18.0",
     "co-wechat-api": "^3.3.4",
     "co-wechat-oauth": "^2.0.1",
     "ioredis": "^3.2.2",
