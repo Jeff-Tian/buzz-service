@@ -1,13 +1,12 @@
-const axios = require('axios')
+const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
-const config = require('../../knexfile')[env]
-const knex = require('knex')(config)
+const knexConfig = require('../../knexfile')[env]
+const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
-const PATH = 'https://localhost/16999'
-
+const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
         const timeRangeStart = new Date(ctx.query.time_range_start).getTime()
@@ -75,6 +74,7 @@ function searchClasses(search) {
             knex.raw('group_concat(student_class_schedule.user_id) as students')
         )
 }
+
 const getClassByClassId = async ctx => {
     const result = await selectClassesWithCompanionInfo()
         .where('classes.class_id', ctx.params.class_id)
@@ -84,47 +84,37 @@ const getClassByClassId = async ctx => {
     ctx.body = result || {}
 }
 
-/*设置定时任务  start*/
-function selectClassInfo(classId) {
-    return knex('classes')
+/* 设置定时任务  start */
+function selectClassInfo(classId, trx) {
+    return trx('classes')
         .select()
-        .where({class_id: classId})
+        .where({ class_id: classId })
 }
 
-function cronTime(time) {
-    let seconds = time.getSeconds()
-    let minutes = time.getMinutes()
-    let hours = time.getHours()
-    let date = time.getDate()
-    let month = time.getMonth()
-    let year = time.getFullYear()
-    const cron = `${seconds} ${minutes} ${hours} ${date} ${month} ${year}`
-
-    return cron
-}
-
-async function changeClassStatus(cronTime, classId){
-    return axios({
-        url:`${PATH}/api/v1/task/index`,
-        method: 'GET',
-        data: {
-            cron: cronTime,
-            classId: classId
-        }.then(function (res){
-            console.log('__________________________________________________________________________')
-            console.log(res.body)
-            console.log('回调成功')
-        })
+async function changeClassStatus(endTime, classId) {
+    await request({
+        uri: `${config.endPoints.bullService}/api/v1/task`,
+        method: 'POST',
+        body: {
+            classId,
+            endTime,
+        },
+        json: true,
     })
 }
 
-async function task(classId) {
-    const classInfo = await selectClassInfo(classId)
-    let time = new Date(classInfo[0].end_time)
-    let cron = cronTime(time)
-    await changeClassStatus(cron, classId)
+async function task(classId, trx) {
+    const classInfo = await selectClassInfo(classId, trx)
+    console.log(1, classInfo)
+    const endTime = new Date(classInfo[0].end_time)
+    console.log(2, endTime)
+    /* let cron = cronTime(time)
+    console.log(3,cron) */
+    await changeClassStatus(endTime, classId)
+    console.log(4)
 }
-/*设置定时任务  end*/
+
+/* 设置定时任务  end */
 
 const list = async ctx => {
     try {
@@ -165,31 +155,50 @@ const upsert = async ctx => {
             exercises: body.exercises,
         }
 
-        let studentSchedules = body.students.map(studentId => ({
+        let studentSchedules = body.students ? body.students.map(studentId => ({
             user_id: studentId,
             class_id: body.class_id,
             start_time: body.start_time,
             end_time: body.end_time,
             status: 'confirmed',
-        }))
+        })) : []
 
-        let companionSchedules = body.companions.map(companionId => ({
+        console.log('students = ', studentSchedules)
+
+        let companionSchedules = body.companions ? body.companions.map(companionId => ({
             user_id: companionId,
             class_id: body.class_id,
             start_time: body.start_time,
             end_time: body.end_time,
             status: 'confirmed',
-        }))
+        })) : []
 
         if (body.class_id) {
-            //修改定时任务
-            await task(body.class_id)
+            // 判断结束时间是否修改
+            console.log(body.class_id)
+            const endTime = await trx('classes')
+                .where('class_id', body.class_id)
+                .select('end_time')
+            console.log('获取数据库中的结束时间，下边进行对比，如果时间改变则修改定时任务', '数：', endTime[0], '修：', body.end_time)
+            const sqlTime = new Date(endTime[0].end_time).getTime()
+            const bodyTime = new Date(body.end_time).getTime()
+            console.log(sqlTime, bodyTime)
+
+            if (sqlTime !== bodyTime) {
+                // 修改定时任务
+                console.log('_______修改定时任务___________')
+                await task(body.class_id, trx)
+                console.log('______+++++++修改定时任务+++++++++____')
+            }
 
             console.error('body class i d= ', body.class_id)
-            await trx('classes')
-                .returning('class_id')
-                .update(data)
-                .where({ class_id: body.class_id })
+
+            if (JSON.stringify(data) !== '{}') {
+                await trx('classes')
+                    .returning('class_id')
+                    .update(data)
+                    .where({ class_id: body.class_id })
+            }
 
             let originalCompanions = await trx('companion_class_schedule')
                 .select('user_id')
@@ -208,12 +217,15 @@ const upsert = async ctx => {
                     .del()
             }
             if (tbBeUpdatedCompanionSchedules.length) {
-                await trx('companion_class_schedule')
-                    .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
-                    .update({
-                        start_time: body.start_time,
-                        end_time: body.end_time,
-                    })
+                const updateForCompanions = {
+                    start_time: body.start_time,
+                    end_time: body.end_time,
+                }
+                if (JSON.stringify(updateForCompanions) !== '{}') {
+                    await trx('companion_class_schedule')
+                        .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
+                        .update(updateForCompanions)
+                }
             }
 
             companionSchedules = companionSchedules.filter(s => originalCompanions.indexOf(s.user_id) < 0)
@@ -226,30 +238,40 @@ const upsert = async ctx => {
             console.log('original students = ', originalStudents)
 
             const toBeDeletedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) < 0)
+            console.log('toBeDeleted = ', toBeDeletedStudentSchedules)
             const toBeUpdatedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) >= 0)
+            console.log('tobeUpdated = ', toBeUpdatedStudentSchedules)
 
             await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id)
 
             if (toBeUpdatedStudentSchedules.length) {
-                await trx('student_class_schedule')
-                    .where('user_id', 'in', toBeUpdatedStudentSchedules)
-                    .update({
-                        start_time: body.start_time,
-                        end_time: body.end_time,
-                    })
+                const updateForStudent = {
+                    start_time: body.start_time,
+                    end_time: body.end_time,
+                }
+
+                if (JSON.stringify(updateForStudent) !== '{}') {
+                    await trx('student_class_schedule')
+                        .where('user_id', 'in', toBeUpdatedStudentSchedules)
+                        .update(updateForStudent)
+                }
             }
 
             studentSchedules = studentSchedules.filter(s => originalStudents.indexOf(s.user_id) < 0)
+            console.log('students after filter = ', studentSchedules)
         } else {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
-            //创建定时任务
-            await task(classIds)
+            console.log(classIds[0])
+            // 创建定时任务
+            console.log('_________创建定时任务_____________')
+            await task(classIds[0], trx)
+            console.log('____+++++++++创建定时任务++++++++++++__________')
         }
 
         if (studentSchedules.length) {
-            classSchedules.addStudents(trx, studentSchedules, classIds[0])
+            await classSchedules.addStudents(trx, studentSchedules, classIds[0])
         }
 
         if (companionSchedules.length) {
@@ -262,8 +284,6 @@ const upsert = async ctx => {
         }
 
         await trx.commit()
-
-
 
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
@@ -280,9 +300,9 @@ const upsert = async ctx => {
 }
 
 const change = async ctx => {
-    const trx = await promisify(knex.transaction);
+    const trx = await promisify(knex.transaction)
     try {
-        let listAll = await trx('classes')
+        const listAll = await trx('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
             .select()
 
@@ -307,50 +327,67 @@ const change = async ctx => {
         await trx('companion_class_schedule')
             .where('class_id', 'in', arr)
             .update({
-                status: 'ended'
+                status: 'ended',
             })
 
         await trx('student_class_schedule')
             .where('class_id', 'in', arr)
             .update({
-                status: 'ended'
+                status: 'ended',
             })
 
-         await trx.commit();
+        await trx.commit()
+
+        const listEnd = knex('classes')
+            .select()
 
         ctx.body = listEnd
         ctx.status = 200
         console.log(ctx.body)
     } catch (error) {
         console.log(error)
-        await trx.rollback();
+        await trx.rollback()
     }
 }
 
-const changeOneClassStatus = async ctx => {
-    const trx = await promisify(knex.transaction);
+const endClass = async ctx => {
+    const trx = await promisify(knex.transaction)
     try {
         const classId = ctx.params.class_id
+        const { endTime } = ctx.request.body
+        console.log('server中接收到的需要修改的classID：', classId)
+        console.log('server中接收到的需要修改的endTime：', endTime)
+        const cronTime = new Date(endTime).getTime()
+        console.log('cronTime:', cronTime)
 
-        await trx('classes')
+        const classEndTime = await trx('classes')
             .where('class_id', classId)
-            .update({
-                status: 'ended',
-            })
+            .select('end_time')
+        const sqlTime = new Date(classEndTime[0].end_time).getTime()
+        console.log('sqlTime', sqlTime)
 
-        await trx('companion_class_schedule')
-            .where('class_id', classId)
-            .update({
-                status: 'ended'
-            })
+        if (sqlTime === cronTime) {
+            console.log('修改')
+            await trx('classes')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
 
-        await trx('student_class_schedule')
-            .where('class_id', classId)
-            .update({
-                status: 'ended'
-            })
+            await trx('companion_class_schedule')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
 
-         await trx.commit();
+            await trx('student_class_schedule')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
+        }
+
+        await trx.commit()
 
         const listEnd = await knex('classes')
             .select()
@@ -359,11 +396,10 @@ const changeOneClassStatus = async ctx => {
         ctx.body = listEnd
         ctx.status = 200
         console.log(ctx.body)
-
     } catch (error) {
         console.log(error)
-         await trx.rollback();
+        await trx.rollback()
     }
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId, changeOneClassStatus}
+module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass }

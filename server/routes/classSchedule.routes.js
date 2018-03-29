@@ -7,5 +7,5 @@ router.get(`${BASE_URL}`, classScheduleController.list)
 router.get(`${BASE_URL}/:class_id`, classScheduleController.getClassByClassId)
 router.post(`${BASE_URL}`, classScheduleController.upsert)
 router.put(`${BASE_URL}`, classScheduleController.change)
-router.put(`${BASE_URL}/:class_id`, classScheduleController.changeOneClassStatus)
+router.put(`${BASE_URL}/:class_id`, classScheduleController.endClass)
 module.exports = router
