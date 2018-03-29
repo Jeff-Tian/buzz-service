@@ -163,8 +163,6 @@ const upsert = async ctx => {
             status: 'confirmed',
         })) : []
 
-        console.log('students = ', studentSchedules)
-
         let companionSchedules = body.companions ? body.companions.map(companionId => ({
             user_id: companionId,
             class_id: body.class_id,
