@@ -103,9 +103,9 @@ async function changeClassStatus(endTime, classId) {
     })
 }
 
-async function task(classId, trx) {
+async function task(classId, trx, newEndTime) {
     const classInfo = await selectClassInfo(classId, trx)
-    const endTime = new Date(classInfo[0].end_time)
+    const endTime = newEndTime || new Date(classInfo[0].end_time)
     console.log('定时任务时间', endTime)
     await changeClassStatus(endTime, classId)
 }
@@ -184,7 +184,7 @@ const upsert = async ctx => {
             if (sqlTime !== bodyTime) {
                 // 修改定时任务
                 console.log('_______即将添加新的定时任务___________')
-                await task(body.class_id, trx)
+                await task(body.class_id, trx, bodyTime)
                 console.log('________添加新的定时任务成功___________')
             }
 
