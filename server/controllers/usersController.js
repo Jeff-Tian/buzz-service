@@ -253,7 +253,8 @@ const signInByMobileOrEmail = async ctx => {
         // 把将要返回的用户信息中的密码置为空
         users[0].password = ''
 
-        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: 0 })
+        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+
         ctx.body = users[0]
     } else {
         /* throw new Error('Account or password error') */
@@ -276,7 +277,7 @@ const signIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
-    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: 0 })
+    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
     ctx.body = users[0]
 }
 
