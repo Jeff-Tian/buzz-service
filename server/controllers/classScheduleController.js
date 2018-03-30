@@ -105,13 +105,9 @@ async function changeClassStatus(endTime, classId) {
 
 async function task(classId, trx) {
     const classInfo = await selectClassInfo(classId, trx)
-    console.log(1, classInfo)
     const endTime = new Date(classInfo[0].end_time)
-    console.log(2, endTime)
-    /* let cron = cronTime(time)
-    console.log(3,cron) */
+    console.log('定时任务时间', endTime)
     await changeClassStatus(endTime, classId)
-    console.log(4)
 }
 
 /* 设置定时任务  end */
@@ -173,20 +169,23 @@ const upsert = async ctx => {
 
         if (body.class_id) {
             // 判断结束时间是否修改
-            console.log(body.class_id)
+            console.log('判断需要修改班级信息的classId：', body.class_id)
             const endTime = await trx('classes')
                 .where('class_id', body.class_id)
                 .select('end_time')
-            console.log('获取数据库中的结束时间，下边进行对比，如果时间改变则修改定时任务', '数：', endTime[0], '修：', body.end_time)
+            console.log('获取数据库中的结束时间，和要更改的结束时间比较' +
+                '如果时间发生改变，则修改定时任务', 'sql中endTime:：', endTime[0], '将要修改的endTime：', body.end_time)
             const sqlTime = new Date(endTime[0].end_time).getTime()
             const bodyTime = new Date(body.end_time).getTime()
-            console.log(sqlTime, bodyTime)
+
+            console.log('数据库中：sqlTime：', sqlTime)
+            console.log('将要修改的：bodyTime:', bodyTime)
 
             if (sqlTime !== bodyTime) {
                 // 修改定时任务
-                console.log('_______修改定时任务___________')
+                console.log('_______即将添加新的定时任务___________')
                 await task(body.class_id, trx)
-                console.log('______+++++++修改定时任务+++++++++____')
+                console.log('________添加新的定时任务成功___________')
             }
 
             console.error('body class i d= ', body.class_id)
@@ -263,9 +262,9 @@ const upsert = async ctx => {
                 .insert(data)
             console.log(classIds[0])
             // 创建定时任务
-            console.log('_________创建定时任务_____________')
+            console.log('_________即将创建定时任务_____________')
             await task(classIds[0], trx)
-            console.log('____+++++++++创建定时任务++++++++++++__________')
+            console.log('_________创建定时任务成功__________')
         }
 
         if (studentSchedules.length) {
@@ -353,19 +352,19 @@ const endClass = async ctx => {
     try {
         const classId = ctx.params.class_id
         const { endTime } = ctx.request.body
-        console.log('server中接收到的需要修改的classID：', classId)
-        console.log('server中接收到的需要修改的endTime：', endTime)
+        console.log('需要修改班级状态的班级classID：', classId)
+        console.log('设置定时器的时间endTime：', endTime)
         const cronTime = new Date(endTime).getTime()
-        console.log('cronTime:', cronTime)
+        console.log('已经触发的定时器的时间cronTime:', cronTime)
 
         const classEndTime = await trx('classes')
             .where('class_id', classId)
             .select('end_time')
         const sqlTime = new Date(classEndTime[0].end_time).getTime()
-        console.log('sqlTime', sqlTime)
+        console.log('数据库中班级的结束时间sqlTime', sqlTime)
 
         if (sqlTime === cronTime) {
-            console.log('修改')
+            console.log('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
             await trx('classes')
                 .where('class_id', classId)
                 .update({
@@ -383,6 +382,7 @@ const endClass = async ctx => {
                 .update({
                     status: 'ended',
                 })
+            console.log('修改成功')
         }
 
         await trx.commit()
@@ -393,7 +393,7 @@ const endClass = async ctx => {
 
         ctx.body = listEnd
         ctx.status = 200
-        console.log(ctx.body)
+        console.log('返回的被修改班级的信息', ctx.body)
     } catch (error) {
         console.log(error)
         await trx.rollback()

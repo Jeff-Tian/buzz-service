@@ -5,6 +5,12 @@ const config = {
         },
     },
 
+    test: {
+        endPoints: {
+            bullService: 'http://localhost:16222',
+        },
+    },
+
     staging: {
         endPoints: {
             bullService: '',
