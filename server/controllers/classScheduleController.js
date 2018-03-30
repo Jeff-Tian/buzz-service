@@ -85,11 +85,13 @@ const getClassByClassId = async ctx => {
 }
 
 /* 设置定时任务  start */
+/*
 function selectClassInfo(classId, trx) {
     return trx('classes')
         .select()
         .where({ class_id: classId })
 }
+*/
 
 async function changeClassStatus(endTime, classId) {
     await request({
@@ -104,8 +106,8 @@ async function changeClassStatus(endTime, classId) {
 }
 
 async function task(classId, trx, newEndTime) {
-    const classInfo = await selectClassInfo(classId, trx)
-    const endTime = newEndTime || new Date(classInfo[0].end_time)
+    /* const classInfo = await selectClassInfo(classId, trx) */
+    const endTime = newEndTime
     console.log('定时任务时间', endTime)
     await changeClassStatus(endTime, classId)
 }
@@ -168,7 +170,7 @@ const upsert = async ctx => {
         })) : []
 
         if (body.class_id) {
-            // 判断结束时间是否修改
+            /* -------新建修改班级结束状态定时器start---------*/
             console.log('判断需要修改班级信息的classId：', body.class_id)
             const endTime = await trx('classes')
                 .where('class_id', body.class_id)
@@ -187,6 +189,7 @@ const upsert = async ctx => {
                 await task(body.class_id, trx, new Date(body.end_time))
                 console.log('________添加新的定时任务成功___________')
             }
+            /* -------新建修改班级结束状态定时器end---------*/
 
             console.error('body class i d= ', body.class_id)
 
@@ -263,7 +266,7 @@ const upsert = async ctx => {
             console.log(classIds[0])
             // 创建定时任务
             console.log('_________即将创建定时任务_____________')
-            await task(classIds[0], trx)
+            await task(classIds[0], trx, new Date(data.end_time))
             console.log('_________创建定时任务成功__________')
         }
 
@@ -302,45 +305,44 @@ const change = async ctx => {
         const listAll = await trx('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
             .select()
-
         const currentTime = new Date().getTime()
-        let filtrateList = new Set()
+        /* let filtrateList = new Set() */
         const arr = []
 
         for (let c = 0; c < listAll.length; c++) {
             const searchTime = new Date(listAll[c].end_time).getTime()
             if (searchTime < currentTime) {
-                filtrateList = filtrateList.add(listAll[c])
+                /* filtrateList = filtrateList.add(listAll[c]) */
                 arr.push(listAll[c].class_id)
             }
         }
+        if (arr.length) {
+            await trx('classes')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
 
-        await trx('classes')
-            .where('class_id', 'in', arr)
-            .update({
-                status: 'ended',
-            })
+            await trx('companion_class_schedule')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
 
-        await trx('companion_class_schedule')
-            .where('class_id', 'in', arr)
-            .update({
-                status: 'ended',
-            })
-
-        await trx('student_class_schedule')
-            .where('class_id', 'in', arr)
-            .update({
-                status: 'ended',
-            })
+            await trx('student_class_schedule')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
+        }
 
         await trx.commit()
 
-        const listEnd = knex('classes')
+        const listEnd = await knex('classes')
             .select()
 
         ctx.body = listEnd
         ctx.status = 200
-        console.log(ctx.body)
     } catch (error) {
         console.log(error)
         await trx.rollback()

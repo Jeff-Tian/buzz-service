@@ -21,7 +21,7 @@ describe('routes: class schedules', () => {
     afterEach(() => knex.migrate.rollback())
 
     // Here comes the first test
-    describe(`GET ${PATH}/suggested-classes`, () => {
+     describe(`GET ${PATH}/suggested-classes`, () => {
         it('should return all the suggested class schedules for ', done => {
             chai
                 .request(server)
@@ -38,7 +38,7 @@ describe('routes: class schedules', () => {
     })
     /** every subsequent test must be added here !! * */
 
-    describe(`GET ${PATH}`, () => {
+     describe(`GET ${PATH}`, () => {
         it('should list all the classes', done => {
             chai
                 .request(server)
@@ -52,8 +52,7 @@ describe('routes: class schedules', () => {
                 })
         })
     })
-
-    describe(`POST ${PATH}`, () => {
+     describe(`POST ${PATH}`, () => {
         it('should create a class and then update it without error', done => {
             chai
                 .request(server)
@@ -111,8 +110,8 @@ describe('routes: class schedules', () => {
                                             class_id: classId,
                                             adviser_id: 1,
                                             companions: [],
-                                            start_time: '20180302T10:00:00Z',
-                                            end_time: '20180302T11:00:00Z',
+                                            start_time: '2018-03-02T10:00:00Z',
+                                            end_time: '2018-03-02T11:00:00Z',
                                             status: 'opened',
                                             name: 'Test class',
                                             remark: 'xxx',
@@ -148,8 +147,7 @@ describe('routes: class schedules', () => {
                 })
         })
     })
-
-    describe('Class Schedule Update', () => {
+     describe('Class Schedule Update', () => {
         it('should allow change students in a class without changing companion', done => {
             chai
                 .request(server)
@@ -159,7 +157,7 @@ describe('routes: class schedules', () => {
                     companions: [4, 5, 6],
                     level: 'aa',
                     start_time: '2018-03-02T10:00:00Z',
-                    end_time: moment().add(10, 's'),
+                    end_time: '2018-03-30T16:53:00Z',
                     status: 'opened',
                     name: 'Test class',
                     remark: 'xxx',
@@ -179,7 +177,7 @@ describe('routes: class schedules', () => {
                         .post(`${PATH}`)
                         .send({
                             class_id: classId,
-
+                            end_time: '2018-03-30T16:53:00Z',
                             students: [3, 8, 9],
                         })
                         .end((err, res) => {
@@ -199,12 +197,11 @@ describe('routes: class schedules', () => {
                                         res.body[0].status.should.eql('ended')
                                         done()
                                     })
-                            }, 15000)
+                            }, 30000)
                         })
                 })
         })
     })
-
     describe('Class Schedule Update', () => {
         it('should allow change students in a class without changing companion', done => {
             chai
@@ -214,8 +211,8 @@ describe('routes: class schedules', () => {
                     adviser_id: 1,
                     companions: [4, 5, 6],
                     level: 'aa',
-                    start_time: '20180302T10:00:00Z',
-                    end_time: '20180302T11:00:00Z',
+                    start_time: '2018-03-02T10:00:00Z',
+                    end_time: '2018-03-02T11:00:00Z',
                     status: 'opened',
                     name: 'Test class',
                     remark: 'xxx',
@@ -235,6 +232,7 @@ describe('routes: class schedules', () => {
                         .post(`${PATH}`)
                         .send({
                             class_id: classId,
+                            end_time: moment().add(5, 's'),
                             students: [3, 8, 9],
                         })
                         .end((err, res) => {
@@ -256,8 +254,8 @@ describe('routes: class schedules', () => {
                 adviser_id: 1,
                 companions: [4, 5, 6],
                 level: 'aa',
-                start_time: '20180302T10:00:00Z',
-                end_time: '20180302T11:00:00Z',
+                start_time: '2018-03-02T10:00:00Z',
+                end_time: '2018-03-02T11:00:00Z',
                 status: 'opened',
                 name: 'Test class',
                 remark: 'xxx',
@@ -277,6 +275,7 @@ describe('routes: class schedules', () => {
                     .post(`${PATH}`)
                     .send({
                         class_id: classId,
+                        end_time: '2018-03-02T11:00:00Z',
                         students: [],
                     })
                     .end((err, res) => {
@@ -289,5 +288,16 @@ describe('routes: class schedules', () => {
                     })
             })
     })
-})
 
+    describe('批量更新班级测试', () => {
+        it('将班级结束时间过的班级，状态改为ended', done => {
+            chai
+                .request(server)
+                .put(`${PATH}`)
+                .end((err, res) => {
+                    res.status.should.eql(200)
+                    done()
+                })
+        })
+    })
+})
