@@ -184,7 +184,7 @@ const upsert = async ctx => {
             if (sqlTime !== bodyTime) {
                 // 修改定时任务
                 console.log('_______即将添加新的定时任务___________')
-                await task(body.class_id, trx, bodyTime)
+                await task(body.class_id, trx, new Date(body.end_time))
                 console.log('________添加新的定时任务成功___________')
             }
 
