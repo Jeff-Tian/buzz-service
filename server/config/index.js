@@ -13,19 +13,19 @@ const config = {
 
     staging: {
         endPoints: {
-            bullService: '',
+            bullService: 'http://localhost:16222',
         },
     },
 
     qa: {
         endPoints: {
-            bullService: '',
+            bullService: 'http://localhost:16222',
         },
     },
 
     production: {
         endPoints: {
-            bullService: '',
+            bullService: 'http://localhost:16222',
         },
     },
 }
