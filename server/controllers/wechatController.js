@@ -1,7 +1,6 @@
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
-console.log('knex config = ', config)
 const knex = require('knex')(config)
 const wechat = require('../common/wechat')
 const Stream = require('stream')

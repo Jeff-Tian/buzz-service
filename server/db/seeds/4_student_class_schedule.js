@@ -32,5 +32,19 @@ exports.seed = function (knex, Promise) {
                     start_time: new Date(2016, 1, 1, 9, 0),
                     end_time: new Date(2016, 1, 1, 10, 0),
                 },
+                {
+                    user_id: 5,
+                    batch_id: 1,
+                    status: 'booking',
+                    start_time: new Date(2016, 1, 1, 9, 0),
+                    end_time: new Date(2016, 1, 1, 10, 0),
+                },
+                {
+                    user_id: 5,
+                    batch_id: 2,
+                    status: 'cancelled',
+                    start_time: new Date(2017, 1, 1, 9, 0),
+                    end_time: new Date(2017, 1, 1, 10, 0),
+                },
             ]))
 }

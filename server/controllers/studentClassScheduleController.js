@@ -3,10 +3,11 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const moment = require('moment')
+const _ = require('lodash')
 
 const selectSchedules = function () {
     return knex('student_class_schedule')
-        .select('user_id', 'class_id', 'status', 'start_time', 'end_time')
+        .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
 
 const selectSchedulesWithMoreInfo = function () {
@@ -16,6 +17,7 @@ const selectSchedulesWithMoreInfo = function () {
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('class_feedback', 'class_feedback.from_user_id', 'student_class_schedule.user_id')
         .select(
+            'student_class_schedule.batch_id as batch_id', 'student_class_schedule.class_id as class_id', 'student_class_schedule.status as status',
             'student_class_schedule.user_id as user_id', 'student_class_schedule.class_id as class_id', 'student_class_schedule.status as status',
             'student_class_schedule.start_time as student_start_time', 'student_class_schedule.end_time as student_end_time',
             'classes.start_time as start_time', 'classes.end_time as end_time',
@@ -149,4 +151,69 @@ const cancel = async ctx => {
         ctx.throw(500, ex)
     }
 }
-module.exports = { list, create, cancel, listAll }
+// check start_time, end_time of batch
+const checkBatchTime = ({ start_time, end_time }) => {
+    if (!start_time) throw new Error(400, 'start_time is required')
+    if (!end_time) throw new Error(400, 'end_time is required')
+    start_time = moment(start_time).set('second', 0).set('millisecond', 0)
+    end_time = moment(end_time).set('second', 0).set('millisecond', 0)
+    if (!start_time.isValid()) throw new Error(400, 'invalid start_time')
+    if (!end_time.isValid()) throw new Error(400, 'invalid end_time')
+    if (start_time.format('YYYY-MM-DD') !== end_time.format('YYYY-MM-DD')) {
+        throw new Error('start_time and end_time should be on the same day')
+    }
+    if (!_.includes(['00', '30'], start_time.format('mm')) || !_.includes(['00', '30'], end_time.format('mm'))) {
+        throw new Error('start_time and end_time should be an hour or half hour')
+    }
+    if (moment().add(2, 'h').isAfter(start_time)) {
+        throw new Error('start_time should be after 2 hours')
+    }
+    if (moment(start_time).add(0.5, 'h').isAfter(end_time)) {
+        throw new Error('The end time should be half an hour after the start time')
+    }
+    return { start_time, end_time }
+}
+const batchCreate = async ctx => {
+    try {
+        const user_id = ctx.params.user_id
+        if (!user_id) ctx.throw(400, 'invalid user_id')
+
+        // check start_time, end_time
+        const { start_time, end_time } = checkBatchTime(ctx.request.body)
+
+        // check if class_hours > 0
+        const class_hours = _.get(await knex('user_balance').where({ user_id }).select('class_hours'), '0.class_hours', 0)
+        if (class_hours <= 0) ctx.throw(400, 'class_hours should be a positive number!')
+
+        // get the max_batch_id from max(batch_id)
+        const max_batch_id = _.get(await knex('student_class_schedule').max('batch_id as max_batch_id').where({ user_id }).whereNotNull('batch_id'), '0.max_batch_id', 0)
+        const batch_id = max_batch_id + 1
+
+        // generate schedules
+        const schedules = _.times(class_hours, i => ({
+            user_id,
+            batch_id,
+            status: 'booking',
+            start_time: moment(start_time).add(i, 'w').format('YYYY-MM-DD HH:mm:ss'),
+            end_time: moment(end_time).add(i, 'w').format('YYYY-MM-DD HH:mm:ss'),
+        }))
+        // const result = await knex.batchInsert('student_class_schedule', schedules)
+        // ctx.body = result
+        ctx.body = schedules
+    } catch (e) {
+        ctx.throw(400, e)
+    }
+}
+const batchEdit = async ctx => {
+    ctx.body = {}
+}
+const batchCancel = async ctx => {
+    ctx.body = {}
+}
+const batchList = async ctx => {
+    const user_id = ctx.params.user_id
+    const schedules = await selectSchedules().where({ user_id }).whereNotNull('batch_id').groupBy('batch_id')
+    ctx.body = schedules
+}
+
+module.exports = { list, create, cancel, listAll, batchCreate, batchEdit, batchCancel, batchList }

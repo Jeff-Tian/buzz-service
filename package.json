@@ -6,6 +6,7 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test PORT=16999 mocha --timeout 30000 ",
     "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
     "lint": "eslint --format node_modules/eslint-friendly-formatter . -- --eff-absolute-paths true",
     "lint:fix": "eslint --format node_modules/eslint-friendly-formatter . --fix -- --eff-absolute-paths true",
     "precommit": "lint-staged"
@@ -29,6 +30,7 @@
     "husky": "^0.14.3",
     "lint-staged": "^6.0.0",
     "mocha": "^5.0.4",
+    "nodemon": "^1.17.3",
     "sqlite3": "^3.1.13"
   },
   "dependencies": {
@@ -39,6 +41,7 @@
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
+    "moment": "^2.22.0",
     "mysql": "^2.15.0",
     "mysql2": "^1.5.2",
     "pg": "^7.4.1",
