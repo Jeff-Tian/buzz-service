@@ -165,8 +165,8 @@ const checkBatchTime = ({ start_time, end_time }) => {
     if (!_.includes(['00', '30'], start_time.format('mm')) || !_.includes(['00', '30'], end_time.format('mm'))) {
         throw new Error('start_time and end_time should be an hour or half hour')
     }
-    if (moment().add(2, 'h').isAfter(start_time)) {
-        throw new Error('start_time should be after 2 hours')
+    if (moment().add(48, 'h').isAfter(start_time)) {
+        throw new Error('start_time should be after 48 hours')
     }
     if (moment(start_time).add(0.5, 'h').isAfter(end_time)) {
         throw new Error('The end time should be half an hour after the start time')
@@ -194,12 +194,12 @@ const batchCreate = async ctx => {
             user_id,
             batch_id,
             status: 'booking',
-            start_time: moment(start_time).add(i, 'w').format('YYYY-MM-DD HH:mm:ss'),
-            end_time: moment(end_time).add(i, 'w').format('YYYY-MM-DD HH:mm:ss'),
+            start_time: moment(start_time).add(i, 'w').unix() * 1000, // .format('YYYY-MM-DD HH:mm:ss')
+            end_time: moment(end_time).add(i, 'w').unix() * 1000, // .format('YYYY-MM-DD HH:mm:ss')
         }))
-        // const result = await knex.batchInsert('student_class_schedule', schedules)
-        // ctx.body = result
-        ctx.body = schedules
+        const result = await knex.batchInsert('student_class_schedule', schedules)
+        ctx.body = result
+        // ctx.body = schedules
     } catch (e) {
         ctx.throw(400, e)
     }
