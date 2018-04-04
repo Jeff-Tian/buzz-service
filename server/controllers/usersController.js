@@ -186,6 +186,7 @@ const create = async ctx => {
         const userProfile = await trx('user_profiles').insert({
             user_id: users[0],
             avatar: body.avatar || '',
+            mobile: body.mobile,
         })
 
         const userSocialAccounts = await trx('user_social_accounts').insert({
