@@ -30,6 +30,7 @@ function selectFields(search) {
             'user_profiles.city as city', 'user_social_accounts.facebook_id as facebook_id',
             'user_social_accounts.wechat_data as wechat_data', 'user_social_accounts.facebook_name as facebook_name',
             'user_social_accounts.wechat_name as wechat_name', 'user_balance.class_hours as class_hours',
+            'user_balance.integral as integral',
             'user_placement_tests.level as level', 'user_profiles.password as password',
             knex.raw('group_concat(user_interests.interest) as interests')
         )
