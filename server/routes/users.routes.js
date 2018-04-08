@@ -7,6 +7,7 @@ router.get(`${BASE_URL}/by-facebook/:facebook_id`, usersController.getByFacebook
 router.get(`${BASE_URL}/by-wechat`, usersController.getByWechat)
 router.get(`${BASE_URL}/:user_id`, usersController.show)
 router.post(`${BASE_URL}`, usersController.create)
+router.post(`${BASE_URL}/byUserIdlist`, usersController.getByUserIdList)
 router.put(`${BASE_URL}/sign-in`, usersController.signIn)
 router.put(`${BASE_URL}/sign-in-byMobileOrEmail`, usersController.signInByMobileOrEmail)
 router.put(`${BASE_URL}/:user_id`, usersController.update)

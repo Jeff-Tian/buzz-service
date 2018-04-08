@@ -415,6 +415,22 @@ describe('routes: users', () => {
         })
     })
 
+    describe(`POST ${PATH}/byUserIdlist`, () => {
+        it('通过一个userId数组，查询出user_id对应的avatar', done => {
+            chai
+                .request(server)
+                .post(`${PATH}/byUserIdlist`)
+                .send({
+                    userIdList: [1, 2, 3],
+                    /* userIdList: [4, 5, 6], */
+                })
+                .end((err, res) => {
+                    should.not.exist(err)
+                    done()
+                })
+        })
+    })
+
     describe(`DEL ${PATH}/:user_id`, () => {
         it('should throw error when trying to delete a non-exist user', done => {
             chai.request(server)

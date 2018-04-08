@@ -388,6 +388,17 @@ const update = async ctx => {
     }
 }
 
+const getByUserIdList = async ctx => {
+    const { body } = ctx.request
+    const userIdList = body.userIdList
+    const userAvatarList = await knex('user_profiles')
+        .select('user_id', 'avatar')
+        .where('user_id', 'in', userIdList)
+
+    ctx.body = userAvatarList || {}
+    console.log(ctx.body)
+}
+
 const deleteByUserID = async ctx => {
     const trx = await promisify(knex.transaction)
     try {
@@ -424,5 +435,6 @@ module.exports = {
     signIn,
     signInByMobileOrEmail,
     update,
+    getByUserIdList,
     delete: deleteByUserID,
 }
