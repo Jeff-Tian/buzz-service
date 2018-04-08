@@ -46,7 +46,7 @@ describe('routes:get class feedback', () => {
                     res.status.should.eql(201)
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(1)
-                    res.body[0].should.include.keys('class_id', 'from_user_id', 'to_user_id', 'comment', 'score')
+                    res.body[0].should.include.keys('class_id', 'from_user_id', 'to_user_id', 'comment', 'score', 'from_name', 'to_name', 'from_avatar', 'to_avatar')
                     done()
                 })
         })

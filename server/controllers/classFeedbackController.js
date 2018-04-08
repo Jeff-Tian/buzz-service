@@ -3,9 +3,13 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 
 const selectFeedback = function () {
-    return knex('classes')
-        .leftJoin('class_feedback', 'classes.class_id', 'class_feedback.class_id')
-        .select('classes.class_id as class_id', 'class_feedback.from_user_id as from_user_id', 'class_feedback.to_user_id as to_user_id', 'class_feedback.score as score', 'class_feedback.comment as comment', 'class_feedback.feedback_time as feedback_time')
+    return knex('class_feedback')
+        .leftJoin('classes', 'class_feedback.class_id', 'classes.class_id')
+        .leftJoin('users as users_from', 'class_feedback.from_user_id', 'users_from.user_id')
+        .leftJoin('users as users_to', 'class_feedback.to_user_id', 'users_to.user_id')
+        .leftJoin('user_profiles as user_profiles_from', 'class_feedback.from_user_id', 'user_profiles_from.user_id')
+        .leftJoin('user_profiles as user_profiles_to', 'class_feedback.to_user_id', 'user_profiles_to.user_id')
+        .select('classes.class_id as class_id', 'class_feedback.from_user_id as from_user_id', 'class_feedback.to_user_id as to_user_id', 'class_feedback.score as score', 'class_feedback.comment as comment', 'class_feedback.feedback_time as feedback_time', 'users_from.name as from_name', 'users_to.name as to_name', 'user_profiles_from.avatar as from_avatar', 'user_profiles_to.avatar as to_avatar')
 }
 
 const selectFeedbackList = function () {
@@ -24,6 +28,7 @@ const getFeedbackList = async ctx => {
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = feedback || {}
+        console.log(ctx.body)
     } catch (ex) {
         console.error(ex)
         ctx.throw(409, ex)
