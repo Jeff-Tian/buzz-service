@@ -1,3 +1,7 @@
+const env = process.env.NODE_ENV || 'test'
+const config = require('../../knexfile')[env]
+const knex = require('knex')(config)
+
 function checkTimeConflicts(data) {
     for (let i = 0; i < data.length - 1; i++) {
         for (let j = i + 1; j < data.length; j++) {
@@ -37,4 +41,61 @@ const uniformTimes = function (data) {
     }
 }
 
-module.exports = { uniformTimes, checkTimeConflicts, uniformTime }
+const checkTimeRangeOverlapWithDBTime = async function (table, user_id, time, start_time, end_time) {
+    const selected = await knex(table)
+        .where('user_id', '=', user_id)
+        .andWhere(time, '>=', start_time)
+        .andWhere(time, '<=', end_time)
+        .select('user_id')
+
+    if (selected.length > 0) {
+        throw new Error(`Schedule ${time} conflicts!`)
+    }
+}
+
+const checkTimeRangeOverlapWithDBStartTime = async function (table, user_id, start_time, end_time) {
+    await checkTimeRangeOverlapWithDBTime(table, user_id, 'start_time', start_time, end_time)
+}
+
+const checkTimeRangeOverlapWithDBEndTime = async function (table, user_id, start_time, end_time) {
+    await checkTimeRangeOverlapWithDBTime(table, user_id, 'end_time', start_time, end_time)
+}
+
+const checkTimeRangeOverlapWithDB = async function (table, user_id, start_time, end_time) {
+    await checkTimeRangeOverlapWithDBStartTime(table, user_id, start_time, end_time)
+    await checkTimeRangeOverlapWithDBEndTime(table, user_id, start_time, end_time)
+}
+
+const convertToMySQLFormat = function (start_time) {
+    return new Date(start_time).toISOString().replace('T', ' ').replace('Z', ' ')
+}
+
+const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
+    const selected = await knex(table)
+        .where('user_id', '=', user_id)
+        .andWhere('start_time', '<=', time)
+        .andWhere('end_time', '>=', time)
+        .select('user_id')
+
+    if (selected.length > 0) {
+        throw new Error(`Existing schedules conflict with ${time}!`)
+    }
+}
+
+const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, start_time, end_time) {
+    start_time = convertToMySQLFormat(start_time)
+    end_time = convertToMySQLFormat(end_time)
+
+    await checkDBTimeRangeOverlapWithTime(table, user_id, end_time)
+    await checkDBTimeRangeOverlapWithTime(table, user_id, start_time)
+}
+
+module.exports = {
+    uniformTimes,
+    checkTimeConflicts,
+    async checkTimeConflictsWithDB(table, user_id, start_time, end_time) {
+        await checkTimeRangeOverlapWithDB(table, user_id, start_time, end_time)
+        await checkDBTimeRangeOverlapWithTimeRange(table, user_id, start_time, end_time)
+    },
+    uniformTime,
+}
