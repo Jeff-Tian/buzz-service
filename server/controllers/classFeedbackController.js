@@ -35,6 +35,40 @@ const getFeedbackList = async ctx => {
     }
 }
 
+const getEvaluateStatus = async ctx => {
+    const classId = ctx.params.class_id
+
+    const companionUserId = await knex('companion_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const studentUserIdList = await knex('student_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const arr = []
+    for (let i = 0; i < studentUserIdList.length; i++) {
+        arr.push(studentUserIdList[i].user_id)
+    }
+
+    const evaluateList = await knex('class_feedback')
+        .select('score', 'comment')
+        .where({
+            class_id: classId,
+            from_user_id: companionUserId[0].user_id,
+        })
+        .andWhere('to_user_id', 'in', arr)
+
+    let mark = true
+    for (let i = 0; i < evaluateList.length; i++) {
+        if (!evaluateList[i].score || !evaluateList[i].comment) {
+            mark = false
+            break
+        }
+    }
+    ctx.body = mark
+}
+
 const setFeedbackInfo = async ctx => {
     const { body } = ctx.request
     const data = body.map(b => Object.assign({
@@ -72,4 +106,4 @@ const getAdminFeedbackList = async ctx => {
     }
 }
 
-module.exports = { getFeedbackList, setFeedbackInfo, getAdminFeedbackList }
+module.exports = { getFeedbackList, getEvaluateStatus, setFeedbackInfo, getAdminFeedbackList }

@@ -12,6 +12,21 @@ exports.seed = function (knex, Promise) {
                     score: 1,
                     comment: 'a good english speaker.',
                     remark: 'hank test',
+                }, {
+                    class_id: 1,
+                    from_user_id: 2,
+                    to_user_id: 1,
+                    feedback_time: new Date(),
+                    score: 1,
+                    comment: 'a good english speaker.',
+                    remark: 'hank test',
+                }, {
+                    class_id: 1,
+                    from_user_id: 2,
+                    to_user_id: 2,
+                    feedback_time: new Date(),
+                    score: 1,
+                    remark: 'hank test',
                 },
             ]))
 }

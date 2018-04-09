@@ -73,4 +73,17 @@ describe('routes:get class feedback', () => {
                 })
         })
     })
+
+    describe(`GET ${PATH}/evaluate/:class_id`, () => {
+        it('返回true or false  代表外籍小伙伴是否全部评价中国学生', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/evaluate/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.body.should.eql(true)
+                    done()
+                })
+        })
+    })
 })
