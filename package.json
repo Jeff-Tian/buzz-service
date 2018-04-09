@@ -9,7 +9,8 @@
     "dev": "nodemon server/index.js",
     "lint": "eslint --format node_modules/eslint-friendly-formatter . -- --eff-absolute-paths true",
     "lint:fix": "eslint --format node_modules/eslint-friendly-formatter . --fix -- --eff-absolute-paths true",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "local": "cross-env CLEARDB_DATABASE_URL=mysql://b54bd8f2282800:d21a6714@us-cdbr-iron-east-05.cleardb.net/heroku_5399ff1e0057f9d?reconnect=true NODE_ENV=staging npm start"
   },
   "lint-staged": {
     "*.js": [
