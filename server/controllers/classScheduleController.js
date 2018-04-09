@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
@@ -402,4 +403,14 @@ const endClass = async ctx => {
     }
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass }
+const countBookedClasses = async user_id => {
+    const result = await knex('classes')
+        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+        .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
+        .countDistinct('classes.class_id as count')
+        .where({ user_id, schedule_status: 'confirmed' })
+        .whereNotIn('class_status', ['ended', 'cancelled'])
+    return _.get(result, '0.count')
+}
+
+module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses }

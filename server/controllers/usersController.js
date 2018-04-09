@@ -6,6 +6,7 @@ const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const Stream = require('stream')
 const crypto = require('crypto')
+const { countBookedClasses } = require('./classScheduleController')
 
 function joinTables() {
     return knex('users')
@@ -99,7 +100,10 @@ const show = async ctx => {
             throw new Error('The requested user does not exists')
         }
 
-        ctx.body = users[0]
+        ctx.body = {
+            ...users[0],
+            booked_class_hours: await countBookedClasses(user_id),
+        }
     } catch (error) {
         console.error(error)
 
