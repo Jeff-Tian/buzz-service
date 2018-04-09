@@ -23,7 +23,7 @@ function selectFields(search) {
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.gender as gender',
+            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.gender as gender',
             'user_profiles.date_of_birth as date_of_birth', 'user_profiles.mobile as mobile',
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
@@ -333,6 +333,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         city: body.city,
         state: body.state,
         school_name: body.school_name,
+        time_zone: body.time_zone,
     })
     if (Object.keys(profiles).length > 0) {
         const userProfile = await trx('user_profiles')
