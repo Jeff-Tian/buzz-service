@@ -1,3 +1,4 @@
+/* eslint-disable no-template-curly-in-string */
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -112,6 +113,33 @@ const show = async ctx => {
             error: error.message,
         }
     }
+}
+
+const getUserInfoByClassId = async ctx => {
+    const classId = ctx.params.class_id
+
+    const companionUserId = await knex('companion_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const studentUserIdList = await knex('student_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const arr = []
+    for (let i = 0; i < studentUserIdList.length; i++) {
+        arr.push(studentUserIdList[i].user_id)
+    }
+
+    const userList = await knex('users')
+        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+        .leftJoin('class_feedback', function () {
+            this.on('class_feedback.to_user_id', '=', 'users.user_id').onIn('class_id', `${classId}`).onIn('from_user_id', `${companionUserId[0].user_id}`)
+        })
+        .select('users.user_id as userId', 'users.name as userName', 'user_profiles.avatar as avatar', 'class_feedback.score as score')
+        .where('users.user_id', 'in', arr)
+
+    ctx.body = { class_id: classId, userInfo: userList } || []
 }
 
 const getByFacebookId = async ctx => {
@@ -435,6 +463,7 @@ const deleteByUserID = async ctx => {
 module.exports = {
     search,
     show,
+    getUserInfoByClassId,
     getByFacebookId,
     getByWechat,
     create,

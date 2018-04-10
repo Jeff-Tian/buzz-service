@@ -441,4 +441,18 @@ describe('routes: users', () => {
                 })
         })
     })
+
+    describe(`GET ${PATH}/feedback/:class_id`, () => {
+        it('通过class_id查出学生评价所需信息', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/feedback/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.body.userInfo[0].should.include.keys('userId', 'userName', 'avatar', 'score')
+                    res.body.class_id.should.eql('1')
+                    done()
+                })
+        })
+    })
 })
