@@ -7,6 +7,29 @@ const selectSchedules = function () {
     return knex('companion_class_schedule')
         .select('user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
+
+const selectCompanionWithMoreInfo = function () {
+    return knex('companion_class_schedule')
+        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .select(
+            knex.fn.now(),
+            'classes.class_id AS classes_id',
+            'classes.status AS classes_status',
+            'classes.end_time AS end_time',
+            'classes.start_time AS start_time',
+            'classes.topic AS topic',
+            'companion_class_schedule.user_id AS companion_id',
+            'companion_class_schedule.status AS status',
+            'companion_class_schedule.start_time AS companion_start_time',
+            'companion_class_schedule.end_time AS companion_end_time',
+            'users.name AS companion_name',
+            'user_profiles.avatar AS companion_avater',
+            'companion_class_schedule.user_id AS user_id',
+        )
+}
+
 const listAll = async ctx => {
     ctx.body = await selectSchedules()
 }
@@ -15,15 +38,16 @@ const list = async ctx => {
     try {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
 
-        ctx.body = await selectSchedules()
-            .where('user_id', ctx.params.user_id)
-            .andWhere('start_time', '>=', start_time)
-            .andWhere('end_time', '<=', end_time)
+        ctx.body = await selectCompanionWithMoreInfo()
+            .where('companion_class_schedule.user_id', ctx.params.user_id)
+            .andWhere('companion_class_schedule.start_time', '>=', start_time)
+            .andWhere('companion_class_schedule.end_time', '<=', end_time)
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)
     }
 }
+
 const create = async ctx => {
     const { body } = ctx.request
     const data = body.map(b => Object.assign({ user_id: ctx.params.user_id }, b))
