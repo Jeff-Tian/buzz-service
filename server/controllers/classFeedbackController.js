@@ -66,7 +66,7 @@ const getEvaluateStatus = async ctx => {
             break
         }
     }
-    ctx.body = mark
+    ctx.body = { class_id: classId, feedback: mark }
 }
 
 const setFeedbackInfo = async ctx => {
