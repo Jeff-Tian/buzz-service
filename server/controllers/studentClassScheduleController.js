@@ -1,5 +1,4 @@
 const timeHelper = require('../common/time-helper')
-const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -42,54 +41,16 @@ const listAll = async ctx => {
     ctx.body = await selectSchedules()
 }
 
-const checkTimeConflictsWithDB = async function (user_id, time, start_time, end_time) {
-    const selected = await knex('student_class_schedule')
-        .where('user_id', '=', user_id)
-        .andWhere(time, '>=', start_time)
-        .andWhere(time, '<=', end_time)
-        .select('student_class_schedule.user_id')
-
-    if (selected.length > 0) {
-        throw new Error(`Schedule ${time} conflicts!`)
-    }
-}
-
-const checkTimeConflictsWithDB2 = async function (user_id, start_time, end_time) {
-    start_time = new Date(start_time).toISOString().replace('T', ' ').replace('Z', ' ')
-    end_time = new Date(end_time).toISOString().replace('T', ' ').replace('Z', ' ')
-
-    let selected = await knex('student_class_schedule')
-        .where('user_id', '=', user_id)
-        .andWhere('start_time', '<=', end_time)
-        .andWhere('end_time', '>=', end_time)
-        .select('student_class_schedule.user_id')
-
-    if (selected.length > 0) {
-        throw new Error(`Schedule ${start_time} - ${end_time} conflicts with existing schedules!`)
-    }
-
-    selected = await knex('student_class_schedule')
-        .where('user_id', '=', user_id)
-        .andWhere('start_time', '<=', start_time)
-        .andWhere('end_time', '>=', end_time)
-        .select('student_class_schedule.user_id')
-
-    if (selected.length > 0) {
-        throw new Error(`Schedule ${start_time} - ${end_time} conflicts with existing schedules!`)
-    }
-}
-
 const create = async ctx => {
     const { body } = ctx.request
     const data = body.map(b => Object.assign({ user_id: ctx.params.user_id }, b))
 
     try {
         timeHelper.uniformTimes(data)
+        timeHelper.checkTimeConflicts(data)
         for (let i = 0; i < data.length; i++) {
             /* eslint-disable */
-            await checkTimeConflictsWithDB(ctx.params.user_id, 'start_time', data[i].start_time, data[i].end_time)
-            await checkTimeConflictsWithDB(ctx.params.user_id, 'end_time', data[i].start_time, data[i].end_time)
-            await checkTimeConflictsWithDB2(ctx.params.user_id, data[i].start_time, data[i].end_time)
+            await timeHelper.checkTimeConflictsWithDB('student_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
         }
 
