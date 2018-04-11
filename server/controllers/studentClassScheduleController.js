@@ -71,6 +71,8 @@ const create = async ctx => {
             data.map(d => {
                 d.start_time = timeHelper.convertToMySQLFormat(d.start_time)
                 d.end_time = timeHelper.convertToMySQLFormat(d.end_time)
+
+                return d
             })
         }
 
