@@ -1,4 +1,5 @@
 /* eslint-disable no-template-curly-in-string */
+const _ = require('lodash')
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -460,6 +461,30 @@ const deleteByUserID = async ctx => {
     }
 }
 
+const getAvailableUsers = async ctx => {
+    // role: 'student' or 'companion'
+    const { start_time, end_time, role } = ctx.query
+    const schedule = `${role}_class_schedule`
+    // 该时段已排班的用户
+    const confirmedUsers = _.map(await knex(schedule)
+        .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
+        .select('user_id'), 'user_id')
+    const result = await knex('users')
+        .joinRaw(`INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0 AND users.role = '${role[0]}' AND users.user_id NOT IN (${confirmedUsers})`)
+        .joinRaw(`INNER JOIN ${schedule} ON ${schedule}.user_id = users.user_id AND ${schedule}.status = 'booking' AND ${schedule}.start_time <= '${start_time}' AND ${schedule}.end_time >= '${end_time}'`)
+        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+        .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+        .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
+        .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
+        .groupBy('users.user_id')
+        .select(
+            '*',
+            knex.raw('group_concat(user_interests.interest) as interests'),
+        )
+
+    ctx.body = result
+}
+
 module.exports = {
     search,
     show,
@@ -472,4 +497,5 @@ module.exports = {
     update,
     getByUserIdList,
     delete: deleteByUserID,
+    getAvailableUsers,
 }
