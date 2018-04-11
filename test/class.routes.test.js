@@ -30,7 +30,7 @@ describe('routes: class schedules', () => {
                     should.not.exist(err)
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
-                    res.body.length.should.eql(1)
+                    res.body.length.should.eql(2)
                     res.body[0].should.include.keys('user_id', 'status')
                     done()
                 })

@@ -81,7 +81,7 @@ describe('routes:get class feedback', () => {
                 .get(`${PATH}/evaluate/1`)
                 .end((err, res) => {
                     should.not.exist(err)
-                    res.body.feedback.should.eql(true)
+                    res.body.feedback.should.eql(false)
                     done()
                 })
         })

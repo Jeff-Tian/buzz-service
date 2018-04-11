@@ -86,6 +86,7 @@ const getClassByClassId = async ctx => {
 }
 
 /* 设置定时任务  start */
+
 /*
 function selectClassInfo(classId, trx) {
     return trx('classes')
@@ -95,15 +96,19 @@ function selectClassInfo(classId, trx) {
 */
 
 async function changeClassStatus(endTime, classId) {
-    await request({
-        uri: `${config.endPoints.bullService}/api/v1/task`,
-        method: 'POST',
-        body: {
-            classId,
-            endTime,
-        },
-        json: true,
-    })
+    try {
+        await request({
+            uri: `${config.endPoints.bullService}/api/v1/task`,
+            method: 'POST',
+            body: {
+                classId,
+                endTime,
+            },
+            json: true,
+        })
+    } catch (ex) {
+        console.error(ex)
+    }
 }
 
 async function task(classId, trx, newEndTime) {
@@ -187,7 +192,11 @@ const upsert = async ctx => {
             if (sqlTime !== bodyTime) {
                 // 修改定时任务
                 console.log('_______即将添加新的定时任务___________')
-                await task(body.class_id, trx, new Date(body.end_time))
+                try {
+                    await task(body.class_id, trx, new Date(body.end_time))
+                } catch (ex) {
+                    console.error(ex)
+                }
                 console.log('________添加新的定时任务成功___________')
             }
             /* -------新建修改班级结束状态定时器end---------*/
@@ -267,8 +276,12 @@ const upsert = async ctx => {
             console.log(classIds[0])
             // 创建定时任务
             console.log('_________即将创建定时任务_____________')
-            await task(classIds[0], trx, new Date(data.end_time))
-            console.log('_________创建定时任务成功__________')
+            try {
+                await task(classIds[0], trx, new Date(data.end_time))
+                console.log('_________创建定时任务成功__________')
+            } catch (ex) {
+                console.error(ex)
+            }
         }
 
         if (studentSchedules.length) {

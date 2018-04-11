@@ -67,8 +67,8 @@ const create = async ctx => {
 
         if (process.env.NODE_ENV !== 'test') {
             data.map(d => {
-                d.start_time = timeHelper.convertToMySQLFormat(d.start_time)
-                d.end_time = timeHelper.convertToMySQLFormat(d.end_time)
+                d.start_time = timeHelper.convertToDBFormat(d.start_time)
+                d.end_time = timeHelper.convertToDBFormat(d.end_time)
 
                 return d
             })
@@ -92,7 +92,7 @@ const cancel = async ctx => {
         const { body } = ctx.request
         const filter = {
             user_id: ctx.params.user_id,
-            start_time: timeHelper.convertToMySQLFormat(body.start_time),
+            start_time: timeHelper.convertToDBFormat(body.start_time),
         }
 
         const res = await knex('companion_class_schedule').where(filter).update({

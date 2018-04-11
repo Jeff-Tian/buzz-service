@@ -67,8 +67,11 @@ const checkTimeRangeOverlapWithDB = async function (table, user_id, start_time, 
     await checkTimeRangeOverlapWithDBEndTime(table, user_id, start_time, end_time)
 }
 
-const convertToMySQLFormat = function (time) {
-    return new Date(time).toISOString().replace('T', ' ').replace('Z', ' ').substr(0, 19)
+const convertToDBFormat = function (time) {
+    if (process.env.NODE_ENV !== 'test') {
+        return new Date(time).toISOString().replace('T', ' ').replace('Z', ' ').substr(0, 19)
+    }
+    return new Date(time).getTime()
 }
 
 const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
@@ -85,8 +88,8 @@ const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
 }
 
 const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, start_time, end_time) {
-    start_time = convertToMySQLFormat(start_time)
-    end_time = convertToMySQLFormat(end_time)
+    start_time = convertToDBFormat(start_time)
+    end_time = convertToDBFormat(end_time)
 
     await checkDBTimeRangeOverlapWithTime(table, user_id, end_time)
     await checkDBTimeRangeOverlapWithTime(table, user_id, start_time)
@@ -100,5 +103,5 @@ module.exports = {
         await checkDBTimeRangeOverlapWithTimeRange(table, user_id, start_time, end_time)
     },
     uniformTime,
-    convertToMySQLFormat,
+    convertToDBFormat,
 }

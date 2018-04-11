@@ -99,6 +99,7 @@ describe('routes: student class schedule', () => {
                     {
                         start_time: new Date(2018, 4, 2, 17, 0, 0),
                         end_time: new Date(2018, 4, 2, 17, 30, 0),
+                        status: 'booking',
                     },
                 ])
                 .end((err, res) => {
@@ -121,6 +122,7 @@ describe('routes: student class schedule', () => {
                                     {
                                         start_time: new Date(2018, 4, 2, 17, 0, 0),
                                         end_time: new Date(2018, 4, 2, 17, 30, 0),
+                                        status: 'booking',
                                     },
                                 ])
                                 .end((err, res) => {

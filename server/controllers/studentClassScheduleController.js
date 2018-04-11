@@ -61,19 +61,17 @@ const create = async ctx => {
     try {
         timeHelper.uniformTimes(data)
         timeHelper.checkTimeConflicts(data)
+
+        data.map(d => {
+            d.start_time = timeHelper.convertToDBFormat(d.start_time)
+            d.end_time = timeHelper.convertToDBFormat(d.end_time)
+
+            return d
+        })
         for (let i = 0; i < data.length; i++) {
             /* eslint-disable */
             await timeHelper.checkTimeConflictsWithDB('student_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
-        }
-
-        if (process.env.NODE_ENV !== 'test') {
-            data.map(d => {
-                d.start_time = timeHelper.convertToMySQLFormat(d.start_time)
-                d.end_time = timeHelper.convertToMySQLFormat(d.end_time)
-
-                return d
-            })
         }
 
         const inserted = await knex('student_class_schedule')
