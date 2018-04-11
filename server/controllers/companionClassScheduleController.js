@@ -15,15 +15,15 @@ const selectCompanionWithMoreInfo = function () {
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(
             knex.fn.now(),
-            'classes.class_id AS classes_id',
+            'companion_class_schedule.class_id as class_id',
             'classes.status AS classes_status',
-            'classes.end_time AS end_time',
-            'classes.start_time AS start_time',
+            'classes.end_time AS class_end_time',
+            'classes.start_time AS class_start_time',
             'classes.topic AS topic',
             'companion_class_schedule.user_id AS companion_id',
             'companion_class_schedule.status AS status',
-            'companion_class_schedule.start_time AS companion_start_time',
-            'companion_class_schedule.end_time AS companion_end_time',
+            'companion_class_schedule.start_time AS start_time',
+            'companion_class_schedule.end_time AS end_time',
             'users.name AS companion_name',
             'user_profiles.avatar AS companion_avater',
             'companion_class_schedule.user_id AS user_id',
@@ -54,11 +54,24 @@ const create = async ctx => {
 
     try {
         timeHelper.uniformTimes(data)
+        console.log('inserting data1: ', data)
         timeHelper.checkTimeConflicts(data)
+        console.log('inserting data2: ', data)
         for (let i = 0; i < data.length; i++) {
             /* eslint-disable */
             await timeHelper.checkTimeConflictsWithDB('companion_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
+        }
+
+        console.log('inserting data3: ', data)
+
+        if (process.env.NODE_ENV !== 'test') {
+            data.map(d => {
+                d.start_time = timeHelper.convertToMySQLFormat(d.start_time)
+                d.end_time = timeHelper.convertToMySQLFormat(d.end_time)
+
+                return d
+            })
         }
 
         const inserted = await knex('companion_class_schedule')
@@ -79,7 +92,7 @@ const cancel = async ctx => {
         const { body } = ctx.request
         const filter = {
             user_id: ctx.params.user_id,
-            start_time: new Date(body.start_time).getTime(),
+            start_time: timeHelper.convertToMySQLFormat(body.start_time),
         }
 
         const res = await knex('companion_class_schedule').where(filter).update({
@@ -91,7 +104,7 @@ const cancel = async ctx => {
                 .where(filter)
                 .select('user_id', 'status'))[0]
         } else {
-            throw new Error(res)
+            throw new Error(`trying to cancel a non-exist event @ ${JSON.stringify(filter)}`)
         }
     } catch (ex) {
         console.error(ex)

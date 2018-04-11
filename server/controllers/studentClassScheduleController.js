@@ -16,11 +16,24 @@ const selectSchedulesWithMoreInfo = function () {
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('class_feedback', 'class_feedback.from_user_id', 'student_class_schedule.user_id')
         .select(
-            'student_class_schedule.user_id as user_id', 'student_class_schedule.class_id as class_id', 'student_class_schedule.status as status',
-            'student_class_schedule.start_time as student_start_time', 'student_class_schedule.end_time as student_end_time',
-            'classes.start_time as start_time', 'classes.end_time as end_time',
-            'classes.status as classes_status', 'classes.topic as topic', 'user_profiles.display_name as companion_name', 'user_profiles.user_id as companion_id', 'classes.name as title',
-            'user_profiles.avatar as companion_avatar', 'class_feedback.from_user_id as from_user_id', 'class_feedback.to_user_id as to_user_id', 'class_feedback.score as score', knex.fn.now(), 'class_feedback.comment as comment'
+            'student_class_schedule.user_id as user_id',
+            'student_class_schedule.class_id as class_id',
+            'student_class_schedule.status as status',
+            'student_class_schedule.start_time as start_time',
+            'student_class_schedule.end_time as end_time',
+            'classes.start_time as class_start_time',
+            'classes.end_time as class_end_time',
+            'classes.status as classes_status',
+            'classes.topic as topic',
+            'user_profiles.display_name as companion_name',
+            'user_profiles.user_id as companion_id',
+            'classes.name as title',
+            'user_profiles.avatar as companion_avatar',
+            'class_feedback.from_user_id as from_user_id',
+            'class_feedback.to_user_id as to_user_id',
+            'class_feedback.score as score',
+            knex.fn.now(),
+            'class_feedback.comment as comment'
         )
 }
 const list = async ctx => {
@@ -52,6 +65,13 @@ const create = async ctx => {
             /* eslint-disable */
             await timeHelper.checkTimeConflictsWithDB('student_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
+        }
+
+        if (process.env.NODE_ENV !== 'test') {
+            data.map(d => {
+                d.start_time = timeHelper.convertToMySQLFormat(d.start_time)
+                d.end_time = timeHelper.convertToMySQLFormat(d.end_time)
+            })
         }
 
         const inserted = await knex('student_class_schedule')

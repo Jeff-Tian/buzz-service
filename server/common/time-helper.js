@@ -46,6 +46,7 @@ const checkTimeRangeOverlapWithDBTime = async function (table, user_id, time, st
         .where('user_id', '=', user_id)
         .andWhere(time, '>=', start_time)
         .andWhere(time, '<=', end_time)
+        .andWhere('status', '!=', 'cancelled')
         .select('user_id')
 
     if (selected.length > 0) {
@@ -66,8 +67,8 @@ const checkTimeRangeOverlapWithDB = async function (table, user_id, start_time, 
     await checkTimeRangeOverlapWithDBEndTime(table, user_id, start_time, end_time)
 }
 
-const convertToMySQLFormat = function (start_time) {
-    return new Date(start_time).toISOString().replace('T', ' ').replace('Z', ' ')
+const convertToMySQLFormat = function (time) {
+    return new Date(time).toISOString().replace('T', ' ').replace('Z', ' ').substr(0, 19)
 }
 
 const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
@@ -75,6 +76,7 @@ const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
         .where('user_id', '=', user_id)
         .andWhere('start_time', '<=', time)
         .andWhere('end_time', '>=', time)
+        .andWhere('status', '!=', 'cancelled')
         .select('user_id')
 
     if (selected.length > 0) {
@@ -98,4 +100,5 @@ module.exports = {
         await checkDBTimeRangeOverlapWithTimeRange(table, user_id, start_time, end_time)
     },
     uniformTime,
+    convertToMySQLFormat,
 }
