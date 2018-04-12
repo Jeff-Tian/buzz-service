@@ -18,6 +18,7 @@ const listSuggested = async ctx => {
 
         const suggestions = Scheduling.makeGroups(res)
         console.log('res = ', res)
+        ctx.status = 200
         ctx.body = res
     } catch (error) {
         console.error(error)
@@ -274,7 +275,6 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
-            console.log(classIds[0])
             // 创建定时任务
             console.log('_________即将创建定时任务_____________')
             try {

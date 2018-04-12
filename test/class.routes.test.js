@@ -260,4 +260,33 @@ describe('routes: class schedules', () => {
                 })
         })
     })
+
+    describe(`PUT ${PATH}`, () => {
+        it('更新班级状态，超过班级结束时间的：班级状态改为ended、外籍伙伴状态改为ended，', done => {
+            chai
+                .request(server)
+                .put(`${PATH}`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.status.should.eql(200)
+                    done()
+                })
+        })
+    })
+    describe(`PUT ${PATH}/:class_id`, () => {
+        it('班级id为class_id的班级结束时间过时，就更新班级状态', done => {
+            chai
+                .request(server)
+                .put(`${PATH}/1`)
+                .send({
+                    body: new Date(2019, 1, 23, 18, 50).getTime(),
+                })
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.status.should.eql(200)
+                    res.body[0].status.should.eql('ended')
+                    done()
+                })
+        })
+    })
 })
