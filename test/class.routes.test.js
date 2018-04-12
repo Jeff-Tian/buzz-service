@@ -52,6 +52,19 @@ describe('routes: class schedules', () => {
                 })
         })
     })
+    describe(`GET ${PATH}/:class_id`, () => {
+        it('通过class_id获取到班级信息', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.status.should.eql(200)
+                    res.body[0].should.include.keys('companion_name')
+                    done()
+                })
+        })
+    })
     describe(`POST ${PATH}`, () => {
         it('should create a class and then update it without error', done => {
             chai

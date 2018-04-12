@@ -25,7 +25,7 @@ const selectCompanionWithMoreInfo = function () {
             'companion_class_schedule.start_time AS start_time',
             'companion_class_schedule.end_time AS end_time',
             'users.name AS companion_name',
-            'user_profiles.avatar AS companion_avater',
+            'user_profiles.avatar AS companion_avatar',
             'companion_class_schedule.user_id AS user_id',
         )
 }

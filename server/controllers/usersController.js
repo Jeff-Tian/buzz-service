@@ -426,12 +426,17 @@ const update = async ctx => {
 const getByUserIdList = async ctx => {
     const { body } = ctx.request
     const userIdList = body.userIdList
-    const userAvatarList = await knex('user_profiles')
-        .select('user_id', 'avatar')
-        .where('user_id', 'in', userIdList)
+    try {
+        const userAvatarList = await knex('user_profiles')
+            .select('user_id', 'avatar')
+            .where('user_id', 'in', userIdList)
 
-    ctx.body = userAvatarList || {}
-    console.log(ctx.body)
+        ctx.body = userAvatarList || {}
+        ctx.status = 200
+        console.log(ctx.body)
+    } catch (error) {
+        console.log(error)
+    }
 }
 
 const deleteByUserID = async ctx => {
