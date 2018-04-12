@@ -1,76 +1,50 @@
+const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
-const uniformTime = function (theStartTime, theEndTime) {
-    let start_time = theStartTime
-    if (start_time) {
-        start_time = new Date(start_time)
-    } else {
-        start_time = new Date(0, 0, 0)
-    }
-
-    let end_time = theEndTime
-    if (end_time) {
-        end_time = new Date(end_time)
-    } else {
-        end_time = new Date(9999, 11, 30)
-    }
-    return { start_time, end_time }
-}
 
 const selectSchedules = function () {
     return knex('companion_class_schedule')
         .select('user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
+
+const selectCompanionWithMoreInfo = function () {
+    return knex('companion_class_schedule')
+        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .select(
+            knex.fn.now(),
+            'companion_class_schedule.class_id as class_id',
+            'classes.status AS classes_status',
+            'classes.end_time AS class_end_time',
+            'classes.start_time AS class_start_time',
+            'classes.topic AS topic',
+            'companion_class_schedule.user_id AS companion_id',
+            'companion_class_schedule.status AS status',
+            'companion_class_schedule.start_time AS start_time',
+            'companion_class_schedule.end_time AS end_time',
+            'users.name AS companion_name',
+            'user_profiles.avatar AS companion_avatar',
+            'companion_class_schedule.user_id AS user_id',
+        )
+}
+
 const listAll = async ctx => {
     ctx.body = await selectSchedules()
 }
 
 const list = async ctx => {
     try {
-        const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
+        const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
 
-        ctx.body = await selectSchedules()
-            .where('user_id', ctx.params.user_id)
-            .andWhere('start_time', '>=', start_time)
-            .andWhere('end_time', '<=', end_time)
+        ctx.body = await selectCompanionWithMoreInfo()
+            .where('companion_class_schedule.user_id', ctx.params.user_id)
+            .andWhere('companion_class_schedule.start_time', '>=', start_time)
+            .andWhere('companion_class_schedule.end_time', '<=', end_time)
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)
-    }
-}
-
-const checkTimeConflictsWithDB = async function (user_id, time, start_time, end_time) {
-    const selected = await knex('companion_class_schedule')
-        .where('user_id', '=', user_id)
-        .andWhere(time, '>=', start_time.getTime())
-        .andWhere(time, '<=', end_time.getTime())
-        .select('companion_class_schedule.user_id')
-
-    if (selected.length > 0) {
-        throw new Error(`Schedule ${time} conflicts!`)
-    }
-}
-
-const uniformTimes = function (data) {
-    for (let i = 0; i < data.length; i++) {
-        const u = uniformTime(data[i].start_time, data[i].end_time)
-        data[i].start_time = u.start_time
-        data[i].end_time = u.end_time
-    }
-}
-
-function checkTimeConflicts(data) {
-    for (let i = 0; i < data.length - 1; i++) {
-        for (let j = i + 1; j < data.length; j++) {
-            if (
-                (data[i].start_time >= data[j].start_time
-                    && data[i].start_time <= data[j].end_time) ||
-                (data[i].end_time >= data[j].start_time
-                    && data[i].end_time <= data[j].end_time)) {
-                throw new Error('schedule conflicts!')
-            }
-        }
     }
 }
 
@@ -79,14 +53,25 @@ const create = async ctx => {
     const data = body.map(b => Object.assign({ user_id: ctx.params.user_id }, b))
 
     try {
-        uniformTimes(data)
-        checkTimeConflicts(data)
-
+        timeHelper.uniformTimes(data)
+        console.log('inserting data1: ', data)
+        timeHelper.checkTimeConflicts(data)
+        console.log('inserting data2: ', data)
         for (let i = 0; i < data.length; i++) {
             /* eslint-disable */
-            await checkTimeConflictsWithDB(ctx.params.user_id, 'start_time', data[i].start_time, data[i].end_time)
-            await checkTimeConflictsWithDB(ctx.params.user_id, 'end_time', data[i].start_time, data[i].end_time)
+            await timeHelper.checkTimeConflictsWithDB('companion_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
+        }
+
+        console.log('inserting data3: ', data)
+
+        if (process.env.NODE_ENV !== 'test') {
+            data.map(d => {
+                d.start_time = timeHelper.convertToDBFormat(d.start_time)
+                d.end_time = timeHelper.convertToDBFormat(d.end_time)
+
+                return d
+            })
         }
 
         const inserted = await knex('companion_class_schedule')
@@ -107,7 +92,7 @@ const cancel = async ctx => {
         const { body } = ctx.request
         const filter = {
             user_id: ctx.params.user_id,
-            start_time: new Date(body.start_time).getTime(),
+            start_time: timeHelper.convertToDBFormat(body.start_time),
         }
 
         const res = await knex('companion_class_schedule').where(filter).update({
@@ -119,7 +104,7 @@ const cancel = async ctx => {
                 .where(filter)
                 .select('user_id', 'status'))[0]
         } else {
-            throw new Error(res)
+            throw new Error(`trying to cancel a non-exist event @ ${JSON.stringify(filter)}`)
         }
     } catch (ex) {
         console.error(ex)

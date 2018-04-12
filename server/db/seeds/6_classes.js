@@ -17,6 +17,7 @@ exports.seed = function (knex, Promise) {
                     class_id: 2,
                     name: 'class 2',
                     level: 'aaa',
+                    topic: '生活',
                     start_time: new Date(2018, 1, 24, 9, 0),
                     end_time: new Date(2018, 1, 24, 10, 0),
                     room_url: 'https://zoom.us/j/9746042932',

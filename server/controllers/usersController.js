@@ -1,3 +1,5 @@
+/* eslint-disable no-template-curly-in-string */
+const _ = require('lodash')
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -6,6 +8,7 @@ const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const Stream = require('stream')
 const crypto = require('crypto')
+const { countBookedClasses } = require('./classScheduleController')
 
 function joinTables() {
     return knex('users')
@@ -22,7 +25,7 @@ function selectFields(search) {
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.gender as gender',
+            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.gender as gender',
             'user_profiles.date_of_birth as date_of_birth', 'user_profiles.mobile as mobile',
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
@@ -30,6 +33,7 @@ function selectFields(search) {
             'user_profiles.city as city', 'user_social_accounts.facebook_id as facebook_id',
             'user_social_accounts.wechat_data as wechat_data', 'user_social_accounts.facebook_name as facebook_name',
             'user_social_accounts.wechat_name as wechat_name', 'user_balance.class_hours as class_hours',
+            'user_balance.integral as integral',
             'user_placement_tests.level as level', 'user_profiles.password as password',
             knex.raw('group_concat(user_interests.interest) as interests')
         )
@@ -98,7 +102,10 @@ const show = async ctx => {
             throw new Error('The requested user does not exists')
         }
 
-        ctx.body = users[0]
+        ctx.body = {
+            ...users[0],
+            booked_class_hours: await countBookedClasses(user_id),
+        }
     } catch (error) {
         console.error(error)
 
@@ -107,6 +114,33 @@ const show = async ctx => {
             error: error.message,
         }
     }
+}
+
+const getUserInfoByClassId = async ctx => {
+    const classId = ctx.params.class_id
+
+    const companionUserId = await knex('companion_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const studentUserIdList = await knex('student_class_schedule')
+        .where('class_id', classId)
+        .select('user_id')
+
+    const arr = []
+    for (let i = 0; i < studentUserIdList.length; i++) {
+        arr.push(studentUserIdList[i].user_id)
+    }
+
+    const userList = await knex('users')
+        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+        .leftJoin('class_feedback', function () {
+            this.on('class_feedback.to_user_id', '=', 'users.user_id').onIn('class_id', `${classId}`).onIn('from_user_id', `${companionUserId[0].user_id}`)
+        })
+        .select('users.user_id as userId', 'users.name as userName', 'user_profiles.avatar as avatar', 'class_feedback.score as score')
+        .where('users.user_id', 'in', arr)
+
+    ctx.body = { class_id: classId, userInfo: userList } || []
 }
 
 const getByFacebookId = async ctx => {
@@ -186,6 +220,7 @@ const create = async ctx => {
         const userProfile = await trx('user_profiles').insert({
             user_id: users[0],
             avatar: body.avatar || '',
+            mobile: body.mobile,
         })
 
         const userSocialAccounts = await trx('user_social_accounts').insert({
@@ -253,7 +288,8 @@ const signInByMobileOrEmail = async ctx => {
         // 把将要返回的用户信息中的密码置为空
         users[0].password = ''
 
-        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: 0 })
+        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+
         ctx.body = users[0]
     } else {
         /* throw new Error('Account or password error') */
@@ -276,7 +312,7 @@ const signIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
-    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: 0 })
+    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
     ctx.body = users[0]
 }
 
@@ -325,6 +361,8 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         country: body.country,
         city: body.city,
         state: body.state,
+        school_name: body.school_name,
+        time_zone: body.time_zone,
     })
     if (Object.keys(profiles).length > 0) {
         const userProfile = await trx('user_profiles')
@@ -385,6 +423,22 @@ const update = async ctx => {
     }
 }
 
+const getByUserIdList = async ctx => {
+    const { body } = ctx.request
+    const userIdList = body.userIdList
+    try {
+        const userAvatarList = await knex('user_profiles')
+            .select('user_id', 'avatar')
+            .where('user_id', 'in', userIdList)
+
+        ctx.body = userAvatarList || {}
+        ctx.status = 200
+        console.log(ctx.body)
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 const deleteByUserID = async ctx => {
     const trx = await promisify(knex.transaction)
     try {
@@ -412,14 +466,41 @@ const deleteByUserID = async ctx => {
     }
 }
 
+const getAvailableUsers = async ctx => {
+    // role: 'student' or 'companion'
+    const { start_time, end_time, role } = ctx.query
+    const schedule = `${role}_class_schedule`
+    // 该时段已排班的用户
+    const confirmedUsers = _.map(await knex(schedule)
+        .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
+        .select('user_id'), 'user_id')
+    const result = await knex('users')
+        .joinRaw(`INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0 AND users.role = '${role[0]}' AND users.user_id NOT IN (${confirmedUsers})`)
+        .joinRaw(`INNER JOIN ${schedule} ON ${schedule}.user_id = users.user_id AND ${schedule}.status = 'booking' AND ${schedule}.start_time <= '${start_time}' AND ${schedule}.end_time >= '${end_time}'`)
+        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+        .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+        .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
+        .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
+        .groupBy('users.user_id')
+        .select(
+            '*',
+            knex.raw('group_concat(user_interests.interest) as interests'),
+        )
+
+    ctx.body = result
+}
+
 module.exports = {
     search,
     show,
+    getUserInfoByClassId,
     getByFacebookId,
     getByWechat,
     create,
     signIn,
     signInByMobileOrEmail,
     update,
+    getByUserIdList,
     delete: deleteByUserID,
+    getAvailableUsers,
 }

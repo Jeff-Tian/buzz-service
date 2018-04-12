@@ -415,12 +415,42 @@ describe('routes: users', () => {
         })
     })
 
+    describe(`POST ${PATH}/byUserIdlist`, () => {
+        it('通过一个userId数组，查询出user_id对应的avatar', done => {
+            chai
+                .request(server)
+                .post(`${PATH}/byUserIdlist`)
+                .send({
+                    userIdList: [1, 2, 3],
+                    /* userIdList: [4, 5, 6], */
+                })
+                .end((err, res) => {
+                    should.not.exist(err)
+                    done()
+                })
+        })
+    })
+
     describe(`DEL ${PATH}/:user_id`, () => {
         it('should throw error when trying to delete a non-exist user', done => {
             chai.request(server)
                 .del(`${PATH}/251`)
                 .end((err, res) => {
                     should.exist(err)
+                    done()
+                })
+        })
+    })
+
+    describe(`GET ${PATH}/feedback/:class_id`, () => {
+        it('通过class_id查出学生评价所需信息', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/feedback/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.body.userInfo[0].should.include.keys('userId', 'userName', 'avatar', 'score')
+                    res.body.class_id.should.eql('1')
                     done()
                 })
         })

@@ -1,11 +1,13 @@
+const _ = require('lodash')
+const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
-const config = require('../../knexfile')[env]
-const knex = require('knex')(config)
+const knexConfig = require('../../knexfile')[env]
+const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
-
+const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
         const timeRangeStart = new Date(ctx.query.time_range_start).getTime()
@@ -59,8 +61,9 @@ function selectClassesWithCompanionInfo() {
         .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .groupByRaw('classes.class_id')
-        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'user_profiles.display_name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
+        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', knex.fn.now(), 'users.name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
 }
 
 function searchClasses(search) {
@@ -82,6 +85,41 @@ const getClassByClassId = async ctx => {
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
     ctx.body = result || {}
 }
+
+/* 设置定时任务  start */
+
+/*
+function selectClassInfo(classId, trx) {
+    return trx('classes')
+        .select()
+        .where({ class_id: classId })
+}
+*/
+
+async function changeClassStatus(endTime, classId) {
+    try {
+        await request({
+            uri: `${config.endPoints.bullService}/api/v1/task`,
+            method: 'POST',
+            body: {
+                classId,
+                endTime,
+            },
+            json: true,
+        })
+    } catch (ex) {
+        console.error(ex)
+    }
+}
+
+async function task(classId, trx, newEndTime) {
+    /* const classInfo = await selectClassInfo(classId, trx) */
+    const endTime = newEndTime
+    console.log('定时任务时间', endTime)
+    await changeClassStatus(endTime, classId)
+}
+
+/* 设置定时任务  end */
 
 const list = async ctx => {
     try {
@@ -130,8 +168,6 @@ const upsert = async ctx => {
             status: 'confirmed',
         })) : []
 
-        console.log('students = ', studentSchedules)
-
         let companionSchedules = body.companions ? body.companions.map(companionId => ({
             user_id: companionId,
             class_id: body.class_id,
@@ -141,6 +177,31 @@ const upsert = async ctx => {
         })) : []
 
         if (body.class_id) {
+            /* -------新建修改班级结束状态定时器start---------*/
+            console.log('判断需要修改班级信息的classId：', body.class_id)
+            const endTime = await trx('classes')
+                .where('class_id', body.class_id)
+                .select('end_time')
+            console.log('获取数据库中的结束时间，和要更改的结束时间比较' +
+                '如果时间发生改变，则修改定时任务', 'sql中endTime:：', endTime[0], '将要修改的endTime：', body.end_time)
+            const sqlTime = new Date(endTime[0].end_time).getTime()
+            const bodyTime = new Date(body.end_time).getTime()
+
+            console.log('数据库中：sqlTime：', sqlTime)
+            console.log('将要修改的：bodyTime:', bodyTime)
+
+            if (sqlTime !== bodyTime) {
+                // 修改定时任务
+                console.log('_______即将添加新的定时任务___________')
+                try {
+                    await task(body.class_id, trx, new Date(body.end_time))
+                } catch (ex) {
+                    console.error(ex)
+                }
+                console.log('________添加新的定时任务成功___________')
+            }
+            /* -------新建修改班级结束状态定时器end---------*/
+
             console.error('body class i d= ', body.class_id)
 
             if (JSON.stringify(data) !== '{}') {
@@ -213,6 +274,15 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
+            console.log(classIds[0])
+            // 创建定时任务
+            console.log('_________即将创建定时任务_____________')
+            try {
+                await task(classIds[0], trx, new Date(data.end_time))
+                console.log('_________创建定时任务成功__________')
+            } catch (ex) {
+                console.error(ex)
+            }
         }
 
         if (studentSchedules.length) {
@@ -245,42 +315,116 @@ const upsert = async ctx => {
 }
 
 const change = async ctx => {
-    /* let trx = await promisify(knex.transaction); */
+    const trx = await promisify(knex.transaction)
     try {
-        const listAll = await knex('classes')
+        const listAll = await trx('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
             .select()
-
         const currentTime = new Date().getTime()
-        let filtrateList = new Set()
+        /* let filtrateList = new Set() */
         const arr = []
 
         for (let c = 0; c < listAll.length; c++) {
             const searchTime = new Date(listAll[c].end_time).getTime()
             if (searchTime < currentTime) {
-                filtrateList = filtrateList.add(listAll[c])
+                /* filtrateList = filtrateList.add(listAll[c]) */
                 arr.push(listAll[c].class_id)
             }
         }
+        if (arr.length) {
+            await trx('classes')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
 
-        await knex('classes')
-            .where('class_id', 'in', arr)
-            .update({
-                status: 'ended',
-            })
+            await trx('companion_class_schedule')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
 
-        /* await trx.commit(); */
+            await trx('student_class_schedule')
+                .where('class_id', 'in', arr)
+                .update({
+                    status: 'ended',
+                })
+        }
+
+        await trx.commit()
 
         const listEnd = await knex('classes')
             .select()
 
         ctx.body = listEnd
         ctx.status = 200
-        console.log(ctx.body)
     } catch (error) {
         console.log(error)
-        /* await trx.rollback(); */
+        await trx.rollback()
     }
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId }
+const endClass = async ctx => {
+    const trx = await promisify(knex.transaction)
+    try {
+        const classId = ctx.params.class_id
+        const { endTime } = ctx.request.body
+        console.log('需要修改班级状态的班级classID：', classId)
+        console.log('设置定时器的时间endTime：', endTime)
+        const cronTime = new Date(endTime).getTime()
+        console.log('已经触发的定时器的时间cronTime:', cronTime)
+
+        const classEndTime = await trx('classes')
+            .where('class_id', classId)
+            .select('end_time')
+        const sqlTime = new Date(classEndTime[0].end_time).getTime()
+        console.log('数据库中班级的结束时间sqlTime', sqlTime)
+
+        if (sqlTime === cronTime) {
+            console.log('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
+            await trx('classes')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
+
+            await trx('companion_class_schedule')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
+
+            await trx('student_class_schedule')
+                .where('class_id', classId)
+                .update({
+                    status: 'ended',
+                })
+            console.log('修改成功')
+        }
+
+        await trx.commit()
+
+        const listEnd = await knex('classes')
+            .select()
+            .where('class_id', classId)
+
+        ctx.body = listEnd
+        ctx.status = 200
+        console.log('返回的被修改班级的信息', ctx.body)
+    } catch (error) {
+        console.log(error)
+        await trx.rollback()
+    }
+}
+
+const countBookedClasses = async user_id => {
+    const result = await knex('classes')
+        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+        .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
+        .countDistinct('classes.class_id as count')
+        .where({ user_id, 'student_class_schedule.status': 'confirmed' })
+        .whereNotIn('classes.status', ['ended', 'cancelled'])
+    return _.get(result, '0.count')
+}
+
+module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses }

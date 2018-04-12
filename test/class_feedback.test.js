@@ -46,7 +46,7 @@ describe('routes:get class feedback', () => {
                     res.status.should.eql(201)
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(1)
-                    res.body[0].should.include.keys('class_id', 'from_user_id', 'to_user_id', 'comment', 'score')
+                    res.body[0].should.include.keys('class_id', 'from_user_id', 'to_user_id', 'comment', 'score', 'from_name', 'to_name', 'from_avatar', 'to_avatar')
                     done()
                 })
         })
@@ -69,6 +69,19 @@ describe('routes:get class feedback', () => {
                     res.status.should.eql(201)
                     res.should.have.header('Location')
                     res.type.should.eql('application/json')
+                    done()
+                })
+        })
+    })
+
+    describe(`GET ${PATH}/evaluate/:class_id`, () => {
+        it('返回true or false  代表外籍小伙伴是否全部评价中国学生', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/evaluate/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.body.feedback.should.eql(false)
                     done()
                 })
         })

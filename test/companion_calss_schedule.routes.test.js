@@ -75,6 +75,19 @@ describe('routes: companion class schedule', () => {
                     done()
                 })
         })
+        it('如果相同时间的安排状态是已取消，则不应该报时间冲突的错误', done => {
+            chai
+                .request(server)
+                .post(`${PATH}/2`)
+                .send([{
+                    start_time: new Date(2018, 1, 24, 13, 0),
+                    end_time: new Date(2018, 1, 24, 14, 0),
+                }])
+                .end((err, res) => {
+                    should.not.exist(err)
+                    done()
+                })
+        })
     })
 
     describe(`PUT ${PATH}/:user_id`, () => {
