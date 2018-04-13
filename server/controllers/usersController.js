@@ -470,23 +470,27 @@ const getAvailableUsers = async ctx => {
     // role: 'student' or 'companion'
     const { start_time, end_time, role } = ctx.query
     const schedule = `${role}_class_schedule`
+    const hasSchedule = start_time && end_time
     // 该时段已排班的用户
-    const confirmedUsers = _.map(await knex(schedule)
+    const confirmedUsers = hasSchedule ? _.map(await knex(schedule)
         .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
-        .select('user_id'), 'user_id')
-    const result = await knex('users')
+        .select('user_id'), 'user_id') : []
+    let query = knex('users')
         .joinRaw(`INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0 AND users.role = '${role[0]}' AND users.user_id NOT IN (${confirmedUsers})`)
-        .joinRaw(`INNER JOIN ${schedule} ON ${schedule}.user_id = users.user_id AND ${schedule}.status = 'booking' AND ${schedule}.start_time <= '${start_time}' AND ${schedule}.end_time >= '${end_time}'`)
-        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+    if (hasSchedule) {
+        query = query.joinRaw(`INNER JOIN ${schedule} ON ${schedule}.user_id = users.user_id AND ${schedule}.status = 'booking' AND ${schedule}.start_time <= '${start_time}' AND ${schedule}.end_time >= '${end_time}'`)
+    }
+    query = query.leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
         .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
         .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
         .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
         .groupBy('users.user_id')
         .select(
             '*',
+            'users.user_id as user_id',
             knex.raw('group_concat(user_interests.interest) as interests'),
         )
-
+    const result = await query
     ctx.body = result
 }
 
