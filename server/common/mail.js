@@ -1,15 +1,23 @@
-const _ = require('lodash')
+const { DM } = require('waliyun')
 
-const mailgunPrivateKey = process.env.buzz_mailgun_private_key
-
-const mailgun = require('mailgun-js')({ apiKey: mailgunPrivateKey, domain: 'service.buzzbuzzenglish.com' })
+const dm = DM({
+    AccessKeyId: process.env.buzz_aliyun_mail_id,
+    AccessKeySecret: process.env.buzz_aliyun_mail_secret,
+})
 
 module.exports = {
-    // await mail.send({to: 'xreamxu@gmail.com', subject: '123', text: 'good!'})
+    // FromAlias: 'BuzzBuzz',
+    // ToAddress: '',
+    // Subject: '排课确认通知',
+    // HtmlBody: ``,
     async send(opt) {
-        await mailgun.messages().send({
-            from: 'BuzzBuzz <no-reply@service.buzzbuzzenglish.com>',
+        return await dm.singleSendMail({
+            ReplyToAddress: true,
+            AddressType: 1,
+            AccountName: 'no-reply@service-cn.buzzbuzzenglish.com',
+            FromAlias: 'BuzzBuzz',
             ...opt,
         })
     },
+
 }
