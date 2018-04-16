@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
@@ -16,7 +17,15 @@ const api = new API(
         await redis.set(apiName, JSON.stringify(token))
     }
 )
-const client = new Client(appId, appSecret)
+
+const clientName = `wechat:oauth:${appId}`
+const client = new Client(
+    appId, appSecret,
+    async openid => JSON.parse(await redis.get(`${clientName}:${openid}`)),
+    async (openid, token) => {
+        await redis.set(`${clientName}:${openid}`, JSON.stringify(token), 'ex', _.get(token, 'expires_in', 7200))
+    }
+)
 
 module.exports = {
     async getJsConfig(arg) {
@@ -24,5 +33,18 @@ module.exports = {
     },
     async getMedia({ serverId }) {
         return await api.getMedia(serverId)
+    },
+    authUrl(redirectUrl, state) {
+        return client.getAuthorizeURL(redirectUrl, state, 'snsapi_base')
+    },
+    async code(code) {
+        const { data } = await client.getAccessToken(code)
+        return data
+    },
+    async userInfo(openid) {
+        return await client.getUser(openid)
+    },
+    async sendTpl(openid, id, url, data, color) {
+        return await api.sendTemplate(openid, id, url, undefined, undefined, data, color)
     },
 }
