@@ -9,14 +9,17 @@ const selectSchedules = function () {
         .select('user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
 
-const selectSchedulesWithMoreInfo = function (user_id) {
+const selectSchedulesWithMoreInfo = function () {
     return knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
         .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('class_feedback', function () {
-            this.on('class_feedback.class_id', 'student_class_schedule.class_id').on('class_feedback.to_user_id', 'user_profiles.user_id')
-                .onIn('class_feedback.from_user_id', '=', `${user_id}`)
+            this.on(function () {
+                this.on('class_feedback.class_id', 'student_class_schedule.class_id')
+                this.andOn('class_feedback.to_user_id', 'user_profiles.user_id')
+                this.andOn('class_feedback.from_user_id', 'student_class_schedule.user_id')
+            })
         })
         .select(
             'student_class_schedule.user_id as user_id',
@@ -43,7 +46,7 @@ const list = async ctx => {
     try {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
 
-        ctx.body = await selectSchedulesWithMoreInfo(ctx.params.user_id)
+        ctx.body = await selectSchedulesWithMoreInfo()
             .where('student_class_schedule.user_id', ctx.params.user_id)
             .andWhere('student_class_schedule.start_time', '>=', start_time)
             .andWhere('student_class_schedule.end_time', '<=', end_time)
