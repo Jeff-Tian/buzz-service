@@ -42,7 +42,6 @@
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
-    "mailgun-js": "^0.16.0",
     "mysql": "^2.15.0",
     "mysql2": "^1.5.3",
     "pg": "^7.4.1",
