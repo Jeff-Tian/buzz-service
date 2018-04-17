@@ -22,12 +22,12 @@ describe('routes: student class schedule', () => {
         it('should return all the user schedules for :user_id', done => {
             chai
                 .request(server)
-                .get(`${PATH}/1?start_time=2018-1-1&end_time=`)
+                .get(`${PATH}/2?start_time=2018-1-1&end_time=`)
                 .end((err, res) => {
                     should.not.exist(err)
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
-                    res.body.length.should.eql(1)
+                    res.body.length.should.eql(3)
                     res.body[0].should.include.keys('user_id', 'status', 'classes_status', 'topic', 'companion_name', 'companion_avatar', 'title', 'comment', 'score', 'from_user_id', 'to_user_id', 'companion_id', 'CURRENT_TIMESTAMP')
                     done()
                 })
