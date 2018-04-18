@@ -23,7 +23,7 @@ module.exports = {
         })
     },
     // 发送验证邮件
-    async sendVerifyMail(mail, digit = 4, expire = 30 * 60) {
+    async sendVerificationMail(mail, digit = 4, expire = 30 * 60) {
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
         if (process.env.NODE_ENV !== 'test') {
             // TODO: 改成验证邮件的文案

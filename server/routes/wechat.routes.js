@@ -4,4 +4,5 @@ const wechatController = require('../controllers/wechatController')
 const BASE_URL = '/api/v1/wechat'
 router.post(`${BASE_URL}/js-config`, wechatController.getJsConfig)
 router.post(`${BASE_URL}/media`, wechatController.media)
+router.post(`${BASE_URL}/tpl`, wechatController.sendTpl)
 module.exports = router

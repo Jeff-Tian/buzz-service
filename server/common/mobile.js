@@ -4,7 +4,7 @@ const sms = require('./sms')
 
 module.exports = {
     // 发送验证短信
-    async sendVerifySms(mobile, digit = 4, expire = 30 * 60) {
+    async sendVerificationSms(mobile, digit = 4, expire = 30 * 60) {
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
         if (process.env.NODE_ENV !== 'test') {
             await sms.send({ mobile, param: { code } })
