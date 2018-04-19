@@ -312,6 +312,7 @@ const signIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
+    // TODO: don't set long term cookies by default:
     ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
     ctx.body = users[0]
 }

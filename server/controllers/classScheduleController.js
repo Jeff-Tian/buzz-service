@@ -148,7 +148,6 @@ const list = async ctx => {
         }
 
         ctx.body = await searchClasses(search)
-        console.log(ctx.body)
     } catch (error) {
         console.error(error)
         ctx.throw(error)
