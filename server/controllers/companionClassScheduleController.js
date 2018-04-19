@@ -14,7 +14,6 @@ const selectCompanionWithMoreInfo = function () {
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(
-            knex.fn.now(),
             'companion_class_schedule.class_id as class_id',
             'classes.status AS classes_status',
             'classes.end_time AS class_end_time',
@@ -37,11 +36,19 @@ const listAll = async ctx => {
 const list = async ctx => {
     try {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
-
-        ctx.body = await selectCompanionWithMoreInfo()
-            .where('companion_class_schedule.user_id', ctx.params.user_id)
-            .andWhere('companion_class_schedule.start_time', '>=', start_time)
-            .andWhere('companion_class_schedule.end_time', '<=', end_time)
+        if (process.env.NODE_ENV !== 'test') {
+            ctx.body = await selectCompanionWithMoreInfo()
+                .select(knex.raw('UTC_TIMESTAMP as CURRENT_TIMESTAMP'))
+                .where('companion_class_schedule.user_id', ctx.params.user_id)
+                .andWhere('companion_class_schedule.start_time', '>=', start_time)
+                .andWhere('companion_class_schedule.end_time', '<=', end_time)
+        } else {
+            ctx.body = await selectCompanionWithMoreInfo()
+                .select(knex.fn.now())
+                .where('companion_class_schedule.user_id', ctx.params.user_id)
+                .andWhere('companion_class_schedule.start_time', '>=', start_time)
+                .andWhere('companion_class_schedule.end_time', '<=', end_time)
+        }
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)
