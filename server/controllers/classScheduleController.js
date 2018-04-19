@@ -81,7 +81,7 @@ function searchClasses(search) {
 const getClassByClassId = async ctx => {
     if (process.env.NODE_ENV !== 'test') {
         ctx.body = await selectClassesWithCompanionInfo()
-            .select(knex.raw('UTC_TIMESTAMP as CURRENT_TIMESTAMP'))
+            .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
             .where('classes.class_id', ctx.params.class_id) || {}
     } else {
         ctx.body = await selectClassesWithCompanionInfo()
@@ -137,7 +137,7 @@ const list = async ctx => {
 
         if (process.env.NODE_ENV !== 'test') {
             search = search
-                .select(knex.raw('UTC_TIMESTAMP as CURRENT_TIMESTAMP'))
+                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
         } else {
             search = search
                 .select(knex.fn.now())
@@ -151,6 +151,7 @@ const list = async ctx => {
         console.log(ctx.body)
     } catch (error) {
         console.error(error)
+        ctx.throw(error)
     }
 }
 

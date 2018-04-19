@@ -46,7 +46,7 @@ const list = async ctx => {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
         if (process.env.NODE_ENV !== 'test') {
             ctx.body = await selectSchedulesWithMoreInfo()
-                .select(knex.raw('UTC_TIMESTAMP as CURRENT_TIMESTAMP'))
+                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
                 .where('student_class_schedule.user_id', ctx.params.user_id)
                 .andWhere('student_class_schedule.start_time', '>=', start_time)
                 .andWhere('student_class_schedule.end_time', '<=', end_time)
