@@ -75,10 +75,20 @@ describe('routes:get class feedback', () => {
     })
 
     describe(`GET ${PATH}/evaluate/:class_id`, () => {
-        it('返回true or false  代表外籍小伙伴是否全部评价中国学生', done => {
+        it('外籍小伙伴全部评价中国学生，返回true', done => {
             chai
                 .request(server)
                 .get(`${PATH}/evaluate/1`)
+                .end((err, res) => {
+                    should.not.exist(err)
+                    res.body.feedback.should.eql(true)
+                    done()
+                })
+        })
+        it('外籍小伙伴未全部评价中国学生，返回false', done => {
+            chai
+                .request(server)
+                .get(`${PATH}/evaluate/2`)
                 .end((err, res) => {
                     should.not.exist(err)
                     res.body.feedback.should.eql(false)
