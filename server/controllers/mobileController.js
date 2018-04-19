@@ -1,13 +1,13 @@
 const mobileCommon = require('../common/mobile')
 
-const sendVerifySms = async ctx => {
+const sendVerificationSms = async ctx => {
     try {
         const { mobile, expire: setExpire } = ctx.request.body
-        const { code, expire } = await mobileCommon.sendVerifySms(mobile, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
+        const { code, expire } = await mobileCommon.sendVerificationSms(mobile, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
         ctx.status = 200
         ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire }
     } catch (error) {
-        console.error('sendVerifySms error: ', error)
+        console.error('sendVerificationSms error: ', error)
         ctx.status = 500
         ctx.body = error
     }
@@ -27,6 +27,6 @@ const verifyByCode = async ctx => {
 }
 
 module.exports = {
-    sendVerifySms,
+    sendVerificationSms,
     verifyByCode,
 }

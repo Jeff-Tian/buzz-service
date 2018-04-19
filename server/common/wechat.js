@@ -49,7 +49,7 @@ module.exports = {
     async userInfo(openid) {
         return await client.getUser(openid)
     },
-    async sendTpl(openid, id, url, data, color) {
-        return await api.sendTemplate(openid, id, url, undefined, undefined, data, color)
+    async sendTpl({ openid, id, url, color, data }) {
+        return await api.sendTemplate(openid, id, url, color, data)
     },
 }
