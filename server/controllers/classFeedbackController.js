@@ -60,12 +60,9 @@ const getEvaluateStatus = async ctx => {
             })
             .andWhere('to_user_id', 'in', arr)
 
-        let mark = true
-        for (let i = 0; i < evaluateList.length; i++) {
-            if (!evaluateList[i].score || !evaluateList[i].comment) {
-                mark = false
-                break
-            }
+        let mark = false
+        if (arr.length === evaluateList.length) {
+            mark = true
         }
         ctx.body = { class_id: classId, feedback: mark }
         ctx.status = 200

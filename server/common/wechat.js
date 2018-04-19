@@ -6,8 +6,13 @@ const Client = require('co-wechat-oauth')
 const API = require('co-wechat-api')
 const { redis } = require('./redis')
 
-const appId = process.env.buzz_wechat_appid
-const appSecret = process.env.buzz_wechat_secret
+let appId = process.env.buzz_wechat_appid
+let appSecret = process.env.buzz_wechat_secret
+
+if (process.env.NODE_ENV === 'staging') {
+    appId = process.env.buzz_wechat_test_appid
+    appSecret = process.env.buzz_wechat_test_secret
+}
 
 const apiName = `wechat:api:${appId}`
 const api = new API(
