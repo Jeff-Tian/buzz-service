@@ -137,7 +137,7 @@ const list = async ctx => {
 
         if (process.env.NODE_ENV !== 'test') {
             search = search
-                .select(knex.raw('UTC_TIMESTAMP as CURRENT_TIMESTAMP'))
+                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
         } else {
             search = search
                 .select(knex.fn.now())
