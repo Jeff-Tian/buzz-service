@@ -441,4 +441,45 @@ const countBookedClasses = async user_id => {
     return _.get(result, '0.count')
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses }
+const getStudentsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
+    const users = await knex('classes')
+        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+        .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
+        .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+        .select(
+            'classes.class_id as class_id',
+            'classes.topic as class_topic',
+            'classes.start_time as start_time',
+            'user_social_accounts.wechat_openid as wechat_openid',
+            'student_class_schedule.user_id as user_id',
+            'user_profiles.time_zone as time_zone',
+        )
+        .where({
+            'classes.class_id': class_id,
+            'student_class_schedule.status': schedule_status,
+        })
+        .whereIn('classes.status', class_status)
+    return users
+}
+
+const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
+    const users = await knex('classes')
+        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .select(
+            'classes.class_id as class_id',
+            'classes.topic as class_topic',
+            'classes.start_time as start_time',
+            'companion_class_schedule.user_id as user_id',
+            'user_profiles.email as email',
+            'user_profiles.time_zone as time_zone',
+        )
+        .where({
+            'classes.class_id': class_id,
+            'companion_class_schedule.status': schedule_status,
+        })
+        .whereIn('classes.status', class_status)
+    return users
+}
+
+module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses, getStudentsByClassId, getCompanionsByClassId }

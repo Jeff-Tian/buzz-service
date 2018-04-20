@@ -1,6 +1,7 @@
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+const moment = require('moment-timezone')
 
 function checkTimeConflicts(data) {
     for (let i = 0; i < data.length - 1; i++) {
@@ -95,6 +96,8 @@ const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, sta
     await checkDBTimeRangeOverlapWithTime(table, user_id, start_time)
 }
 
+const tzShift = async (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
+
 module.exports = {
     uniformTimes,
     checkTimeConflicts,
@@ -104,4 +107,5 @@ module.exports = {
     },
     uniformTime,
     convertToDBFormat,
+    tzShift,
 }

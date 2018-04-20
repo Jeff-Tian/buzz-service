@@ -2,8 +2,8 @@ const mailCommon = require('../common/mail')
 
 const sendVerificationMail = async ctx => {
     try {
-        const { mail, expire: setExpire } = ctx.request.body
-        const { code, expire } = await mailCommon.sendVerificationMail(mail, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
+        const { mail, name, expire: setExpire } = ctx.request.body
+        const { code, expire } = await mailCommon.sendVerificationMail(mail, name, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
         ctx.status = 200
         ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire }
     } catch (error) {
