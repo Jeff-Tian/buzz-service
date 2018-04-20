@@ -57,8 +57,6 @@ const list = async ctx => {
                 .andWhere('student_class_schedule.start_time', '>=', start_time)
                 .andWhere('student_class_schedule.end_time', '<=', end_time)
         }
-
-        console.log('ctx.body', ctx.body)
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)
