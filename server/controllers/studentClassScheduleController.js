@@ -38,19 +38,25 @@ const selectSchedulesWithMoreInfo = function () {
             'class_feedback.from_user_id as from_user_id',
             'class_feedback.to_user_id as to_user_id',
             'class_feedback.score as score',
-            knex.fn.now(),
             'class_feedback.comment as comment'
         )
 }
 const list = async ctx => {
     try {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
-
-        ctx.body = await selectSchedulesWithMoreInfo()
-            .where('student_class_schedule.user_id', ctx.params.user_id)
-            .andWhere('student_class_schedule.start_time', '>=', start_time)
-            .andWhere('student_class_schedule.end_time', '<=', end_time)
-        console.log('ctx.body', ctx.body)
+        if (process.env.NODE_ENV !== 'test') {
+            ctx.body = await selectSchedulesWithMoreInfo()
+                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+                .where('student_class_schedule.user_id', ctx.params.user_id)
+                .andWhere('student_class_schedule.start_time', '>=', start_time)
+                .andWhere('student_class_schedule.end_time', '<=', end_time)
+        } else {
+            ctx.body = await selectSchedulesWithMoreInfo()
+                .select(knex.fn.now())
+                .where('student_class_schedule.user_id', ctx.params.user_id)
+                .andWhere('student_class_schedule.start_time', '>=', start_time)
+                .andWhere('student_class_schedule.end_time', '<=', end_time)
+        }
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)

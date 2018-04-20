@@ -18,6 +18,7 @@ const listSuggested = async ctx => {
 
         const suggestions = Scheduling.makeGroups(res)
         console.log('res = ', res)
+        ctx.status = 200
         ctx.body = res
     } catch (error) {
         console.error(error)
@@ -63,7 +64,7 @@ function selectClassesWithCompanionInfo() {
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .groupByRaw('classes.class_id')
-        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', knex.fn.now(), 'users.name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
+        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'users.name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
 }
 
 function searchClasses(search) {
@@ -78,12 +79,18 @@ function searchClasses(search) {
 }
 
 const getClassByClassId = async ctx => {
-    const result = await selectClassesWithCompanionInfo()
-        .where('classes.class_id', ctx.params.class_id)
+    if (process.env.NODE_ENV !== 'test') {
+        ctx.body = await selectClassesWithCompanionInfo()
+            .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+            .where('classes.class_id', ctx.params.class_id) || {}
+    } else {
+        ctx.body = await selectClassesWithCompanionInfo()
+            .select(knex.fn.now())
+            .where('classes.class_id', ctx.params.class_id) || {}
+    }
 
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
-    ctx.body = result || {}
 }
 
 /* 设置定时任务  start */
@@ -128,14 +135,22 @@ const list = async ctx => {
         let search = selectClassesWithCompanionInfo()
             .orderBy('classes.start_time', 'DESC')
 
+        if (process.env.NODE_ENV !== 'test') {
+            search = search
+                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+        } else {
+            search = search
+                .select(knex.fn.now())
+        }
+
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
         }
 
         ctx.body = await searchClasses(search)
-        console.log(ctx.body)
     } catch (error) {
         console.error(error)
+        ctx.throw(error)
     }
 }
 
@@ -274,7 +289,6 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
-            console.log(classIds[0])
             // 创建定时任务
             console.log('_________即将创建定时任务_____________')
             try {

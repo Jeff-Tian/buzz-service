@@ -1,7 +1,6 @@
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
-console.log('knex config = ', config)
 const knex = require('knex')(config)
 const wechat = require('../common/wechat')
 const Stream = require('stream')
@@ -33,7 +32,19 @@ const media = async ctx => {
         ctx.body = error
     }
 }
+const sendTpl = async ctx => {
+    try {
+        const result = await wechat.sendTpl(ctx.request.body)
+        ctx.status = 200
+        ctx.body = result
+    } catch (error) {
+        console.error('sendWechatTpl error: ', error)
+        ctx.status = 500
+        ctx.body = error
+    }
+}
 module.exports = {
     getJsConfig,
     media,
+    sendTpl,
 }
