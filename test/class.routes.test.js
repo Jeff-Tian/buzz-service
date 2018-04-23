@@ -38,33 +38,6 @@ describe('routes: class schedules', () => {
     })
     /** every subsequent test must be added here !! * */
 
-    describe(`GET ${PATH}`, () => {
-        it('should list all the classes', done => {
-            chai
-                .request(server)
-                .get(`${PATH}`)
-                .end((err, res) => {
-                    should.not.exist(err)
-                    res.status.should.eql(200)
-                    res.type.should.eql('application/json')
-                    res.body[0].should.include.keys('room_url', 'companions', 'students')
-                    done()
-                })
-        })
-    })
-    describe(`GET ${PATH}/:class_id`, () => {
-        it('通过class_id获取到班级信息', done => {
-            chai
-                .request(server)
-                .get(`${PATH}/1`)
-                .end((err, res) => {
-                    should.not.exist(err)
-                    res.status.should.eql(200)
-                    res.body[0].should.include.keys('companion_name')
-                    done()
-                })
-        })
-    })
     describe(`POST ${PATH}`, () => {
         it('should create a class and then update it without error', done => {
             chai
@@ -141,15 +114,12 @@ describe('routes: class schedules', () => {
                                                 .get('/api/v1/student-class-schedule')
                                                 .end((err, res) => {
                                                     should.not.exist(err)
-                                                    console.log('checking student schedules')
-                                                    console.log(res.body)
                                                     res.body.length.should.eql(studentClassSchedules - 3)
 
                                                     chai.request(server)
                                                         .get('/api/v1/companion-class-schedule')
                                                         .end((err, res) => {
                                                             should.not.exist(err)
-                                                            console.log('checking companion schedules')
                                                             res.body.length.should.eql(companionClassSchedules - 3)
                                                             done()
                                                         })

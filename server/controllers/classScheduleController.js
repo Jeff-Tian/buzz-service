@@ -57,16 +57,6 @@ function selectClasses() {
         .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
 }
 
-function selectClassesWithCompanionInfo() {
-    return knex('classes')
-        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
-        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
-        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
-        .groupByRaw('classes.class_id')
-        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'users.name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
-}
-
 function searchClasses(search) {
     return search
         .select(
@@ -79,15 +69,36 @@ function searchClasses(search) {
 }
 
 const getClassByClassId = async ctx => {
-    if (process.env.NODE_ENV !== 'test') {
-        ctx.body = await selectClassesWithCompanionInfo()
-            .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
-            .where('classes.class_id', ctx.params.class_id) || {}
-    } else {
-        ctx.body = await selectClassesWithCompanionInfo()
-            .select(knex.fn.now())
-            .where('classes.class_id', ctx.params.class_id) || {}
-    }
+    const studentsSubQuery = knex('student_class_schedule')
+        .select(knex.raw('group_concat(user_id) as students')).where('class_id', '=', ctx.params.class_id).groupBy('student_class_schedule.class_id')
+        .as('students')
+    const companionsSubQuery = knex('companion_class_schedule')
+        .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', ctx.params.class_id).groupBy('companion_class_schedule.class_id')
+        .as('companions')
+    const companionsNamesSubQuery = knex('companion_class_schedule')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .select(knex.raw('group_concat(users.name) as companion_name'))
+        .where('companion_class_schedule.class_id', '=', ctx.params.class_id)
+        .groupBy('companion_class_schedule.class_id')
+        .as('companion_name')
+    const companionsAvatarsSubQuery = knex('companion_class_schedule')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .select(knex.raw('group_concat(user_profiles.avatar) as companion_avatar'))
+        .where('companion_class_schedule.class_id', '=', ctx.params.class_id)
+        .groupBy('companion_class_schedule.class_id')
+        .as('companion_avatar')
+
+    const selecting =
+        knex('classes')
+            .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level')
+            .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+            .select(studentsSubQuery)
+            .select(companionsSubQuery)
+            .select(companionsNamesSubQuery)
+            .select(companionsAvatarsSubQuery)
+            .where('class_id', '=', ctx.params.class_id)
+
+    ctx.body = await selecting.where('classes.class_id', ctx.params.class_id) || {}
 
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
@@ -132,22 +143,40 @@ const list = async ctx => {
     try {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
 
-        let search = selectClassesWithCompanionInfo()
-            .orderBy('classes.start_time', 'DESC')
+        const studentsSubQuery = knex('student_class_schedule')
+            .select(knex.raw('group_concat(user_id) as students')).groupBy('student_class_schedule.class_id')
+            .as('students')
+        const companionsSubQuery = knex('companion_class_schedule')
+            .select(knex.raw('group_concat(user_id) as companions')).groupBy('companion_class_schedule.class_id')
+            .as('companions')
+        const companionsNamesSubQuery = knex('companion_class_schedule')
+            .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+            .select(knex.raw('group_concat(users.name) as companion_name'))
+            .groupBy('companion_class_schedule.class_id')
+            .as('companion_name')
+        const companionsAvatarsSubQuery = knex('companion_class_schedule')
+            .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+            .select(knex.raw('group_concat(user_profiles.avatar) as companion_avatar'))
+            .groupBy('companion_class_schedule.class_id')
+            .as('companion_avatar')
 
-        if (process.env.NODE_ENV !== 'test') {
-            search = search
-                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
-        } else {
-            search = search
-                .select(knex.fn.now())
-        }
+        const selecting =
+            knex('classes')
+                .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level')
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+                .select(studentsSubQuery)
+                .select(companionsSubQuery)
+                .select(companionsNamesSubQuery)
+                .select(companionsAvatarsSubQuery)
+
+        let search = selecting
+            .orderBy('classes.start_time', 'DESC')
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
         }
 
-        ctx.body = await searchClasses(search)
+        ctx.body = await search
     } catch (error) {
         console.error(error)
         ctx.throw(error)
@@ -482,4 +511,14 @@ const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'end
     return users
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses, getStudentsByClassId, getCompanionsByClassId }
+module.exports = {
+    listSuggested,
+    list,
+    upsert,
+    change,
+    getClassByClassId,
+    endClass,
+    countBookedClasses,
+    getStudentsByClassId,
+    getCompanionsByClassId,
+}
