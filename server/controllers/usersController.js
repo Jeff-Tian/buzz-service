@@ -473,11 +473,12 @@ const getAvailableUsers = async ctx => {
     const schedule = `${role}_class_schedule`
     const hasSchedule = start_time && end_time
     // 该时段已排班的用户
-    const confirmedUsers = hasSchedule ? _.map(await knex(schedule)
+    const confirmedUsers = hasSchedule && _.map(await knex(schedule)
         .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
-        .select('user_id'), 'user_id') : []
+        .select('user_id'), 'user_id')
+    const notInQuery = _.isEmpty(confirmedUsers) ? '' : ` NOT IN (${confirmedUsers})`
     let query = knex('users')
-        .joinRaw(`INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0 AND users.role = '${role[0]}' AND users.user_id NOT IN (${confirmedUsers})`)
+        .joinRaw(`INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0 AND users.role = '${role[0]}' AND users.user_id${notInQuery}`)
     if (hasSchedule) {
         query = query.joinRaw(`INNER JOIN ${schedule} ON ${schedule}.user_id = users.user_id AND ${schedule}.status = 'booking' AND ${schedule}.start_time <= '${start_time}' AND ${schedule}.end_time >= '${end_time}'`)
     }
