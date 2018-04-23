@@ -58,7 +58,9 @@
     {
       "script": "server/index.js",
       "watch": "true",
-      "name": "buzz-corner-service"
+      "name": "buzz-corner-service",
+      "instances": "max",
+      "exec_mode": "cluster"
     }
   ]
 }
