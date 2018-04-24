@@ -68,23 +68,23 @@ function searchClasses(search) {
         )
 }
 
-const getClassByClassId = async ctx => {
+const getClassById = async function (classId) {
     const studentsSubQuery = knex('student_class_schedule')
-        .select(knex.raw('group_concat(user_id) as students')).where('class_id', '=', ctx.params.class_id).groupBy('student_class_schedule.class_id')
+        .select(knex.raw('group_concat(user_id) as students')).where('class_id', '=', classId).groupBy('student_class_schedule.class_id')
         .as('students')
     const companionsSubQuery = knex('companion_class_schedule')
-        .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', ctx.params.class_id).groupBy('companion_class_schedule.class_id')
+        .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
         .as('companions')
     const companionsNamesSubQuery = knex('companion_class_schedule')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(knex.raw('group_concat(users.name) as companion_name'))
-        .where('companion_class_schedule.class_id', '=', ctx.params.class_id)
+        .where('companion_class_schedule.class_id', '=', classId)
         .groupBy('companion_class_schedule.class_id')
         .as('companion_name')
     const companionsAvatarsSubQuery = knex('companion_class_schedule')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .select(knex.raw('group_concat(user_profiles.avatar) as companion_avatar'))
-        .where('companion_class_schedule.class_id', '=', ctx.params.class_id)
+        .where('companion_class_schedule.class_id', '=', classId)
         .groupBy('companion_class_schedule.class_id')
         .as('companion_avatar')
 
@@ -96,12 +96,15 @@ const getClassByClassId = async ctx => {
             .select(companionsSubQuery)
             .select(companionsNamesSubQuery)
             .select(companionsAvatarsSubQuery)
-            .where('class_id', '=', ctx.params.class_id)
+            .where('class_id', '=', classId)
 
-    ctx.body = await selecting.where('classes.class_id', ctx.params.class_id) || {}
-
+    return (await selecting.where('classes.class_id', classId))[0] || {}
+}
+const getClassByClassId = async ctx => {
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
+
+    ctx.body = [await getClassById(ctx.params.class_id)]
 }
 
 /* 设置定时任务  start */
@@ -335,7 +338,8 @@ const upsert = async ctx => {
 
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
-        ctx.body = (await selectClasses().where({ 'classes.class_id': classIds[0] }))[0]
+
+        ctx.body = await getClassById(classIds[0])
     } catch (error) {
         console.error(error)
 
