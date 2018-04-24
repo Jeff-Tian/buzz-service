@@ -11,6 +11,62 @@ const chai = require('chai')
 const should = chai.should()
 const chaiHttp = require('chai-http')
 chai.use(chaiHttp)
+
+function create3Classes() {
+    return new Promise((resolve, reject) => {
+        chai
+            .request(server)
+            .post(`${PATH}`)
+            .send({
+                adviser_id: 1,
+                companions: [4, 5, 6],
+                level: 'aa',
+                start_time: '2018-03-02T10:00:00Z',
+                end_time: '2018-03-02T11:00:00Z',
+                status: 'opened',
+                name: 'Test class',
+                remark: 'xxx',
+                topic: 'animal',
+                students: [1, 2, 3],
+                exercises: '["yyy","zzz"]',
+                room_url: 'http://www.baidu.com',
+            }, {
+                adviser_id: 2,
+                companions: [4, 5, 6],
+                level: 'aa',
+                start_time: '2018-03-02T10:00:00Z',
+                end_time: '2018-03-02T11:00:00Z',
+                status: 'opened',
+                name: 'Test class',
+                remark: 'xxx',
+                topic: 'animal',
+                students: [1, 2, 3],
+                exercises: '["yyy","zzz"]',
+                room_url: 'http://www.baidu.com',
+            }, {
+                adviser_id: 3,
+                companions: [4, 5, 6],
+                level: 'aa',
+                start_time: '2018-03-02T10:00:00Z',
+                end_time: '2018-03-02T11:00:00Z',
+                status: 'opened',
+                name: 'Test class',
+                remark: 'xxx',
+                topic: 'animal',
+                students: [1, 2, 3],
+                exercises: '["yyy","zzz"]',
+                room_url: 'http://www.baidu.com',
+            })
+            .end((err, res) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve(res)
+                }
+            })
+    })
+}
+
 // Rollback, commit and populate the test database before each test
 describe('routes: class schedules select with attendies info', () => {
     beforeEach(() => knex.migrate
@@ -22,16 +78,18 @@ describe('routes: class schedules select with attendies info', () => {
 
     describe(`GET ${PATH}`, () => {
         it('should list all the classes', done => {
-            chai
-                .request(server)
-                .get(`${PATH}`)
-                .end((err, res) => {
-                    should.not.exist(err)
-                    res.status.should.eql(200)
-                    res.type.should.eql('application/json')
-                    res.body[0].should.include.keys('room_url', 'companions', 'students')
-                    done()
-                })
+            create3Classes().then(res => {
+                chai
+                    .request(server)
+                    .get(`${PATH}`)
+                    .end((err, res) => {
+                        should.not.exist(err)
+                        res.status.should.eql(200)
+                        res.type.should.eql('application/json')
+                        res.body[0].should.include.keys('room_url', 'companions', 'students')
+                        done()
+                    })
+            })
         })
     })
 
