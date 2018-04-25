@@ -29,7 +29,7 @@ describe('routes: companion class schedule', () => {
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(3)
-                    res.body[0].should.include.keys('user_id', 'status')
+                    res.body[0].should.include.keys('user_id', 'status', 'batch_id')
                     done()
                 })
         })
