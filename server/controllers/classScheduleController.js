@@ -356,8 +356,7 @@ const endClass = async ctx => {
         console.log('已经触发的定时器的时间cronTime:', cronTime)
 
         const classInfo = _.get(await trx('classes')
-            .where('class_id', classId)
-            .select('end_time status'), 0)
+            .where('class_id', classId), 0)
         if (!classInfo) {
             throw new Error('class not found')
         }
@@ -399,8 +398,13 @@ const endClass = async ctx => {
         ctx.status = 200
         console.log('返回的被修改班级的信息', ctx.body)
     } catch (error) {
-        console.log(error)
+        console.error(error)
+
         await trx.rollback()
+        ctx.status = 500
+        ctx.body = {
+            error: 'end class failed!',
+        }
     }
 }
 
