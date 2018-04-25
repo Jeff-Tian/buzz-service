@@ -1,19 +1,15 @@
 const common = require('./common')
-const chai = require('chai')
-const server = require('../../server/index')
 
 module.exports = {
     async batchCreateBookingsRequest({ user_id, start_time, end_time }) {
-        return await (new Promise((resolve, reject) => {
-            chai
-                .request(server)
-                .post(`/api/v1/bookings/batch/${user_id}`)
-                .send({
-                    user_id,
-                    start_time,
-                    end_time,
-                })
-                .end(common.convertErrorResultToResolveReject(resolve, reject))
-        }))
+        return await common.makeRequest('post', `/api/v1/bookings/batch/${user_id}`, {
+            user_id,
+            start_time,
+            end_time,
+        })
+    },
+
+    async listBatchBookingsRequest(user_id) {
+        return await common.makeRequest('get', `/api/v1/bookings/batch/${user_id}`)
     },
 }

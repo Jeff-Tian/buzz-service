@@ -99,9 +99,22 @@ module.exports = {
             throw new BalanceClassHourInSufficientError(`balance class hours of ${userId} is only ${theUser.class_hours}`, uuidv4())
         }
 
-        const batchId = this.getBatchId(userId, theUser.role)
+        const batchId = await this.getBatchId(userId, theUser.role)
         const bookings = this.generateBookings(theUser.class_hours, userId, batchId, start_time, end_time)
 
         return await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+    },
+
+    async listBatchBookingsFor(user_id) {
+        if (!user_id) {
+            throw new Error('invalid user_id', uuidv4())
+        }
+
+        const theUser = await user.get(user_id)
+
+        return await knex(this.getBookingTable(theUser.role))
+            .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
+            .whereNotNull('batch_id')
+            .andWhere({ user_id })
     },
 }

@@ -96,6 +96,9 @@ describe('routes: bookings', () => {
             const batchId = r.body[0]
 
             batchId.should.gt(0)
+
+            const res = await booking.listBatchBookingsRequest(userId)
+            res.body.length.should.gt(0)
         })
     })
 })
