@@ -107,40 +107,18 @@ const getClassByClassId = async ctx => {
     ctx.body = [await getClassById(ctx.params.class_id)]
 }
 
-/* 设置定时任务  start */
-
-/*
-function selectClassInfo(classId, trx) {
-    return trx('classes')
-        .select()
-        .where({ class_id: classId })
-}
-*/
-
-async function changeClassStatus(endTime, classId) {
+async function addClassJob(classInfo) {
     try {
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task`,
             method: 'POST',
-            body: {
-                classId,
-                endTime,
-            },
+            body: classInfo,
             json: true,
         })
     } catch (ex) {
         console.error(ex)
     }
 }
-
-async function task(classId, trx, newEndTime) {
-    /* const classInfo = await selectClassInfo(classId, trx) */
-    const endTime = newEndTime
-    console.log('定时任务时间', endTime)
-    await changeClassStatus(endTime, classId)
-}
-
-/* 设置定时任务  end */
 
 const list = async ctx => {
     try {
@@ -214,33 +192,6 @@ const upsert = async ctx => {
         })) : []
 
         if (body.class_id) {
-            /* -------新建修改班级结束状态定时器start---------*/
-            console.log('判断需要修改班级信息的classId：', body.class_id)
-            const endTime = await trx('classes')
-                .where('class_id', body.class_id)
-                .select('end_time')
-            console.log('获取数据库中的结束时间，和要更改的结束时间比较' +
-                '如果时间发生改变，则修改定时任务', 'sql中endTime:：', endTime[0], '将要修改的endTime：', body.end_time)
-            const sqlTime = new Date(endTime[0].end_time).getTime()
-            const bodyTime = new Date(body.end_time).getTime()
-
-            console.log('数据库中：sqlTime：', sqlTime)
-            console.log('将要修改的：bodyTime:', bodyTime)
-
-            if (sqlTime !== bodyTime) {
-                // 修改定时任务
-                console.log('_______即将添加新的定时任务___________')
-                try {
-                    await task(body.class_id, trx, new Date(body.end_time))
-                } catch (ex) {
-                    console.error(ex)
-                }
-                console.log('________添加新的定时任务成功___________')
-            }
-            /* -------新建修改班级结束状态定时器end---------*/
-
-            console.error('body class i d= ', body.class_id)
-
             if (JSON.stringify(data) !== '{}') {
                 await trx('classes')
                     .returning('class_id')
@@ -311,14 +262,6 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
-            // 创建定时任务
-            console.log('_________即将创建定时任务_____________')
-            try {
-                await task(classIds[0], trx, new Date(data.end_time))
-                console.log('_________创建定时任务成功__________')
-            } catch (ex) {
-                console.error(ex)
-            }
         }
 
         if (studentSchedules.length) {
@@ -338,8 +281,9 @@ const upsert = async ctx => {
 
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
-
-        ctx.body = await getClassById(classIds[0])
+        const classInfo = await getClassById(classIds[0])
+        await addClassJob(classInfo)
+        ctx.body = classInfo
     } catch (error) {
         console.error(error)
 
@@ -411,10 +355,16 @@ const endClass = async ctx => {
         const cronTime = new Date(endTime).getTime()
         console.log('已经触发的定时器的时间cronTime:', cronTime)
 
-        const classEndTime = await trx('classes')
+        const classInfo = _.get(await trx('classes')
             .where('class_id', classId)
-            .select('end_time')
-        const sqlTime = new Date(classEndTime[0].end_time).getTime()
+            .select('end_time status'), 0)
+        if (!classInfo) {
+            throw new Error('class not found')
+        }
+        if (classInfo.status !== 'opened') {
+            throw new Error(`can't end ${classInfo.status} class`)
+        }
+        const sqlTime = new Date(classInfo.end_time).getTime()
         console.log('数据库中班级的结束时间sqlTime', sqlTime)
 
         if (sqlTime === cronTime) {
