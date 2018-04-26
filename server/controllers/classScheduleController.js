@@ -3,6 +3,7 @@ const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
+const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
@@ -414,48 +415,71 @@ const countBookedClasses = async user_id => {
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
         .countDistinct('classes.class_id as count')
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereNotIn('classes.status', ['ended', 'cancelled'])
+        .whereIn('classes.status', ['opened'])
     return _.get(result, '0.count')
 }
 
-const getStudentsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
-    const users = await knex('classes')
+const getStudentsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed', hasWechatOpenId = true, parseTz = true }) => {
+    let query = knex('classes')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
         .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
         .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
         .select(
             'classes.class_id as class_id',
             'classes.topic as class_topic',
             'classes.start_time as start_time',
+            'classes.end_time as end_time',
             'user_social_accounts.wechat_openid as wechat_openid',
+            'user_social_accounts.wechat_name as wechat_name',
             'student_class_schedule.user_id as user_id',
             'user_profiles.time_zone as time_zone',
+            'users.name as name',
         )
         .where({
             'classes.class_id': class_id,
             'student_class_schedule.status': schedule_status,
         })
         .whereIn('classes.status', class_status)
+    if (hasWechatOpenId) {
+        query = query.whereNotNull('user_social_accounts.wechat_openid')
+            .whereNot('user_social_accounts.wechat_openid', '')
+    }
+    let users = await query
+    if (parseTz) {
+        users = timeHelper.formatUsers(users, 'YYYY/MM/DD ddd HH:mm', 'zh-CN')
+    }
     return users
 }
 
-const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
-    const users = await knex('classes')
+const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed', hasEmail = true, parseTz = true }) => {
+    let query = knex('classes')
         .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(
             'classes.class_id as class_id',
             'classes.topic as class_topic',
             'classes.start_time as start_time',
+            'classes.end_time as end_time',
             'companion_class_schedule.user_id as user_id',
             'user_profiles.email as email',
             'user_profiles.time_zone as time_zone',
+            'users.name as name',
         )
         .where({
             'classes.class_id': class_id,
             'companion_class_schedule.status': schedule_status,
         })
         .whereIn('classes.status', class_status)
+    if (hasEmail) {
+        query = query.whereNotNull('user_profiles.email')
+            .whereNot('user_profiles.email', '')
+    }
+    let users = await query
+    if (parseTz) {
+        users = timeHelper.formatUsers(users, 'HH:mm DD/MMM/YYYY ddd', 'en-US')
+    }
     return users
 }
 

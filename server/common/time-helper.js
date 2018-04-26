@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -96,7 +97,40 @@ const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, sta
     await checkDBTimeRangeOverlapWithTime(table, user_id, start_time)
 }
 
-const tzShift = async (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
+const tzShift = (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
+
+// 处理 [{ start_time, end_time, time_zone }]
+const formatUsers = (users, format, locale) => _.map(users, i => {
+    if (locale) {
+        moment.locale(locale)
+    }
+    const oldTz = 'Asia/Shanghai'
+    const newTz = i.time_zone || oldTz
+    const start_time = moment(i.start_time)
+    const end_time = moment(i.end_time)
+    const start_time_local = tzShift(start_time, oldTz, newTz)
+    const end_time_local = tzShift(end_time, oldTz, newTz)
+    return {
+        ...i,
+        time_zone: newTz,
+        start_time: {
+            readable: start_time.format('YYYY-MM-DD HH:mm:ss'),
+            local_readable: start_time_local.format('YYYY-MM-DD HH:mm:ss'),
+            formatted: start_time.format(format),
+            local_formatted: `${start_time_local.format(format)}, ${newTz}`,
+            time: start_time,
+            local: start_time_local,
+        },
+        end_time: {
+            readable: end_time.format('YYYY-MM-DD HH:mm:ss'),
+            local_readable: end_time_local.format('YYYY-MM-DD HH:mm:ss'),
+            formatted: end_time.format(format),
+            local_formatted: `${end_time_local.format(format)}, ${newTz}`,
+            time: end_time,
+            local: end_time_local,
+        },
+    }
+})
 
 module.exports = {
     uniformTimes,
@@ -108,4 +142,5 @@ module.exports = {
     uniformTime,
     convertToDBFormat,
     tzShift,
+    formatUsers,
 }
