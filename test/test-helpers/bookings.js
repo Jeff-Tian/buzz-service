@@ -1,3 +1,5 @@
+const Router = require('koa-router')
+
 const common = require('./common')
 
 module.exports = {
@@ -9,7 +11,13 @@ module.exports = {
         })
     },
 
-    async listBatchBookingsRequest(user_id) {
+    async listBatchBookingsForSingleUserRequest(user_id) {
         return await common.makeRequest('get', `/api/v1/bookings/batch/${user_id}`)
+    },
+
+    async listBatchBookingsForMultipleUserRequest(userIdArray) {
+        return await common.makeRequest('get', Router.url('/api/v1/bookings/batch', {
+            users: userIdArray,
+        }))
     },
 }

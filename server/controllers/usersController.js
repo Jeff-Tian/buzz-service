@@ -88,8 +88,8 @@ const search = async ctx => {
     } catch (error) {
         console.error(error)
 
-        ctx.status =
-            ctx.body = { error: error.message }
+        ctx.status = 500
+        ctx.body = { error: error.message }
     }
 }
 const show = async ctx => {
@@ -288,7 +288,10 @@ const signInByMobileOrEmail = async ctx => {
         // 把将要返回的用户信息中的密码置为空
         users[0].password = ''
 
-        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+        ctx.cookies.set('user_id', users[0].user_id, {
+            httpOnly: true,
+            expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
+        })
 
         ctx.body = users[0]
     } else {

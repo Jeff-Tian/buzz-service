@@ -20,7 +20,7 @@ const batchCreateBookings = async ctx => {
     }
 }
 
-const listBatchBookings = async ctx => {
+const listBatchBookingsForSingleUser = async ctx => {
     try {
         ctx.body = await bookings.listBatchBookingsFor(ctx.params.user_id)
     } catch (ex) {
@@ -30,4 +30,13 @@ const listBatchBookings = async ctx => {
     }
 }
 
-module.exports = { batchCreateBookings, listBatchBookings }
+const listBatchBookingsForMultipleUsers = async ctx => {
+    try {
+        ctx.body = await bookings.listBatchBookings(ctx.query.users)
+    } catch (ex) {
+        console.error(ex)
+        ctx.throw(500, ex)
+    }
+}
+
+module.exports = { batchCreateBookings, listBatchBookingsForSingleUser, listBatchBookingsForMultipleUsers }

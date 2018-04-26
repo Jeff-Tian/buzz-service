@@ -10,21 +10,12 @@ const uuidv4 = require('uuid/v4')
 
 /*eslint-disable */
 class StartTimeWithin48HoursError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class EndTimeWithinHalfHourLaterOfStartTimeError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class BalanceClassHourInSufficientError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 /* eslint-enable */
 module.exports = {
@@ -117,5 +108,23 @@ module.exports = {
             .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
             .whereNotNull('batch_id')
             .andWhere({ user_id })
+    },
+
+    async listBatchBookings(userIdArray) {
+        function searchTable(table) {
+            const search = knex.select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
+                .from(table)
+                .whereNotNull('batch_id')
+
+            if (userIdArray instanceof Array) {
+                search.andWhere('user_id', 'in', userIdArray)
+            }
+
+            return search
+        }
+
+        const search1 = searchTable('student_class_schedule')
+        const search2 = searchTable('companion_class_schedule')
+        return await search1.unionAll(search2)
     },
 }
