@@ -11,6 +11,8 @@ const wechatRoutes = require('./routes/wechat.routes')
 const qiniuRoutes = require('./routes/qiniu.routes')
 const mobileRoutes = require('./routes/mobile.routes')
 const mailRoutes = require('./routes/mail.routes')
+const bookingRoutes = require('./routes/booking.routes')
+
 const bodyParser = require('koa-bodyparser')
 
 const app = new Koa()
@@ -28,7 +30,14 @@ app.use(wechatRoutes.routes())
 app.use(qiniuRoutes.routes())
 app.use(mobileRoutes.routes())
 app.use(mailRoutes.routes())
-const server = app.listen(PORT).on('error', err => {
+app.use(bookingRoutes.routes())
+
+const server = app.listen(PORT)
+
+server.on('error', err => {
+    console.error('========================')
     console.error(err)
+    console.error('========================')
 })
+
 module.exports = server
