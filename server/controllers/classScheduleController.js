@@ -54,17 +54,7 @@ function selectClasses() {
         .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
         .groupByRaw('classes.class_id')
-        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
-}
-
-function selectClassesWithCompanionInfo() {
-    return knex('classes')
-        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
-        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
-        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
-        .groupByRaw('classes.class_id')
-        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'users.name as companion_name', 'user_profiles.avatar as companion_avatar', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
+        .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', knex.raw('group_concat(companion_class_schedule.user_id) as companions'), knex.raw('group_concat(student_class_schedule.user_id) as students'))
 }
 
 function searchClasses(search) {
@@ -78,40 +68,51 @@ function searchClasses(search) {
         )
 }
 
-const getClassByClassId = async ctx => {
-    if (process.env.NODE_ENV !== 'test') {
-        ctx.body = await selectClassesWithCompanionInfo()
-            .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
-            .where('classes.class_id', ctx.params.class_id) || {}
-    } else {
-        ctx.body = await selectClassesWithCompanionInfo()
-            .select(knex.fn.now())
-            .where('classes.class_id', ctx.params.class_id) || {}
-    }
+const getClassById = async function (classId) {
+    const studentsSubQuery = knex('student_class_schedule')
+        .select(knex.raw('group_concat(user_id) as students')).where('class_id', '=', classId).groupBy('student_class_schedule.class_id')
+        .as('students')
+    const companionsSubQuery = knex('companion_class_schedule')
+        .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
+        .as('companions')
+    const companionsNamesSubQuery = knex('companion_class_schedule')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .select(knex.raw('group_concat(users.name) as companion_name'))
+        .where('companion_class_schedule.class_id', '=', classId)
+        .groupBy('companion_class_schedule.class_id')
+        .as('companion_name')
+    const companionsAvatarsSubQuery = knex('companion_class_schedule')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .select(knex.raw('group_concat(user_profiles.avatar) as companion_avatar'))
+        .where('companion_class_schedule.class_id', '=', classId)
+        .groupBy('companion_class_schedule.class_id')
+        .as('companion_avatar')
 
+    const selecting =
+        knex('classes')
+            .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level')
+            .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+            .select(studentsSubQuery)
+            .select(companionsSubQuery)
+            .select(companionsNamesSubQuery)
+            .select(companionsAvatarsSubQuery)
+            .where('class_id', '=', classId)
+
+    return (await selecting.where('classes.class_id', classId))[0] || {}
+}
+const getClassByClassId = async ctx => {
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
+
+    ctx.body = [await getClassById(ctx.params.class_id)]
 }
 
-/* 设置定时任务  start */
-
-/*
-function selectClassInfo(classId, trx) {
-    return trx('classes')
-        .select()
-        .where({ class_id: classId })
-}
-*/
-
-async function changeClassStatus(endTime, classId) {
+async function addClassJob(classInfo) {
     try {
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task`,
             method: 'POST',
-            body: {
-                classId,
-                endTime,
-            },
+            body: classInfo,
             json: true,
         })
     } catch (ex) {
@@ -119,35 +120,34 @@ async function changeClassStatus(endTime, classId) {
     }
 }
 
-async function task(classId, trx, newEndTime) {
-    /* const classInfo = await selectClassInfo(classId, trx) */
-    const endTime = newEndTime
-    console.log('定时任务时间', endTime)
-    await changeClassStatus(endTime, classId)
-}
-
-/* 设置定时任务  end */
-
 const list = async ctx => {
     try {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
 
-        let search = selectClassesWithCompanionInfo()
-            .orderBy('classes.start_time', 'DESC')
+        const studentsSubQuery = knex('student_class_schedule')
+            .select(knex.raw('group_concat(user_id) as students'), 'class_id').groupBy('student_class_schedule.class_id')
+            .as('students')
+        const companionsSubQuery = knex('companion_class_schedule')
+            .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+            .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+            .select(knex.raw('group_concat(users.user_id) as companions'), knex.raw('group_concat(users.name) as companion_name'), knex.raw('group_concat(user_profiles.avatar) as companion_avatar'), 'class_id').groupBy('companion_class_schedule.class_id')
+            .as('companions')
 
-        if (process.env.NODE_ENV !== 'test') {
-            search = search
-                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
-        } else {
-            search = search
-                .select(knex.fn.now())
-        }
+        const selecting =
+            knex('classes')
+                .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'students.students as students', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+                .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
+                .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+
+        let search = selecting
+            .orderBy('classes.start_time', 'DESC')
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
         }
 
-        ctx.body = await searchClasses(search)
+        ctx.body = await search
     } catch (error) {
         console.error(error)
         ctx.throw(error)
@@ -192,33 +192,6 @@ const upsert = async ctx => {
         })) : []
 
         if (body.class_id) {
-            /* -------新建修改班级结束状态定时器start---------*/
-            console.log('判断需要修改班级信息的classId：', body.class_id)
-            const endTime = await trx('classes')
-                .where('class_id', body.class_id)
-                .select('end_time')
-            console.log('获取数据库中的结束时间，和要更改的结束时间比较' +
-                '如果时间发生改变，则修改定时任务', 'sql中endTime:：', endTime[0], '将要修改的endTime：', body.end_time)
-            const sqlTime = new Date(endTime[0].end_time).getTime()
-            const bodyTime = new Date(body.end_time).getTime()
-
-            console.log('数据库中：sqlTime：', sqlTime)
-            console.log('将要修改的：bodyTime:', bodyTime)
-
-            if (sqlTime !== bodyTime) {
-                // 修改定时任务
-                console.log('_______即将添加新的定时任务___________')
-                try {
-                    await task(body.class_id, trx, new Date(body.end_time))
-                } catch (ex) {
-                    console.error(ex)
-                }
-                console.log('________添加新的定时任务成功___________')
-            }
-            /* -------新建修改班级结束状态定时器end---------*/
-
-            console.error('body class i d= ', body.class_id)
-
             if (JSON.stringify(data) !== '{}') {
                 await trx('classes')
                     .returning('class_id')
@@ -289,14 +262,6 @@ const upsert = async ctx => {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
-            // 创建定时任务
-            console.log('_________即将创建定时任务_____________')
-            try {
-                await task(classIds[0], trx, new Date(data.end_time))
-                console.log('_________创建定时任务成功__________')
-            } catch (ex) {
-                console.error(ex)
-            }
         }
 
         if (studentSchedules.length) {
@@ -316,7 +281,9 @@ const upsert = async ctx => {
 
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
-        ctx.body = (await selectClasses().where({ 'classes.class_id': classIds[0] }))[0]
+        const classInfo = await getClassById(classIds[0])
+        await addClassJob(classInfo)
+        ctx.body = classInfo
     } catch (error) {
         console.error(error)
 
@@ -388,10 +355,15 @@ const endClass = async ctx => {
         const cronTime = new Date(endTime).getTime()
         console.log('已经触发的定时器的时间cronTime:', cronTime)
 
-        const classEndTime = await trx('classes')
-            .where('class_id', classId)
-            .select('end_time')
-        const sqlTime = new Date(classEndTime[0].end_time).getTime()
+        const classInfo = _.get(await trx('classes')
+            .where('class_id', classId), 0)
+        if (!classInfo) {
+            throw new Error('class not found')
+        }
+        if (classInfo.status !== 'opened') {
+            throw new Error(`can't end ${classInfo.status} class`)
+        }
+        const sqlTime = new Date(classInfo.end_time).getTime()
         console.log('数据库中班级的结束时间sqlTime', sqlTime)
 
         if (sqlTime === cronTime) {
@@ -426,8 +398,13 @@ const endClass = async ctx => {
         ctx.status = 200
         console.log('返回的被修改班级的信息', ctx.body)
     } catch (error) {
-        console.log(error)
+        console.error(error)
+
         await trx.rollback()
+        ctx.status = 500
+        ctx.body = {
+            error: 'end class failed!',
+        }
     }
 }
 
@@ -441,4 +418,55 @@ const countBookedClasses = async user_id => {
     return _.get(result, '0.count')
 }
 
-module.exports = { listSuggested, list, upsert, change, getClassByClassId, endClass, countBookedClasses }
+const getStudentsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
+    const users = await knex('classes')
+        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+        .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
+        .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+        .select(
+            'classes.class_id as class_id',
+            'classes.topic as class_topic',
+            'classes.start_time as start_time',
+            'user_social_accounts.wechat_openid as wechat_openid',
+            'student_class_schedule.user_id as user_id',
+            'user_profiles.time_zone as time_zone',
+        )
+        .where({
+            'classes.class_id': class_id,
+            'student_class_schedule.status': schedule_status,
+        })
+        .whereIn('classes.status', class_status)
+    return users
+}
+
+const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
+    const users = await knex('classes')
+        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .select(
+            'classes.class_id as class_id',
+            'classes.topic as class_topic',
+            'classes.start_time as start_time',
+            'companion_class_schedule.user_id as user_id',
+            'user_profiles.email as email',
+            'user_profiles.time_zone as time_zone',
+        )
+        .where({
+            'classes.class_id': class_id,
+            'companion_class_schedule.status': schedule_status,
+        })
+        .whereIn('classes.status', class_status)
+    return users
+}
+
+module.exports = {
+    listSuggested,
+    list,
+    upsert,
+    change,
+    getClassByClassId,
+    endClass,
+    countBookedClasses,
+    getStudentsByClassId,
+    getCompanionsByClassId,
+}

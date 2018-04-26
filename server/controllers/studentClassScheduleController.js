@@ -3,10 +3,11 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const moment = require('moment')
+const _ = require('lodash')
 
 const selectSchedules = function () {
     return knex('student_class_schedule')
-        .select('user_id', 'class_id', 'status', 'start_time', 'end_time')
+        .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
 
 const selectSchedulesWithMoreInfo = function () {
@@ -131,4 +132,11 @@ const cancel = async ctx => {
         ctx.throw(500, ex)
     }
 }
-module.exports = { list, create, cancel, listAll }
+
+const batchList = async ctx => {
+    const user_id = ctx.params.user_id
+    const schedules = await selectSchedules().where({ user_id }).whereNotNull('batch_id').groupBy('batch_id')
+    ctx.body = schedules
+}
+
+module.exports = { list, create, cancel, listAll, batchList }
