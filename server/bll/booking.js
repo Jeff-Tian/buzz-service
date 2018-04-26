@@ -8,6 +8,7 @@ const user = require('./user')
 const moment = require('moment')
 const uuidv4 = require('uuid/v4')
 
+/*eslint-disable */
 class StartTimeWithin48HoursError extends Error {
     constructor(s, id) {
         super(s, id)
@@ -25,7 +26,7 @@ class BalanceClassHourInSufficientError extends Error {
         super(s, id)
     }
 }
-
+/* eslint-enable */
 module.exports = {
     StartTimeWithin48HoursError,
     EndTimeWithinHalfHourLaterOfStartTimeError,

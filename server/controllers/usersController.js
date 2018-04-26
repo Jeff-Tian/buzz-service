@@ -500,6 +500,7 @@ const getAvailableUsers = async ctx => {
 
 const getWechatByUserIds = async userIds => knex('users')
     .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+    .whereIn('users.user_id', userIds)
     .whereNotNull('user_social_accounts.wechat_openid')
     .whereNot('user_social_accounts.wechat_openid', '')
     .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')

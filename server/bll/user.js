@@ -1,11 +1,13 @@
 const user = require('../dal/user')
 const uuidv4 = require('uuid/v4')
 
+/*eslint-disable */
 class UserNotFoundError extends Error {
     constructor(s, id) {
         super(s, id)
     }
 }
+/* eslint-enable */
 
 module.exports = {
     UserNotFoundError,

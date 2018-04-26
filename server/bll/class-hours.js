@@ -1,6 +1,4 @@
 const _ = require('lodash')
-const wechat = require('../common/wechat')
-const { countBookedClasses } = require('../controllers/classScheduleController')
 
 async function getCurrentClassHours(trx, user_id) {
     return await trx('user_balance')
@@ -21,10 +19,10 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
 
     const new_class_hours = (currentClassHours.length > 0 ? currentClassHours[0].class_hours : 0) - Number(classHours)
 
-    const booked_class_hours = await countBookedClasses(userId)
+    const booked_class_hours = await require('../controllers/classScheduleController').countBookedClasses(userId)
     const all_class_hours = _.toInteger(new_class_hours) + _.toInteger(booked_class_hours)
     if (all_class_hours <= 2) {
-        await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
+        await require('../common/wechat').sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
     }
 
     const newClassHours = {
