@@ -76,8 +76,8 @@ module.exports = {
             user_id,
             batch_id,
             status: 'booking',
-            start_time: moment(start_time).add(i, 'w').format(),
-            end_time: moment(end_time).add(i, 'w').format(),
+            start_time: moment(start_time).add(i, 'w').utc().format(),
+            end_time: moment(end_time).add(i, 'w').utc().format(),
         }))
     },
     async batchCreateBookingsFor(userId, { start_time, end_time, n }) {
