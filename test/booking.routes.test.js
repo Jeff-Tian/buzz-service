@@ -45,7 +45,7 @@ describe('routes: bookings', () => {
             }
         })
 
-        it('should not allow inserting bookings for users without sufficient class hours', async () => {
+        it('没有课时时不能创建需求', async () => {
             const response = await user.createUserRequest({
                 name: 'test user',
                 role: 's',
@@ -70,13 +70,13 @@ describe('routes: bookings', () => {
         })
 
         it('批量插入4条预约需求', async () => {
-            const response = await user.createUserRequest({
+            const createUserResponse = await user.createUserRequest({
                 name: 'test user',
                 role: 's',
             })
 
-            should.exist(response.body)
-            const userId = response.body
+            should.exist(createUserResponse.body)
+            const userId = createUserResponse.body
 
             try {
                 await classHours.charge(userId, 4)
@@ -86,19 +86,35 @@ describe('routes: bookings', () => {
 
             const now = moment()
 
-            const r = await booking.batchCreateBookingsRequest({
+            const createBookingResponse = await booking.batchCreateBookingsRequest({
                 user_id: userId,
                 start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
                 end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
             })
 
-            r.body.length.should.gt(0)
-            const batchId = r.body[0]
+            createBookingResponse.body.length.should.gt(0)
+            const batchId = createBookingResponse.body[0]
 
             batchId.should.gt(0)
 
-            const res = await booking.listBatchBookingsRequest(userId)
-            res.body.length.should.gt(0)
+            const getSingleUserBookingResponse = await booking.listBatchBookingsForSingleUserRequest(userId)
+            getSingleUserBookingResponse.body.length.should.gt(0)
+
+            const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
+            getMultipleUserBookingsResponse.body.length.should.gt(0)
+
+            try {
+                const createMoreBookingResponse = await booking.batchCreateBookingsRequest({
+                    user_id: userId,
+                    start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
+                    end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
+                    n: 100,
+                })
+            } catch (ex) {
+                should.exist(ex)
+                ex.status.should.eql(400)
+                ex.response.text.should.eql(`balance class hours of ${userId} is only 4, trying to create 100 bookings.`)
+            }
         })
     })
 })

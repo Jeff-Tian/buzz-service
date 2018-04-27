@@ -10,22 +10,14 @@ const uuidv4 = require('uuid/v4')
 
 /*eslint-disable */
 class StartTimeWithin48HoursError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class EndTimeWithinHalfHourLaterOfStartTimeError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class BalanceClassHourInSufficientError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
+
 /* eslint-enable */
 module.exports = {
     StartTimeWithin48HoursError,
@@ -84,11 +76,11 @@ module.exports = {
             user_id,
             batch_id,
             status: 'booking',
-            start_time: moment(start_time).add(i, 'w'),
-            end_time: moment(end_time).add(i, 'w'),
+            start_time: moment(start_time).add(i, 'w').format(),
+            end_time: moment(end_time).add(i, 'w').format(),
         }))
     },
-    async batchCreateBookingsFor(userId, { start_time, end_time }) {
+    async batchCreateBookingsFor(userId, { start_time, end_time, n }) {
         if (!userId) {
             throw new Error('invalid userId', uuidv4())
         }
@@ -100,8 +92,16 @@ module.exports = {
             throw new BalanceClassHourInSufficientError(`balance class hours of ${userId} is only ${theUser.class_hours}`, uuidv4())
         }
 
+        if (!n) {
+            n = theUser.class_hours
+        }
+
+        if (n > theUser.class_hours) {
+            throw new BalanceClassHourInSufficientError(`balance class hours of ${userId} is only ${theUser.class_hours}, trying to create ${n} bookings.`, uuidv4())
+        }
+
         const batchId = await this.getBatchId(userId, theUser.role)
-        const bookings = this.generateBookings(theUser.class_hours, userId, batchId, start_time, end_time)
+        const bookings = this.generateBookings(n, userId, batchId, start_time, end_time)
 
         return await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
     },
@@ -117,5 +117,23 @@ module.exports = {
             .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
             .whereNotNull('batch_id')
             .andWhere({ user_id })
+    },
+
+    async listBatchBookings(userIdArray) {
+        function searchTable(table) {
+            const search = knex.select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
+                .from(table)
+                .whereNotNull('batch_id')
+
+            if (userIdArray instanceof Array) {
+                search.andWhere('user_id', 'in', userIdArray)
+            }
+
+            return search
+        }
+
+        const search1 = searchTable('student_class_schedule')
+        const search2 = searchTable('companion_class_schedule')
+        return await search1.unionAll(search2)
     },
 }
