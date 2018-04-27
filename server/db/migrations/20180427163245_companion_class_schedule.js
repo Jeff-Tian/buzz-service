@@ -1,7 +1,10 @@
 exports.up = function (knex, Promise) {
     return knex.schema.table('companion_class_schedule', table => {
         if (process.env.NODE_ENV !== 'test') {
-            table.dropForeign('user_id')
+            try {
+                table.dropForeign('user_id')
+            } catch (ex) {
+            }
         }
         table.dropUnique(['user_id', 'batch_id', 'start_time'])
         table.unique(['user_id', 'start_time', 'status'])
