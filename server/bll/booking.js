@@ -103,7 +103,12 @@ module.exports = {
         const batchId = await this.getBatchId(userId, theUser.role)
         const bookings = this.generateBookings(n, userId, batchId, start_time, end_time)
 
-        return await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+        const batchIds = await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+
+        if (!batchIds[0]) {
+            return batchId
+        }
+        return batchIds[0]
     },
 
     async listBatchBookingsFor(user_id) {

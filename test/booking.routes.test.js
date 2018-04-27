@@ -92,8 +92,8 @@ describe('routes: bookings', () => {
                 end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
             })
 
-            createBookingResponse.body.length.should.gt(0)
-            const batchId = createBookingResponse.body[0]
+            createBookingResponse.body.should.gt(0)
+            const batchId = createBookingResponse.body
 
             batchId.should.gt(0)
 
@@ -142,8 +142,8 @@ describe('routes: bookings', () => {
 
             const createBookingResponse = await booking.batchCreateBookingsRequest(b)
 
-            createBookingResponse.body.length.should.gt(0)
-            const batchId = createBookingResponse.body[0]
+            createBookingResponse.body.should.gt(0)
+            const batchId = createBookingResponse.body
 
             batchId.should.gt(0)
 
