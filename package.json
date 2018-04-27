@@ -39,7 +39,7 @@
     "co-wechat-api": "^3.5.0",
     "co-wechat-oauth": "^2.0.1",
     "ioredis": "^3.2.2",
-    "knex": "^0.14.5",
+    "knex": "^0.14.6",
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
