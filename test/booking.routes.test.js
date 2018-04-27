@@ -45,7 +45,7 @@ describe('routes: bookings', () => {
             }
         })
 
-        it('should not allow inserting bookings for users without sufficient class hours', async () => {
+        it('没有课时时不能创建需求', async () => {
             const response = await user.createUserRequest({
                 name: 'test user',
                 role: 's',
@@ -102,6 +102,19 @@ describe('routes: bookings', () => {
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
             getMultipleUserBookingsResponse.body.length.should.gt(0)
+
+            try {
+                const createMoreBookingResponse = await booking.batchCreateBookingsRequest({
+                    user_id: userId,
+                    start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
+                    end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
+                    n: 100,
+                })
+            } catch (ex) {
+                should.exist(ex)
+                ex.status.should.eql(400)
+                ex.response.text.should.eql(`balance class hours of ${userId} is only 4, trying to create 100 bookings.`)
+            }
         })
     })
 })
