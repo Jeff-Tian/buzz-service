@@ -14,13 +14,23 @@ module.exports = {
     // HtmlBody: ``,
     async send(opt) {
         // TODO: 处理错误
-        return await dm.singleSendMail({
+        const res = await dm.singleSendMail({
             ReplyToAddress: true,
             AddressType: 1,
             AccountName: 'no-reply@service-cn.buzzbuzzenglish.com',
             FromAlias: 'BuzzBuzz',
             ...opt,
         })
+        console.log('mail:res', res)
+    },
+    // 验证
+    async verifyByCode(mail, code) {
+        if (!code) throw new Error('invalid code')
+        const key = `mail:verify:${mail}`
+        const v = await redis.get(key)
+        if (!v) throw new Error('no verification code')
+        if (String(code) !== String(v)) throw new Error('invalid verification code')
+        await redis.del(key)
     },
     // 发送验证邮件
     async sendVerificationMail(mail, name, digit = 4, expire = 30 * 60) {
@@ -36,14 +46,5 @@ module.exports = {
         }
         await redis.set(`mail:verify:${mail}`, code, 'ex', expire)
         return { code, expire }
-    },
-    // 验证
-    async verifyByCode(mail, code) {
-        if (!code) throw new Error('invalid code')
-        const key = `mail:verify:${mail}`
-        const v = await redis.get(key)
-        if (!v) throw new Error('no verification code')
-        if (String(code) !== String(v)) throw new Error('invalid verification code')
-        await redis.del(key)
     },
 }

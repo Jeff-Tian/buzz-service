@@ -99,38 +99,33 @@ const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, sta
 
 const tzShift = (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
 
-// 处理 [{ start_time, end_time, time_zone }]
-const formatUsers = (users, format, locale) => _.map(users, i => {
-    if (locale) {
-        moment.locale(locale)
-    }
+const zhStartEndTime = (start_time, end_time) => {
+    moment.locale('zh-CN')
+    return `${moment(start_time).formart('YYYY年MM月DD日 ddd HH:mm')}-${moment(end_time).formart('HH:mm')}`
+}
+const enStartTime = (start_time, time_zone) => {
+    moment.locale('en-US')
     const oldTz = 'Asia/Shanghai'
-    const newTz = i.time_zone || oldTz
-    const start_time = moment(i.start_time)
-    const end_time = moment(i.end_time)
-    const start_time_local = tzShift(start_time, oldTz, newTz)
-    const end_time_local = tzShift(end_time, oldTz, newTz)
-    return {
-        ...i,
-        time_zone: newTz,
-        start_time: {
-            readable: start_time.format('YYYY-MM-DD HH:mm:ss'),
-            local_readable: start_time_local.format('YYYY-MM-DD HH:mm:ss'),
-            formatted: start_time.format(format),
-            local_formatted: `${start_time_local.format(format)}, ${newTz}`,
-            time: start_time,
-            local: start_time_local,
-        },
-        end_time: {
-            readable: end_time.format('YYYY-MM-DD HH:mm:ss'),
-            local_readable: end_time_local.format('YYYY-MM-DD HH:mm:ss'),
-            formatted: end_time.format(format),
-            local_formatted: `${end_time_local.format(format)}, ${newTz}`,
-            time: end_time,
-            local: end_time_local,
-        },
+    const newTz = time_zone || oldTz
+    const timeMoment = moment(start_time)
+    const timeLocalMoment = tzShift(timeMoment, oldTz, newTz)
+    return timeLocalMoment.formart('HH:mm DD/MMM/YYYY ddd')
+}
+
+const zhFromNow = start_time => {
+    moment.locale('zh-CN')
+    const start = moment(start_time)
+    const now = moment()
+    const days = start.diff(now, 'd')
+    const hours = start.diff(now, 'hours')
+    const minutes = start.diff(now, 'm')
+    if (hours === 0) {
+        return `${minutes} 分钟后`
+    } else if (days === 0) {
+        return `${hours} 小时后`
     }
-})
+    return `${days} 天后`
+}
 
 module.exports = {
     uniformTimes,
@@ -142,5 +137,7 @@ module.exports = {
     uniformTime,
     convertToDBFormat,
     tzShift,
-    formatUsers,
+    zhStartEndTime,
+    enStartTime,
+    zhFromNow,
 }
