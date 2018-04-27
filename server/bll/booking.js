@@ -125,6 +125,10 @@ module.exports = {
     },
 
     async listBatchBookings(userIdArray) {
+        if (!(userIdArray instanceof Array)) {
+            userIdArray = [userIdArray]
+        }
+
         function searchTable(table) {
             const search = knex.select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
                 .from(table)

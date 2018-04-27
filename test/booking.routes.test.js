@@ -102,6 +102,7 @@ describe('routes: bookings', () => {
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
             getMultipleUserBookingsResponse.body.length.should.gt(0)
+            getMultipleUserBookingsResponse.body[0].user_id.should.eql(userId)
 
             try {
                 const createMoreBookingResponse = await booking.batchCreateBookingsRequest({

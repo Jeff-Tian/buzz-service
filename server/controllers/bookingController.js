@@ -32,6 +32,7 @@ const listBatchBookingsForSingleUser = async ctx => {
 
 const listBatchBookingsForMultipleUsers = async ctx => {
     try {
+        console.error('user ids = ', ctx.query)
         ctx.body = await bookings.listBatchBookings(ctx.query.users)
     } catch (ex) {
         console.error(ex)
