@@ -130,7 +130,12 @@ module.exports = {
         }
 
         function searchTable(table) {
-            const search = knex.select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
+            const search = knex
+                .min({ batch_id: 'batch_id' })
+                .min({ user_id: 'user_id' })
+                .min({ start_time: 'start_time' })
+                .min({ end_time: 'end_time' })
+                .min({ status: 'status' })
                 .from(table)
                 .whereNotNull('batch_id')
 
@@ -143,6 +148,7 @@ module.exports = {
 
         const search1 = searchTable('student_class_schedule')
         const search2 = searchTable('companion_class_schedule')
-        return await search1.unionAll(search2)
+
+        return await search1.unionAll(search2).groupBy('user_id', 'batch_id')
     },
 }
