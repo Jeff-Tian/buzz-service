@@ -116,5 +116,43 @@ describe('routes: bookings', () => {
                 ex.response.text.should.eql(`balance class hours of ${userId} is only 4, trying to create 100 bookings.`)
             }
         })
+
+        it('同一时间的需求不能重复插入', async () => {
+            const createUserResponse = await user.createUserRequest({
+                name: 'test user',
+                role: 's',
+            })
+
+            should.exist(createUserResponse.body)
+            const userId = createUserResponse.body
+
+            try {
+                await classHours.charge(userId, 4)
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+
+            const now = moment()
+
+            const b = {
+                user_id: userId,
+                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0).format(),
+                end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0).format(),
+            }
+
+            const createBookingResponse = await booking.batchCreateBookingsRequest(b)
+
+            createBookingResponse.body.length.should.gt(0)
+            const batchId = createBookingResponse.body[0]
+
+            batchId.should.gt(0)
+
+            try {
+                const createSameBookingsAgainResponse = await booking.batchCreateBookingsRequest(b)
+            } catch (ex) {
+                should.exist(ex)
+                ex.status.should.eql(500)
+            }
+        })
     })
 })
