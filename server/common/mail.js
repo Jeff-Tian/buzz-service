@@ -1,6 +1,8 @@
 const _ = require('lodash')
 const { DM } = require('waliyun')
 const { redis } = require('./redis')
+const timeHelper = require('./time-helper')
+const config = require('../config')
 
 const dm = DM({
     AccessKeyId: process.env.buzz_aliyun_mail_id,
@@ -46,5 +48,59 @@ module.exports = {
         }
         await redis.set(`mail:verify:${mail}`, code, 'ex', expire)
         return { code, expire }
+    },
+    //     // 学生给外籍的课程评价通知
+    //     async sendStudentEvaluationTpl(mail, name, class_id, class_topic, companion_id) {
+    //         const url = `${config.endPoints.buzzCorner}/class/evaluation/${companion_id}/${class_id}`
+    //         await this.send({
+    //             ToAddress: mail,
+    //             Subject: 'Evaluation reminder',
+    //             HtmlBody: `Dear ${name || ''},<br/>
+    // Congratulations! You have successfully finished the ${class_topic || ''} session! Please take a few seconds to evaluate your peer tutor (<a href="${url}">evaluation link</a>). <br/>
+    // Your peer tutor wants to know what you think about him/her!`,
+    //         })
+    //     },
+    // 外籍给学生的课程评价通知
+    async sendCompanionEvaluationMail(mail, name, class_id, class_topic) {
+        const url = `${config.endPoints.buzzCorner}/class/foreign/${class_id}`
+        await this.send({
+            ToAddress: mail,
+            Subject: 'Evaluation reminder',
+            HtmlBody: `Dear ${name || ''},<br/>
+Congratulations. You have successfully led the ${class_topic || ''} session. Please take a few seconds to evaluate your peer students (<a href="${url}">evaluation link</a>). <br/>
+Your peers want to know what you think about them.`,
+        })
+    },
+    // 开课提醒通知1 课程开始时间前24小时或小于24小时
+    async sendDayClassBeginMail(mail, name, class_id, class_topic, class_start_time, time_zone) {
+        const url = `${config.endPoints.buzzCorner}/class/${class_id}`
+        const fromNow = timeHelper.enFromNow(class_start_time)
+        const start_time = timeHelper.enStartTime(class_start_time, time_zone)
+        await this.send({
+            ToAddress: mail,
+            Subject: 'Session reminder',
+            HtmlBody: `Dear ${name || ''},<br/>
+You have a session on ${class_topic} with your matched peers ${fromNow}.<br/>
+Start time: ${start_time}<br/>
+Please <a href="${url}">enter classroom</a> 5 mins in advance.<br/>
+Thank you :)<br/>
+PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).<br/>`,
+        })
+    },
+    // 开课提醒通知2 课程开始时间前30分钟或小于30分钟
+    async sendMinuteClassBeginMail(mail, name, class_id, class_topic, class_start_time, time_zone) {
+        const url = `${config.endPoints.buzzCorner}/class/${class_id}`
+        const fromNow = timeHelper.enFromNow(class_start_time)
+        const start_time = timeHelper.enStartTime(class_start_time, time_zone)
+        await this.send({
+            ToAddress: mail,
+            Subject: 'Session reminder',
+            HtmlBody: `Dear ${name || ''},<br/>
+Your session ${class_topic} is going to start ${fromNow}.<br/>
+Start time: ${start_time}<br/>
+<a href="${url}">Please click the link and get ready</a>.<br/>
+Thank you :)<br/>
+PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).<br/>`,
+        })
     },
 }

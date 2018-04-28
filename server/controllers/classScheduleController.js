@@ -1,9 +1,12 @@
 const _ = require('lodash')
+const bluebird = require('bluebird')
 const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
 const timeHelper = require('../common/time-helper')
+const wechat = require('../common/wechat')
+const mail = require('../common/mail')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
@@ -462,7 +465,81 @@ const getUsersByClassId = async ({ class_id, class_status = ['opened', 'ended'],
             })
         companions = await companionQuery
     }
-    return { class: classInfo, students, companions }
+    return { classInfo, students, companions }
+}
+
+const sendDayClassBeginMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        await bluebird.map(students, async i => {
+            if (!i.wechat_openid) return
+            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendDayClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
+
+const sendMinuteClassBeginMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        await bluebird.map(students, async i => {
+            if (!i.wechat_openid) return
+            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
+
+const sendEvaluationMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        // 担心课程状态错误 先不限制取 class_status: ['ended']
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id })
+        await bluebird.map(students, async i => {
+            const companion_id = _.chain(companions)
+                .head()
+                .get('user_id')
+                .value()
+            if (!i.wechat_openid || !companion_id) return
+            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(e => console.error(e))
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendCompanionEvaluationMail(i.email, i.name, classInfo.class_id, classInfo.topic)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
 }
 
 module.exports = {
@@ -474,4 +551,7 @@ module.exports = {
     endClass,
     countBookedClasses,
     getUsersByClassId,
+    sendDayClassBeginMsg,
+    sendMinuteClassBeginMsg,
+    sendEvaluationMsg,
 }

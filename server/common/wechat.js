@@ -75,23 +75,9 @@ module.exports = {
         }
         await this.sendTpl(data)
     },
-    // 学生课程评价通知
-    async sendStudentEvaluationTpl(wechat_openid, companion_id, class_id, class_topic, class_end_time) {
-        const data = {
-            openid: wechat_openid,
-            id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
-            url: `${config.endPoints.buzzCorner}/class/evaluation/${companion_id}/${class_id}`,
-            data: {
-                first: { value: '恭喜您完成了今天的课程\n' },
-                keyword1: { value: class_topic || '' },
-                keyword2: { value: class_end_time || '' },
-                remark: { value: '\n请对你的外籍语伴和课程进行评价。\n去评价>>' },
-            },
-        }
-        await this.sendTpl(data)
-    },
-    // 外籍课程评价通知
+    // 外籍给学生的课程评价通知
     async sendCompanionEvaluationTpl(wechat_openid, class_id, class_topic, class_end_time) {
+        const end_time = timeHelper.zhEndTime(class_end_time)
         const data = {
             openid: wechat_openid,
             id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
@@ -99,14 +85,31 @@ module.exports = {
             data: {
                 first: { value: '恭喜您完成了今天的课程\n' },
                 keyword1: { value: class_topic || '' },
-                keyword2: { value: class_end_time || '' },
+                keyword2: { value: end_time || '' },
+                remark: { value: '\n请对你的外籍语伴和课程进行评价。\n去评价>>' },
+            },
+        }
+        await this.sendTpl(data)
+    },
+    // 学生给外籍的课程评价通知
+    async sendStudentEvaluationTpl(wechat_openid, class_id, class_topic, class_end_time, companion_id) {
+        const end_time = timeHelper.zhEndTime(class_end_time)
+        const data = {
+            openid: wechat_openid,
+            id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
+            url: `${config.endPoints.buzzCorner}/class/evaluation/${companion_id}/${class_id}`,
+            data: {
+                first: { value: '恭喜您完成了今天的课程\n' },
+                keyword1: { value: class_topic || '' },
+                keyword2: { value: end_time || '' },
                 remark: { value: '\n请对你的外籍语伴和课程进行评价。\n去评价>>' },
             },
         }
         await this.sendTpl(data)
     },
     // 开课提醒通知1 课程开始时间前24小时或小于24小时
-    async sendDayClassBeginTpl(wechat_openid, name, class_id, class_topic, class_start_time) {
+    async sendDayClassBeginTpl(wechat_openid, name, class_id, class_topic, class_start_time, class_end_time) {
+        const start_time = timeHelper.zhStartEndTime(class_start_time, class_end_time)
         const fromNow = timeHelper.zhFromNow(class_start_time)
         const data = {
             openid: wechat_openid,
@@ -116,13 +119,14 @@ module.exports = {
                 first: { value: '亲爱的用户\n' },
                 keyword1: { value: class_topic || '' },
                 keyword2: { value: name || '' },
-                remark: { value: `课程时间：${class_start_time}\n\n在${fromNow}即将开始\n为了良好的体验请完成课前准备并准时参加。\n查看课程详情>>` },
+                remark: { value: `课程时间：${start_time}\n\n在 ${fromNow}即将开始\n为了良好的体验请完成课前准备并准时参加。\n查看课程详情>>` },
             },
         }
         await this.sendTpl(data)
     },
     // 开课提醒通知2 课程开始时间前30分钟或小于30分钟
-    async sendMinuteClassBeginTpl(wechat_openid, name, class_id, class_topic, class_start_time) {
+    async sendMinuteClassBeginTpl(wechat_openid, name, class_id, class_topic, class_start_time, class_end_time) {
+        const start_time = timeHelper.zhStartEndTime(class_start_time, class_end_time)
         const fromNow = timeHelper.zhFromNow(class_start_time)
         const data = {
             openid: wechat_openid,
@@ -132,7 +136,7 @@ module.exports = {
                 first: { value: '亲爱的用户\n' },
                 keyword1: { value: class_topic || '' },
                 keyword2: { value: name || '' },
-                remark: { value: `课程时间：${class_start_time}\n\n在${fromNow}即将开始，请务必准时参加。\n查看课程详情>>` },
+                remark: { value: `课程时间：${start_time}\n\n在 ${fromNow}即将开始，请务必准时参加。\n查看课程详情>>` },
             },
         }
         await this.sendTpl(data)

@@ -101,7 +101,11 @@ const tzShift = (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
 
 const zhStartEndTime = (start_time, end_time) => {
     moment.locale('zh-CN')
-    return `${moment(start_time).formart('YYYY年MM月DD日 ddd HH:mm')}-${moment(end_time).formart('HH:mm')}`
+    return `${moment(start_time).format('YYYY年MM月DD日 ddd HH:mm')}-${moment(end_time).format('HH:mm')}`
+}
+const zhEndTime = end_time => {
+    moment.locale('zh-CN')
+    return moment(end_time).format('YYYY年MM月DD日 HH:mm')
 }
 const enStartTime = (start_time, time_zone) => {
     moment.locale('en-US')
@@ -109,7 +113,8 @@ const enStartTime = (start_time, time_zone) => {
     const newTz = time_zone || oldTz
     const timeMoment = moment(start_time)
     const timeLocalMoment = tzShift(timeMoment, oldTz, newTz)
-    return timeLocalMoment.formart('HH:mm DD/MMM/YYYY ddd')
+    const timeLocal = timeLocalMoment.format('HH:mm DD/MMM/YYYY ddd')
+    return `${timeLocal}, ${newTz}`
 }
 
 const zhFromNow = start_time => {
@@ -124,7 +129,11 @@ const zhFromNow = start_time => {
     } else if (days === 0) {
         return `${hours} 小时后`
     }
-    return `${days} 天后`
+    return `${Math.ceil(start.diff(now, 'd', true))} 天后`
+}
+const enFromNow = start_time => {
+    moment.locale('en-US')
+    return moment(start_time).fromNow()
 }
 
 module.exports = {
@@ -137,7 +146,9 @@ module.exports = {
     uniformTime,
     convertToDBFormat,
     tzShift,
+    zhEndTime,
     zhStartEndTime,
     enStartTime,
     zhFromNow,
+    enFromNow,
 }
