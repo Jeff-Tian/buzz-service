@@ -32,8 +32,8 @@ exports.seed = function (knex, Promise) {
                 {
                     user_id: 1,
                     status: 'confirmed',
-                    start_time: new Date(2016, 1, 1, 9, 0),
-                    end_time: new Date(2016, 1, 1, 10, 0),
+                    start_time: new Date(2016, 1, 1, 19, 0),
+                    end_time: new Date(2016, 1, 1, 20, 0),
                 },
                 {
                     user_id: 2,

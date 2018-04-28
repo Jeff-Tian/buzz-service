@@ -16,7 +16,15 @@ module.exports = {
         return await common.makeRequest('get', `/api/v1/bookings/batch/${user_id}`)
     },
 
+    async cancelBatchBookingsForSingleUserRequest(userId, batchId) {
+        return await common.makeRequest('del', `/api/v1/bookings/batch/${userId}/${batchId}`)
+    },
+
     async listBatchBookingsForMultipleUserRequest(userIdArray) {
-        return await common.makeRequest('get', Router.url(`/api/v1/bookings/batch?${queryString.stringify({ users: userIdArray })}`))
+        return await common.makeRequest('get', `/api/v1/bookings/batch?${queryString.stringify({ users: userIdArray })}`)
+    },
+
+    async listAllBookingsForMultipleUserRequest(userIdArray) {
+        return await common.makeRequest('get', `/api/v1/bookings/all?${queryString.stringify({ users: userIdArray })}`)
     },
 }
