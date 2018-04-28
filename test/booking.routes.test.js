@@ -107,7 +107,7 @@ describe('routes: bookings', () => {
             getSingleUserBookingResponse.body.length.should.gt(0)
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
-            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(1)
+            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(4)
             getMultipleUserBookingsResponse.body[0].user_id.should.eql(userId)
 
             try {
@@ -135,15 +135,16 @@ describe('routes: bookings', () => {
             }
         })
 
-        it('一个 batchId 只返回一条记录', async () => {
+        it('一个 batchId 可以返回多条记录', async () => {
             const { userId, batchId } = await createTestUserAndBookings()
 
             const getSingleUserBookingResponse = await booking.listBatchBookingsForSingleUserRequest(userId)
             getSingleUserBookingResponse.body.length.should.gt(0)
+            getSingleUserBookingResponse.body.length.should.eql(4)
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
             getMultipleUserBookingsResponse.body[0].batch_id.should.eql(batchId)
-            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(1)
+            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(4)
             getMultipleUserBookingsResponse.body.filter(b => !b.batch_id).length.should.eql(0)
 
             const getMultipleUserAllBookingsResponse = await booking.listAllBookingsForMultipleUserRequest([userId])

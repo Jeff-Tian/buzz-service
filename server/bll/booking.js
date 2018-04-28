@@ -160,13 +160,22 @@ module.exports = {
 
     searchBatchBookings(userIdArray) {
         function searchBatchBookingsFrom(table) {
-            return (`select min(batch_id) as batch_id, min(user_id) as user_id, min(start_time) as start_time, min(end_time) as end_time, min(status) as status from ${table} where batch_id is not null ${userIdArray instanceof Array ? ` and user_id in (${userIdArray.join(', ')}) ` : ' '} group by user_id, batch_id`)
+            const search = knex
+                .select('batch_id', 'user_id', 'start_time', 'end_time', 'status')
+                .from(table)
+                .whereNotNull('batch_id')
+
+            if (userIdArray instanceof Array) {
+                search.andWhere('user_id', 'in', userIdArray)
+            }
+
+            return search
         }
 
         const search1 = searchBatchBookingsFrom('student_class_schedule')
         const search2 = searchBatchBookingsFrom('companion_class_schedule')
 
-        return knex.raw(`${search1} union all ${search2}`)
+        return search1.unionAll(search2)
     },
 
     async listBatchBookings(userIdArray) {
@@ -174,7 +183,7 @@ module.exports = {
             userIdArray = [userIdArray]
         }
 
-        return await this.searchBatchBookings(userIdArray)
+        return (await this.searchBatchBookings(userIdArray))
     },
 
     async listAllBookings(userIdArray) {
