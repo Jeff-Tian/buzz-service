@@ -103,12 +103,9 @@ module.exports = {
         const batchId = await this.getBatchId(userId, theUser.role)
         const bookings = this.generateBookings(n, userId, batchId, start_time, end_time)
 
-        const batchIds = await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+        await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
 
-        if (!batchIds[0]) {
-            return batchId
-        }
-        return batchIds[0]
+        return batchId
     },
 
     async listBatchBookingsFor(user_id) {
@@ -124,31 +121,50 @@ module.exports = {
             .andWhere({ user_id })
     },
 
-    async listBatchBookings(userIdArray) {
-        if (!(userIdArray instanceof Array)) {
-            userIdArray = [userIdArray]
-        }
-
-        function searchTable(table) {
-            const search = knex
-                .min({ batch_id: 'batch_id' })
-                .min({ user_id: 'user_id' })
-                .min({ start_time: 'start_time' })
-                .min({ end_time: 'end_time' })
-                .min({ status: 'status' })
+    searchTempBookings(userIdArray) {
+        function searchTempBookingsFrom(table) {
+            let search = knex
+                .select('batch_id', 'user_id', 'start_time', 'end_time', 'status')
                 .from(table)
-                .whereNotNull('batch_id')
+                .whereNull('batch_id')
 
             if (userIdArray instanceof Array) {
-                search.andWhere('user_id', 'in', userIdArray)
+                search = search.andWhere('user_id', 'in', userIdArray)
             }
 
             return search
         }
 
-        const search1 = searchTable('student_class_schedule')
-        const search2 = searchTable('companion_class_schedule')
+        const search1 = searchTempBookingsFrom('student_class_schedule')
+        const search2 = searchTempBookingsFrom('companion_class_schedule')
 
-        return await search1.unionAll(search2).groupBy('user_id', 'batch_id')
+        return search1.unionAll(search2)
+    },
+
+    searchBatchBookings(userIdArray) {
+        function searchBatchBookingsFrom(table) {
+            return (`select min(batch_id) as batch_id, min(user_id) as user_id, min(start_time) as start_time, min(end_time) as end_time, min(status) as status from ${table} where batch_id is not null ${userIdArray instanceof Array ? ` and user_id in (${userIdArray.join(', ')}) ` : ' '} group by user_id, batch_id`)
+        }
+
+        const search1 = searchBatchBookingsFrom('student_class_schedule')
+        const search2 = searchBatchBookingsFrom('companion_class_schedule')
+
+        return knex.raw(`${search1} union all ${search2}`)
+    },
+
+    async listBatchBookings(userIdArray) {
+        if (!(userIdArray instanceof Array)) {
+            userIdArray = [userIdArray]
+        }
+
+        return await this.searchBatchBookings(userIdArray)
+    },
+
+    async listAllBookings(userIdArray) {
+        if (!(userIdArray instanceof Array)) {
+            userIdArray = [userIdArray]
+        }
+
+        return await this.searchTempBookings(userIdArray).unionAll(this.searchBatchBookings(userIdArray))
     },
 }

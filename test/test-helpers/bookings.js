@@ -17,6 +17,10 @@ module.exports = {
     },
 
     async listBatchBookingsForMultipleUserRequest(userIdArray) {
-        return await common.makeRequest('get', Router.url(`/api/v1/bookings/batch?${queryString.stringify({ users: userIdArray })}`))
+        return await common.makeRequest('get', `/api/v1/bookings/batch?${queryString.stringify({ users: userIdArray })}`)
+    },
+
+    async listAllBookingsForMultipleUserRequest(userIdArray) {
+        return await common.makeRequest('get', `/api/v1/bookings/all?${queryString.stringify({ users: userIdArray })}`)
     },
 }

@@ -28,7 +28,7 @@ describe('routes: bookings', () => {
         done()
     })
 
-    describe(`POST ${PATH}/batch/:user_id`, () => {
+    describe('booking 测试', () => {
         it('should not allow inserting bookings for non-exist user', async () => {
             const now = moment()
 
@@ -101,7 +101,7 @@ describe('routes: bookings', () => {
             getSingleUserBookingResponse.body.length.should.gt(0)
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
-            getMultipleUserBookingsResponse.body.length.should.eql(1)
+            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(1)
             getMultipleUserBookingsResponse.body[0].user_id.should.eql(userId)
 
             try {
@@ -188,7 +188,13 @@ describe('routes: bookings', () => {
             getSingleUserBookingResponse.body.length.should.gt(0)
 
             const getMultipleUserBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
-            getMultipleUserBookingsResponse.body.length.should.eql(1)
+            getMultipleUserBookingsResponse.body[0].batch_id.should.eql(batchId)
+            getMultipleUserBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(1)
+            getMultipleUserBookingsResponse.body.filter(b => !b.batch_id).length.should.eql(0)
+
+            const getMultipleUserAllBookingsResponse = await booking.listAllBookingsForMultipleUserRequest([userId])
+            getMultipleUserAllBookingsResponse.body.length.should.gt(0)
+            getMultipleUserAllBookingsResponse.body.filter(b => !b.batch_id).length.should.gt(0)
         })
     })
 })
