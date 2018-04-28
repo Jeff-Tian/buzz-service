@@ -14,6 +14,37 @@ const chai = require('chai')
 const should = chai.should()
 const chaiHttp = require('chai-http')
 chai.use(chaiHttp)
+const createTestUserAndBookings = async function () {
+    const createUserResponse = await user.createUserRequest({
+        name: 'test user',
+        role: 's',
+    })
+
+    should.exist(createUserResponse.body)
+    const userId = createUserResponse.body
+
+    try {
+        await classHours.charge(userId, 4)
+    } catch (ex) {
+        should.not.exist(ex)
+    }
+
+    const now = moment()
+
+    const b = {
+        user_id: userId,
+        start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0).format(),
+        end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0).format(),
+    }
+
+    const createBookingResponse = await booking.batchCreateBookingsRequest(b)
+
+    createBookingResponse.body.should.gt(0)
+    const batchId = createBookingResponse.body
+
+    batchId.should.gt(0)
+    return { b, batchId, userId }
+}
 // Rollback, commit and populate the test database before each test
 describe('routes: bookings', () => {
     beforeEach(() => knex.migrate
@@ -70,32 +101,7 @@ describe('routes: bookings', () => {
         })
 
         it('批量插入4条预约需求', async () => {
-            const createUserResponse = await user.createUserRequest({
-                name: 'test user',
-                role: 's',
-            })
-
-            should.exist(createUserResponse.body)
-            const userId = createUserResponse.body
-
-            try {
-                await classHours.charge(userId, 4)
-            } catch (ex) {
-                should.not.exist(ex)
-            }
-
-            const now = moment()
-
-            const createBookingResponse = await booking.batchCreateBookingsRequest({
-                user_id: userId,
-                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
-                end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
-            })
-
-            createBookingResponse.body.should.gt(0)
-            const batchId = createBookingResponse.body
-
-            batchId.should.gt(0)
+            const { userId, batchId, b } = await createTestUserAndBookings()
 
             const getSingleUserBookingResponse = await booking.listBatchBookingsForSingleUserRequest(userId)
             getSingleUserBookingResponse.body.length.should.gt(0)
@@ -107,8 +113,8 @@ describe('routes: bookings', () => {
             try {
                 const createMoreBookingResponse = await booking.batchCreateBookingsRequest({
                     user_id: userId,
-                    start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
-                    end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
+                    start_time: b.start_time,
+                    end_time: b.end_time,
                     n: 100,
                 })
             } catch (ex) {
@@ -119,34 +125,7 @@ describe('routes: bookings', () => {
         })
 
         it('同一时间的需求不能重复插入', async () => {
-            const createUserResponse = await user.createUserRequest({
-                name: 'test user',
-                role: 's',
-            })
-
-            should.exist(createUserResponse.body)
-            const userId = createUserResponse.body
-
-            try {
-                await classHours.charge(userId, 4)
-            } catch (ex) {
-                should.not.exist(ex)
-            }
-
-            const now = moment()
-
-            const b = {
-                user_id: userId,
-                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0).format(),
-                end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0).format(),
-            }
-
-            const createBookingResponse = await booking.batchCreateBookingsRequest(b)
-
-            createBookingResponse.body.should.gt(0)
-            const batchId = createBookingResponse.body
-
-            batchId.should.gt(0)
+            const { b } = await createTestUserAndBookings()
 
             try {
                 const createSameBookingsAgainResponse = await booking.batchCreateBookingsRequest(b)
@@ -157,32 +136,7 @@ describe('routes: bookings', () => {
         })
 
         it('一个 batchId 只返回一条记录', async () => {
-            const createUserResponse = await user.createUserRequest({
-                name: 'test user',
-                role: 's',
-            })
-
-            should.exist(createUserResponse.body)
-            const userId = createUserResponse.body
-
-            try {
-                await classHours.charge(userId, 4)
-            } catch (ex) {
-                should.not.exist(ex)
-            }
-
-            const now = moment()
-
-            const createBookingResponse = await booking.batchCreateBookingsRequest({
-                user_id: userId,
-                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
-                end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
-            })
-
-            createBookingResponse.body.should.gt(0)
-            const batchId = createBookingResponse.body
-
-            batchId.should.gt(0)
+            const { userId, batchId } = await createTestUserAndBookings()
 
             const getSingleUserBookingResponse = await booking.listBatchBookingsForSingleUserRequest(userId)
             getSingleUserBookingResponse.body.length.should.gt(0)
