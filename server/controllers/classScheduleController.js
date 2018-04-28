@@ -1,5 +1,6 @@
 const _ = require('lodash')
 const bluebird = require('bluebird')
+const moment = require('moment-timezone')
 const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
@@ -472,6 +473,8 @@ const sendDayClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
         const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        // 不发送过去的通知
+        if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
             await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
@@ -495,6 +498,8 @@ const sendMinuteClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
         const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        // 不发送过去的通知
+        if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
             await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
@@ -519,6 +524,8 @@ const sendEvaluationMsg = async ctx => {
         const { class_id } = ctx.request.body
         // 担心课程状态错误 先不限制取 class_status: ['ended']
         const { classInfo, students, companions } = await getUsersByClassId({ class_id })
+        // 不发送未来的通知
+        if (moment(classInfo.end_time).isAfter(moment())) return
         await bluebird.map(students, async i => {
             const companion_id = _.chain(companions)
                 .head()
