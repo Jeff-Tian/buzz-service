@@ -55,7 +55,7 @@
     "request-promise-native": "^1.0.5",
     "sequelize": "^4.37.6",
     "uuid": "^3.2.1",
-    "waliyun": "^3.2.0"
+    "waliyun": "3.2.1"
   },
   "apps": [
     {

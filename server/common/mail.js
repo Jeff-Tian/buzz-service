@@ -67,8 +67,8 @@ module.exports = {
             ToAddress: mail,
             Subject: 'Evaluation reminder',
             HtmlBody: `Dear ${name || ''},<br/>
-Congratulations. You have successfully led the ${class_topic || ''} session. Please take a few seconds to evaluate your peer students (<a href="${url}">evaluation link</a>). <br/>
-Your peers want to know what you think about them.`,
+Congratulations! You have successfully led the ${class_topic || ''} session! Please take a few seconds to evaluate your peer students (<a href="${url}">evaluation link</a>). <br/>
+Your peers want to know what you think about them!`,
         })
     },
     // 开课提醒通知1 课程开始时间前24小时或小于24小时
@@ -96,7 +96,7 @@ PS: this email was sent automatically, please don’t reply. If you have any que
             ToAddress: mail,
             Subject: 'Session reminder',
             HtmlBody: `Dear ${name || ''},<br/>
-Your session ${class_topic} is going to start ${fromNow}.<br/>
+Your session ${class_topic} is going to start ${fromNow}!<br/>
 Start time: ${start_time}<br/>
 <a href="${url}">Please click the link and get ready</a>.<br/>
 Thank you :)<br/>
