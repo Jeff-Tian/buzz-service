@@ -121,6 +121,23 @@ module.exports = {
             .andWhere({ user_id })
     },
 
+    async cancelBatchBookingFor(user_id, batch_id) {
+        if (!user_id) {
+            throw new Error('invalid user_id', uuidv4())
+        }
+
+        if (!batch_id) {
+            throw new Error('invalid batch_id', uuidv4())
+        }
+
+        const theUser = await user.get(user_id)
+
+        return await knex(this.getBookingTable(theUser.role))
+            .where('user_id', '=', user_id)
+            .andWhere('batch_id', '=', batch_id)
+            .delete()
+    },
+
     searchTempBookings(userIdArray) {
         function searchTempBookingsFrom(table) {
             let search = knex

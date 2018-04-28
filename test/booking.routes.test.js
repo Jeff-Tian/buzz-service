@@ -150,5 +150,18 @@ describe('routes: bookings', () => {
             getMultipleUserAllBookingsResponse.body.length.should.gt(0)
             getMultipleUserAllBookingsResponse.body.filter(b => !b.batch_id).length.should.gt(0)
         })
+
+        it('可以批量取消预约', async () => {
+            const { userId, batchId } = await createTestUserAndBookings()
+
+            try {
+                const cancelBatchBookingRequest = await booking.cancelBatchBookingsForSingleUserRequest(userId, batchId)
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+
+            const getMultipleUserBatchBookingsResponse = await booking.listBatchBookingsForMultipleUserRequest([userId])
+            getMultipleUserBatchBookingsResponse.body.filter(b => Number(b.batch_id) === Number(batchId)).length.should.eql(0)
+        })
     })
 })
