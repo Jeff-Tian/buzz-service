@@ -1,8 +1,13 @@
 const _ = require('lodash')
+const bluebird = require('bluebird')
+const moment = require('moment-timezone')
 const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
+const timeHelper = require('../common/time-helper')
+const wechat = require('../common/wechat')
+const mail = require('../common/mail')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
@@ -414,49 +419,134 @@ const countBookedClasses = async user_id => {
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
         .countDistinct('classes.class_id as count')
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereNotIn('classes.status', ['ended', 'cancelled'])
+        .whereIn('classes.status', ['opened'])
     return _.get(result, '0.count')
 }
 
-const getStudentsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
-    const users = await knex('classes')
-        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
-        .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
-        .select(
-            'classes.class_id as class_id',
-            'classes.topic as class_topic',
-            'classes.start_time as start_time',
-            'user_social_accounts.wechat_openid as wechat_openid',
-            'student_class_schedule.user_id as user_id',
-            'user_profiles.time_zone as time_zone',
-        )
-        .where({
-            'classes.class_id': class_id,
-            'student_class_schedule.status': schedule_status,
-        })
-        .whereIn('classes.status', class_status)
-    return users
+const getUsersByClassId = async ({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) => {
+    const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
+    if (!classInfo) return
+    let students = []
+    if (_.includes(role, 'student')) {
+        const studentQuery = knex('student_class_schedule')
+            .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+            .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
+            .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
+            .where({
+                'student_class_schedule.class_id': class_id,
+                'student_class_schedule.status': 'confirmed',
+            })
+            .select(
+                'user_social_accounts.wechat_openid as wechat_openid',
+                'user_social_accounts.wechat_name as wechat_name',
+                'student_class_schedule.user_id as user_id',
+                'user_profiles.email as email',
+                'user_profiles.time_zone as time_zone',
+                'users.name as name',
+            )
+        students = await studentQuery
+    }
+    let companions = []
+    if (_.includes(role, 'companion')) {
+        const companionQuery = knex('companion_class_schedule')
+            .leftJoin('user_social_accounts', 'companion_class_schedule.user_id', 'user_social_accounts.user_id')
+            .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+            .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+            .select(
+                'user_social_accounts.wechat_openid as wechat_openid',
+                'user_social_accounts.wechat_name as wechat_name',
+                'companion_class_schedule.user_id as user_id',
+                'user_profiles.email as email',
+                'user_profiles.time_zone as time_zone',
+                'users.name as name',
+            )
+            .where({
+                'companion_class_schedule.class_id': class_id,
+                'companion_class_schedule.status': 'confirmed',
+            })
+        companions = await companionQuery
+    }
+    return { classInfo, students, companions }
 }
 
-const getCompanionsByClassId = async ({ class_id, class_status = ['opened', 'ended'], schedule_status = 'confirmed' }) => {
-    const users = await knex('classes')
-        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
-        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
-        .select(
-            'classes.class_id as class_id',
-            'classes.topic as class_topic',
-            'classes.start_time as start_time',
-            'companion_class_schedule.user_id as user_id',
-            'user_profiles.email as email',
-            'user_profiles.time_zone as time_zone',
-        )
-        .where({
-            'classes.class_id': class_id,
-            'companion_class_schedule.status': schedule_status,
+const sendDayClassBeginMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        // 不发送过去的通知
+        if (moment(classInfo.start_time).isBefore(moment())) return
+        await bluebird.map(students, async i => {
+            if (!i.wechat_openid) return
+            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
         })
-        .whereIn('classes.status', class_status)
-    return users
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendDayClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
+
+const sendMinuteClassBeginMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        // 不发送过去的通知
+        if (moment(classInfo.start_time).isBefore(moment())) return
+        await bluebird.map(students, async i => {
+            if (!i.wechat_openid) return
+            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
+
+const sendEvaluationMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        // 担心课程状态错误 先不限制取 class_status: ['ended']
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id })
+        // 不发送未来的通知
+        if (moment(classInfo.end_time).isAfter(moment())) return
+        await bluebird.map(students, async i => {
+            const companion_id = _.chain(companions)
+                .head()
+                .get('user_id')
+                .value()
+            if (!i.wechat_openid || !companion_id) return
+            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(e => console.error(e))
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(e => console.error(e))
+            } else if (i.email) {
+                await mail.sendCompanionEvaluationMail(i.email, i.name, classInfo.class_id, classInfo.topic)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
 }
 
 module.exports = {
@@ -467,6 +557,8 @@ module.exports = {
     getClassByClassId,
     endClass,
     countBookedClasses,
-    getStudentsByClassId,
-    getCompanionsByClassId,
+    getUsersByClassId,
+    sendDayClassBeginMsg,
+    sendMinuteClassBeginMsg,
+    sendEvaluationMsg,
 }

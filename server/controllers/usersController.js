@@ -88,8 +88,8 @@ const search = async ctx => {
     } catch (error) {
         console.error(error)
 
-        ctx.status =
-            ctx.body = { error: error.message }
+        ctx.status = 500
+        ctx.body = { error: error.message }
     }
 }
 const show = async ctx => {
@@ -288,7 +288,10 @@ const signInByMobileOrEmail = async ctx => {
         // 把将要返回的用户信息中的密码置为空
         users[0].password = ''
 
-        ctx.cookies.set('user_id', users[0].user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+        ctx.cookies.set('user_id', users[0].user_id, {
+            httpOnly: true,
+            expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
+        })
 
         ctx.body = users[0]
     } else {
@@ -498,6 +501,13 @@ const getAvailableUsers = async ctx => {
     ctx.body = result
 }
 
+const getWechatByUserIds = async userIds => knex('users')
+    .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+    .whereIn('users.user_id', userIds)
+    .whereNotNull('user_social_accounts.wechat_openid')
+    .whereNot('user_social_accounts.wechat_openid', '')
+    .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')
+
 module.exports = {
     search,
     show,
@@ -511,4 +521,5 @@ module.exports = {
     getByUserIdList,
     delete: deleteByUserID,
     getAvailableUsers,
+    getWechatByUserIds,
 }

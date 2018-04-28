@@ -1,3 +1,4 @@
+const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -96,7 +97,44 @@ const checkDBTimeRangeOverlapWithTimeRange = async function (table, user_id, sta
     await checkDBTimeRangeOverlapWithTime(table, user_id, start_time)
 }
 
-const tzShift = async (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
+const tzShift = (dateTime, oldTz, newTz) => moment.tz(dateTime, oldTz).tz(newTz)
+
+const zhStartEndTime = (start_time, end_time) => {
+    moment.locale('zh-CN')
+    return `${moment(start_time).format('YYYY年MM月DD日 ddd HH:mm')}-${moment(end_time).format('HH:mm')}`
+}
+const zhEndTime = end_time => {
+    moment.locale('zh-CN')
+    return moment(end_time).format('YYYY年MM月DD日 HH:mm')
+}
+const enStartTime = (start_time, time_zone) => {
+    moment.locale('en-US')
+    const oldTz = 'Asia/Shanghai'
+    const newTz = time_zone || oldTz
+    const timeMoment = moment(start_time)
+    const timeLocalMoment = tzShift(timeMoment, oldTz, newTz)
+    const timeLocal = timeLocalMoment.format('HH:mm DD/MMM/YYYY ddd')
+    return `${timeLocal}, ${newTz}`
+}
+
+const zhFromNow = start_time => {
+    moment.locale('zh-CN')
+    const start = moment(start_time)
+    const now = moment()
+    const days = start.diff(now, 'd')
+    const hours = start.diff(now, 'hours')
+    const minutes = start.diff(now, 'm')
+    if (hours === 0) {
+        return `${minutes} 分钟后`
+    } else if (days === 0) {
+        return `${hours} 小时后`
+    }
+    return `${Math.ceil(start.diff(now, 'd', true))} 天后`
+}
+const enFromNow = start_time => {
+    moment.locale('en-US')
+    return moment(start_time).fromNow()
+}
 
 module.exports = {
     uniformTimes,
@@ -108,4 +146,9 @@ module.exports = {
     uniformTime,
     convertToDBFormat,
     tzShift,
+    zhEndTime,
+    zhStartEndTime,
+    enStartTime,
+    zhFromNow,
+    enFromNow,
 }

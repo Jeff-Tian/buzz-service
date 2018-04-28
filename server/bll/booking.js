@@ -8,24 +8,17 @@ const user = require('./user')
 const moment = require('moment')
 const uuidv4 = require('uuid/v4')
 
+/*eslint-disable */
 class StartTimeWithin48HoursError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class EndTimeWithinHalfHourLaterOfStartTimeError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
 class BalanceClassHourInSufficientError extends Error {
-    constructor(s, id) {
-        super(s, id)
-    }
 }
 
+/* eslint-enable */
 module.exports = {
     StartTimeWithin48HoursError,
     EndTimeWithinHalfHourLaterOfStartTimeError,
@@ -83,11 +76,11 @@ module.exports = {
             user_id,
             batch_id,
             status: 'booking',
-            start_time: moment(start_time).add(i, 'w'),
-            end_time: moment(end_time).add(i, 'w'),
+            start_time: moment(start_time).add(i, 'w').utc().format(),
+            end_time: moment(end_time).add(i, 'w').utc().format(),
         }))
     },
-    async batchCreateBookingsFor(userId, { start_time, end_time }) {
+    async batchCreateBookingsFor(userId, { start_time, end_time, n }) {
         if (!userId) {
             throw new Error('invalid userId', uuidv4())
         }
@@ -99,10 +92,20 @@ module.exports = {
             throw new BalanceClassHourInSufficientError(`balance class hours of ${userId} is only ${theUser.class_hours}`, uuidv4())
         }
 
-        const batchId = await this.getBatchId(userId, theUser.role)
-        const bookings = this.generateBookings(theUser.class_hours, userId, batchId, start_time, end_time)
+        if (!n) {
+            n = theUser.class_hours
+        }
 
-        return await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+        if (n > theUser.class_hours) {
+            throw new BalanceClassHourInSufficientError(`balance class hours of ${userId} is only ${theUser.class_hours}, trying to create ${n} bookings.`, uuidv4())
+        }
+
+        const batchId = await this.getBatchId(userId, theUser.role)
+        const bookings = this.generateBookings(n, userId, batchId, start_time, end_time)
+
+        await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
+
+        return batchId
     },
 
     async listBatchBookingsFor(user_id) {
@@ -116,5 +119,78 @@ module.exports = {
             .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
             .whereNotNull('batch_id')
             .andWhere({ user_id })
+    },
+
+    async cancelBatchBookingFor(user_id, batch_id) {
+        if (!user_id) {
+            throw new Error('invalid user_id', uuidv4())
+        }
+
+        if (!batch_id) {
+            throw new Error('invalid batch_id', uuidv4())
+        }
+
+        const theUser = await user.get(user_id)
+
+        return await knex(this.getBookingTable(theUser.role))
+            .where('user_id', '=', user_id)
+            .andWhere('batch_id', '=', batch_id)
+            .delete()
+    },
+
+    searchTempBookings(userIdArray) {
+        function searchTempBookingsFrom(table) {
+            let search = knex
+                .select('batch_id', 'user_id', 'start_time', 'end_time', 'status')
+                .from(table)
+                .whereNull('batch_id')
+
+            if (userIdArray instanceof Array) {
+                search = search.andWhere('user_id', 'in', userIdArray)
+            }
+
+            return search
+        }
+
+        const search1 = searchTempBookingsFrom('student_class_schedule')
+        const search2 = searchTempBookingsFrom('companion_class_schedule')
+
+        return search1.unionAll(search2)
+    },
+
+    searchBatchBookings(userIdArray) {
+        function searchBatchBookingsFrom(table) {
+            const search = knex
+                .select('batch_id', 'user_id', 'start_time', 'end_time', 'status')
+                .from(table)
+                .whereNotNull('batch_id')
+
+            if (userIdArray instanceof Array) {
+                search.andWhere('user_id', 'in', userIdArray)
+            }
+
+            return search
+        }
+
+        const search1 = searchBatchBookingsFrom('student_class_schedule')
+        const search2 = searchBatchBookingsFrom('companion_class_schedule')
+
+        return search1.unionAll(search2)
+    },
+
+    async listBatchBookings(userIdArray) {
+        if (!(userIdArray instanceof Array)) {
+            userIdArray = [userIdArray]
+        }
+
+        return (await this.searchBatchBookings(userIdArray))
+    },
+
+    async listAllBookings(userIdArray) {
+        if (!(userIdArray instanceof Array)) {
+            userIdArray = [userIdArray]
+        }
+
+        return await this.searchTempBookings(userIdArray).unionAll(this.searchBatchBookings(userIdArray))
     },
 }
