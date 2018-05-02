@@ -1,4 +1,3 @@
-const Router = require('koa-router')
 const queryString = require('query-string')
 const common = require('./common')
 
