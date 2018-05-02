@@ -39,7 +39,8 @@ const selectSchedulesWithMoreInfo = function () {
             'class_feedback.from_user_id as from_user_id',
             'class_feedback.to_user_id as to_user_id',
             'class_feedback.score as score',
-            'class_feedback.comment as comment'
+            'class_feedback.comment as comment',
+            'user_profiles.country as companion_country'
         )
 }
 const list = async ctx => {

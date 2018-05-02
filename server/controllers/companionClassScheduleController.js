@@ -26,7 +26,8 @@ const selectCompanionWithMoreInfo = function () {
             'users.name AS companion_name',
             'user_profiles.avatar AS companion_avatar',
             'companion_class_schedule.user_id AS user_id',
-            'companion_class_schedule.batch_id as batch_id'
+            'companion_class_schedule.batch_id as batch_id',
+            'user_profiles.country as companion_country'
         )
 }
 
