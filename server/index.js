@@ -12,7 +12,7 @@ const qiniuRoutes = require('./routes/qiniu.routes')
 const mobileRoutes = require('./routes/mobile.routes')
 const mailRoutes = require('./routes/mail.routes')
 const bookingRoutes = require('./routes/booking.routes')
-
+const redis = require('./common/redis')
 const bodyParser = require('koa-bodyparser')
 
 const app = new Koa()
@@ -32,12 +32,19 @@ app.use(mobileRoutes.routes())
 app.use(mailRoutes.routes())
 app.use(bookingRoutes.routes())
 
-const server = app.listen(PORT)
+const server = app.listen(PORT, () => {
+    console.log('Buzz-Service 启动完毕。')
+})
 
 server.on('error', err => {
     console.error('========================')
     console.error(err)
     console.error('========================')
+})
+
+server.on('close', () => {
+    redis.redis.disconnect()
+    console.log('Buzz-Service 关闭了。')
 })
 
 module.exports = server
