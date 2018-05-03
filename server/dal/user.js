@@ -52,6 +52,7 @@ module.exports = {
             // .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id`)
             .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id AND ${schedule}.status = 'confirmed' AND ${schedule}.start_time > '${start_time}' AND ${schedule}.start_time <= '${end_time}' AND (${schedule}.class_id IS NOT NULL AND ${schedule}.class_id != '')`)
             .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
+            .where('users.role', r)
             .groupBy('users.user_id')
             .select(
                 knex.raw('(CASE WHEN (user_profiles.weekly_schedule_requirements IS NULL OR user_profiles.weekly_schedule_requirements = \'\') THEN 1 ELSE user_profiles.weekly_schedule_requirements END) as req'),
