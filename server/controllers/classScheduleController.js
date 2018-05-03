@@ -284,6 +284,7 @@ const upsert = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         const classInfo = await getClassById(classIds[0])
         await addClassJob(classInfo)
+        console.log('job added')
         ctx.body = classInfo
     } catch (error) {
         console.error(error)
