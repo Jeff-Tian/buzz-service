@@ -105,7 +105,7 @@ module.exports = {
 
         await knex.batchInsert(this.getBookingTable(theUser.role), bookings).returning('batch_id')
 
-        return batchId
+        return { batchId, bookings }
     },
 
     async listBatchBookingsFor(user_id) {

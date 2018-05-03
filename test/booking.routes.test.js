@@ -31,19 +31,20 @@ const createTestUserAndBookings = async function () {
 
     const now = moment()
 
-    const b = {
+    const bookingInfo = {
         user_id: userId,
         start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0).format(),
         end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0).format(),
     }
 
-    const createBookingResponse = await booking.batchCreateBookingsRequest(b)
+    const createBookingResponse = await booking.batchCreateBookingsRequest(bookingInfo)
 
-    createBookingResponse.body.should.gt(0)
-    const batchId = createBookingResponse.body
+    createBookingResponse.body.bookings.length.should.eql(4)
+
+    const batchId = createBookingResponse.body.batchId
 
     batchId.should.gt(0)
-    return { b, batchId, userId }
+    return { bookingInfo, batchId, userId }
 }
 // Rollback, commit and populate the test database before each test
 describe('routes: bookings', () => {
@@ -101,7 +102,7 @@ describe('routes: bookings', () => {
         })
 
         it('批量插入4条预约需求', async () => {
-            const { userId, batchId, b } = await createTestUserAndBookings()
+            const { userId, batchId, bookingInfo } = await createTestUserAndBookings()
 
             const getSingleUserBookingResponse = await booking.listBatchBookingsForSingleUserRequest(userId)
             getSingleUserBookingResponse.body.length.should.gt(0)
@@ -113,8 +114,8 @@ describe('routes: bookings', () => {
             try {
                 const createMoreBookingResponse = await booking.batchCreateBookingsRequest({
                     user_id: userId,
-                    start_time: b.start_time,
-                    end_time: b.end_time,
+                    start_time: bookingInfo.start_time,
+                    end_time: bookingInfo.end_time,
                     n: 100,
                 })
             } catch (ex) {
@@ -125,10 +126,10 @@ describe('routes: bookings', () => {
         })
 
         it('同一时间的需求不能重复插入', async () => {
-            const { b } = await createTestUserAndBookings()
+            const { bookingInfo } = await createTestUserAndBookings()
 
             try {
-                const createSameBookingsAgainResponse = await booking.batchCreateBookingsRequest(b)
+                const createSameBookingsAgainResponse = await booking.batchCreateBookingsRequest(bookingInfo)
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(500)
