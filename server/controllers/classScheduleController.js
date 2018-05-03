@@ -113,6 +113,10 @@ const getClassByClassId = async ctx => {
 }
 
 async function addClassJob(classInfo) {
+    if (process.env.NODE_ENV === 'test') {
+        return
+    }
+
     try {
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task`,
@@ -226,6 +230,7 @@ const upsert = async ctx => {
                 if (JSON.stringify(updateForCompanions) !== '{}') {
                     await trx('companion_class_schedule')
                         .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
+                        .andWhere('class_id', '=', body.class_id)
                         .update(updateForCompanions)
                 }
             }
@@ -251,6 +256,7 @@ const upsert = async ctx => {
                 if (JSON.stringify(updateForStudent) !== '{}') {
                     await trx('student_class_schedule')
                         .where('user_id', 'in', toBeUpdatedStudentSchedules)
+                        .andWhere('class_id', '=', body.class_id)
                         .update(updateForStudent)
                 }
             }
@@ -277,14 +283,10 @@ const upsert = async ctx => {
 
         await trx.commit()
 
-        console.log('=================================')
-        console.log('class Id = ', body.class_id)
-
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
         const classInfo = await getClassById(classIds[0])
         await addClassJob(classInfo)
-        console.log('job added')
         ctx.body = classInfo
     } catch (error) {
         console.error(error)
@@ -292,7 +294,7 @@ const upsert = async ctx => {
         await trx.rollback()
         ctx.status = 500
         ctx.body = {
-            error: 'Save class failed!',
+            error: `Save class failed! ${error.message}`,
         }
     }
 }
