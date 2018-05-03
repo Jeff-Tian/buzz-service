@@ -58,9 +58,10 @@ module.exports = {
         return await api.sendTemplate(openid, id, url, color, data)
     },
     // 续费通知
-    async sendRenewTpl(user_id, class_hours) {
-        const users = await require('../controllers/usersController').getWechatByUserIds([user_id])
+    async  sendRenewTpl(user_id, class_hours) {
+        const users = await require('../bll/user').getWechatByUserIds([user_id])
         const { wechat_openid, name } = _.get(users, '0') || {}
+
         const data = {
             openid: wechat_openid,
             id: '5V00NpImSvNjWATqXCEw7CdbL02Kt4gxZKd5WxDaWDY',

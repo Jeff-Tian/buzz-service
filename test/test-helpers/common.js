@@ -1,5 +1,7 @@
 const server = require('../../server/index')
 const chai = require('chai')
+const chaiHttp = require('chai-http')
+chai.use(chaiHttp)
 
 module.exports = {
     convertErrorResultToResolveReject(resolve, reject) {

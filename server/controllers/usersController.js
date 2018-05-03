@@ -8,7 +8,7 @@ const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const Stream = require('stream')
 const crypto = require('crypto')
-const { countBookedClasses } = require('./classScheduleController')
+const { countBookedClasses } = require('../bll/class-hours')
 
 function joinTables() {
     return knex('users')
@@ -501,13 +501,6 @@ const getAvailableUsers = async ctx => {
     ctx.body = result
 }
 
-const getWechatByUserIds = async userIds => knex('users')
-    .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
-    .whereIn('users.user_id', userIds)
-    .whereNotNull('user_social_accounts.wechat_openid')
-    .whereNot('user_social_accounts.wechat_openid', '')
-    .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')
-
 module.exports = {
     search,
     show,
@@ -521,5 +514,4 @@ module.exports = {
     getByUserIdList,
     delete: deleteByUserID,
     getAvailableUsers,
-    getWechatByUserIds,
 }

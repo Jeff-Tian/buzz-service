@@ -209,8 +209,6 @@ const upsert = async ctx => {
                 .where({ class_id: body.class_id })
 
             originalCompanions = originalCompanions.map(oc => oc.user_id)
-            console.log('original companions = ', originalCompanions)
-
             const toBeDeletedCompanionSchedules = originalCompanions.filter(c => companionSchedules.map(cs => cs.user_id).indexOf(c) < 0)
             const tbBeUpdatedCompanionSchedules = originalCompanions.filter(c => companionSchedules.map(cs => cs.user_id).indexOf(c) >= 0)
 
@@ -233,18 +231,14 @@ const upsert = async ctx => {
             }
 
             companionSchedules = companionSchedules.filter(s => originalCompanions.indexOf(s.user_id) < 0)
-            console.log('companionSchedules=', companionSchedules)
             let originalStudents = await trx('student_class_schedule')
                 .select('user_id')
                 .where({ class_id: body.class_id })
 
             originalStudents = originalStudents.map(os => os.user_id)
-            console.log('original students = ', originalStudents)
 
             const toBeDeletedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) < 0)
-            console.log('toBeDeleted = ', toBeDeletedStudentSchedules)
             const toBeUpdatedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) >= 0)
-            console.log('tobeUpdated = ', toBeUpdatedStudentSchedules)
 
             await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id)
 
@@ -262,7 +256,6 @@ const upsert = async ctx => {
             }
 
             studentSchedules = studentSchedules.filter(s => originalStudents.indexOf(s.user_id) < 0)
-            console.log('students after filter = ', studentSchedules)
         } else {
             classIds = await trx('classes')
                 .returning('class_id')
@@ -283,6 +276,9 @@ const upsert = async ctx => {
         }
 
         await trx.commit()
+
+        console.log('=================================')
+        console.log('class Id = ', body.class_id)
 
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
@@ -411,16 +407,6 @@ const endClass = async ctx => {
             error: 'end class failed!',
         }
     }
-}
-
-const countBookedClasses = async user_id => {
-    const result = await knex('classes')
-        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
-        .countDistinct('classes.class_id as count')
-        .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereIn('classes.status', ['opened'])
-    return _.get(result, '0.count')
 }
 
 const getUsersByClassId = async ({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) => {
@@ -556,7 +542,6 @@ module.exports = {
     change,
     getClassByClassId,
     endClass,
-    countBookedClasses,
     getUsersByClassId,
     sendDayClassBeginMsg,
     sendMinuteClassBeginMsg,

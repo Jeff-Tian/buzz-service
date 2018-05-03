@@ -4,6 +4,7 @@ const uuidv4 = require('uuid/v4')
 /*eslint-disable */
 class UserNotFoundError extends Error {
 }
+
 /* eslint-enable */
 
 module.exports = {
@@ -23,4 +24,6 @@ module.exports = {
         Companion: 'c',
         Adviser: 'a',
     },
+
+    getWechatByUserIds: user.getWechatByUserIds,
 }
