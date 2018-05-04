@@ -9,7 +9,7 @@ const moment = require('moment')
 const uuidv4 = require('uuid/v4')
 
 /*eslint-disable */
-class StartTimeWithin48HoursError extends Error {
+class StartTimeEarlierThanNowError extends Error {
 }
 
 class EndTimeWithinHalfHourLaterOfStartTimeError extends Error {
@@ -20,7 +20,7 @@ class BalanceClassHourInSufficientError extends Error {
 
 /* eslint-enable */
 module.exports = {
-    StartTimeWithin48HoursError,
+    StartTimeEarlierThanNowError,
     EndTimeWithinHalfHourLaterOfStartTimeError,
     BalanceClassHourInSufficientError,
     validateTimeSlot({ start_time, end_time }) {
@@ -51,8 +51,8 @@ module.exports = {
             throw new Error(`startTime and endTime should be an hour or half hour, got ${startTime} - ${endTime}`, uuidv4())
         }
 
-        if (moment().add(48, 'h').isAfter(startTime)) {
-            throw new StartTimeWithin48HoursError('startTime should be after 48 hours', uuidv4())
+        if (moment().isAfter(startTime)) {
+            throw new StartTimeEarlierThanNowError('startTime should be later than now', uuidv4())
         }
 
         if (startTime.add(0.5, 'h').isAfter(endTime)) {
