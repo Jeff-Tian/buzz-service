@@ -1,37 +1,27 @@
-// Configure the environment and require Knex
-const env = process.env.NODE_ENV || 'test'
-const config = require('../knexfile')[env]
-const server = require('../server/index')
-const knex = require('knex')(config)
+const common = require('./test-helpers/common')
+const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
-// Require and configure the assertion library
-const chai = require('chai')
-const should = chai.should()
-const chaiHttp = require('chai-http')
-chai.use(chaiHttp)
-// Rollback, commit and populate the test database before each test
+
 describe('routes: users', () => {
-    beforeEach(() => knex.migrate
-        .rollback()
-        .then(() => knex.migrate.latest())
-        .then(() => knex.seed.run()))
-    // Rollback the migration after each test
-    afterEach(() => knex.migrate.rollback())
+    before(async () => {
+        await knex.migrate.rollback()
+        await knex.migrate.latest()
+        await knex.seed.run()
+    })
+
+    after(async () => {
+        await knex.migrate.rollback()
+    })
 
     // Here comes the first test
     describe(`GET ${PATH}`, () => {
-        it('should return all the users', done => {
-            chai
-                .request(server)
-                .get(`${PATH}`)
-                .end((err, res) => {
-                    should.not.exist(err)
-                    res.status.should.eql(200)
-                    res.type.should.eql('application/json')
-                    res.body.length.should.eql(5)
-                    res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'class_hours')
-                    done()
-                })
+        it('should return all the users', async () => {
+            const res = await common.makeRequest('get', `${PATH}`)
+
+            res.status.should.eql(200)
+            res.type.should.eql('application/json')
+            res.body.length.should.eql(5)
+            res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'class_hours')
         })
     })
 
@@ -215,7 +205,7 @@ describe('routes: users', () => {
         it('should find user by wechat open id', done => {
             chai
                 .request(server)
-                .get(`${PATH}/by-wechat?openid=12345`)
+                .get(`${PATH}/by-wechat?openid=oyjHGw_XuFegDeFmObyFh0uTnHXI`)
                 .end((err, res) => {
                     should.not.exist(err)
                     res.status.should.eql(200)

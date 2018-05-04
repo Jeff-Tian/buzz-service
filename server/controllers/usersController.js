@@ -10,6 +10,7 @@ const Stream = require('stream')
 const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../dal/user')
+const basicAuth = require('../security/basic-auth')
 
 function joinTables() {
     return knex('users')
@@ -21,13 +22,13 @@ function joinTables() {
         .groupByRaw('users.user_id')
 }
 
-function selectFields(search) {
+function selectFields(search, returnSensativeInformation) {
     return search
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
             'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
-            'user_profiles.date_of_birth as date_of_birth', 'user_profiles.mobile as mobile',
+            'user_profiles.date_of_birth as date_of_birth', returnSensativeInformation ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
             'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
@@ -50,6 +51,8 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 }
 
 const search = async ctx => {
+    const returnSensativeInformation = basicAuth.validate(ctx)
+
     try {
         let search = joinTables()
             .orderBy('users.created_at', 'desc')
@@ -89,7 +92,7 @@ const search = async ctx => {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search)
+        ctx.body = await selectFields(search, returnSensativeInformation)
     } catch (error) {
         console.error(error)
 
