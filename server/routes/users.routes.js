@@ -13,5 +13,6 @@ router.post(`${BASE_URL}/byUserIdlist`, usersController.getByUserIdList)
 router.put(`${BASE_URL}/sign-in`, usersController.signIn)
 router.put(`${BASE_URL}/sign-in-byMobileOrEmail`, usersController.signInByMobileOrEmail)
 router.put(`${BASE_URL}/:user_id`, usersController.update)
+router.post(`${BASE_URL}/appendOrderRemark/:user_id`, usersController.appendOrderRemark)
 router.del(`${BASE_URL}/:user_id`, usersController.delete)
 module.exports = router

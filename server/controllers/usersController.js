@@ -511,6 +511,19 @@ const getAvailableUsers = async ctx => {
     ctx.body = result
 }
 
+const appendOrderRemark = async ctx => {
+    try {
+        await knex('user_profiles')
+            .update({
+                order_remark: knex.raw(`CONCAT_WS('\n', '${ctx.request.body.order_remark}', order_remark)`),
+            }).where('user_id', ctx.params.user_id)
+        ctx.body = 'success'
+    } catch (e) {
+        ctx.status = 500
+        ctx.body = e
+    }
+}
+
 module.exports = {
     search,
     show,
@@ -524,4 +537,5 @@ module.exports = {
     getByUserIdList,
     delete: deleteByUserID,
     getAvailableUsers,
+    appendOrderRemark,
 }
