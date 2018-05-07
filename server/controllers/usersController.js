@@ -9,7 +9,7 @@ const qiniu = require('../common/qiniu')
 const Stream = require('stream')
 const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
-const { getUsersByWeekly } = require('../dal/user')
+const { getUsersByWeekly } = require('../bll/user')
 const basicAuth = require('../security/basic-auth')
 
 function joinTables() {

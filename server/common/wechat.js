@@ -8,6 +8,7 @@ const API = require('co-wechat-api')
 const { redis } = require('./redis')
 const timeHelper = require('./time-helper')
 const config = require('../config')
+const { getWechatByUserIds } = require('../dal/user')
 
 let appId = process.env.buzz_wechat_appid
 let appSecret = process.env.buzz_wechat_secret
@@ -57,9 +58,27 @@ module.exports = {
     async sendTpl({ openid, id, url, color, data }) {
         return await api.sendTemplate(openid, id, url, color, data)
     },
+    // 课程安排通知
+    async sendScheduleTpl(user_id) {
+        const users = await getWechatByUserIds([user_id])
+        const { wechat_openid, name } = _.get(users, '0') || {}
+
+        const data = {
+            openid: wechat_openid,
+            id: 'EV-ymavqg5FwN-fQjZHJyj1386TsQcwB1H6KEHC8Cno',
+            url: config.endPoints.buzzCorner,
+            data: {
+                first: { value: '您的私人老师已为您安排最新课程计划\n' },
+                keyword1: { value: 'BuzzBuzz 语言角' },
+                keyword2: { value: name || '' },
+                remark: { value: '\n进入BuzzBuzz语言角查看课程计划详情和进行课前练习。' },
+            },
+        }
+        await this.sendTpl(data)
+    },
     // 续费通知
     async  sendRenewTpl(user_id, class_hours) {
-        const users = await require('../bll/user').getWechatByUserIds([user_id])
+        const users = await getWechatByUserIds([user_id])
         const { wechat_openid, name } = _.get(users, '0') || {}
 
         const data = {

@@ -26,4 +26,6 @@ module.exports = {
     },
 
     getWechatByUserIds: user.getWechatByUserIds,
+    getUsersByClassId: user.getUsersByClassId,
+    getUsersByWeekly: user.getUsersByWeekly,
 }

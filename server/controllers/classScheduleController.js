@@ -12,6 +12,7 @@ const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
+const { getUsersByClassId } = require('../bll/user')
 const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
@@ -412,52 +413,6 @@ const endClass = async ctx => {
     }
 }
 
-const getUsersByClassId = async ({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) => {
-    const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
-    if (!classInfo) return
-    let students = []
-    if (_.includes(role, 'student')) {
-        const studentQuery = knex('student_class_schedule')
-            .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
-            .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
-            .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
-            .where({
-                'student_class_schedule.class_id': class_id,
-                'student_class_schedule.status': 'confirmed',
-            })
-            .select(
-                'user_social_accounts.wechat_openid as wechat_openid',
-                'user_social_accounts.wechat_name as wechat_name',
-                'student_class_schedule.user_id as user_id',
-                'user_profiles.email as email',
-                'user_profiles.time_zone as time_zone',
-                'users.name as name',
-            )
-        students = await studentQuery
-    }
-    let companions = []
-    if (_.includes(role, 'companion')) {
-        const companionQuery = knex('companion_class_schedule')
-            .leftJoin('user_social_accounts', 'companion_class_schedule.user_id', 'user_social_accounts.user_id')
-            .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
-            .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
-            .select(
-                'user_social_accounts.wechat_openid as wechat_openid',
-                'user_social_accounts.wechat_name as wechat_name',
-                'companion_class_schedule.user_id as user_id',
-                'user_profiles.email as email',
-                'user_profiles.time_zone as time_zone',
-                'users.name as name',
-            )
-            .where({
-                'companion_class_schedule.class_id': class_id,
-                'companion_class_schedule.status': 'confirmed',
-            })
-        companions = await companionQuery
-    }
-    return { classInfo, students, companions }
-}
-
 const sendDayClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
@@ -545,7 +500,6 @@ module.exports = {
     change,
     getClassByClassId,
     endClass,
-    getUsersByClassId,
     sendDayClassBeginMsg,
     sendMinuteClassBeginMsg,
     sendEvaluationMsg,
