@@ -27,7 +27,7 @@ function selectFields(search, returnSensativeInformation) {
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
+            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
             'user_profiles.date_of_birth as date_of_birth', returnSensativeInformation ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
@@ -375,6 +375,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         state: body.state,
         school_name: body.school_name,
         time_zone: body.time_zone,
+        order_remark: body.order_remark,
         weekly_schedule_requirements: body.weekly_schedule_requirements,
     })
     if (Object.keys(profiles).length > 0) {
