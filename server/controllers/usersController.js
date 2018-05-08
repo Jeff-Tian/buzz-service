@@ -327,7 +327,6 @@ const signIn = async ctx => {
 }
 
 function makeUpdations(updations) {
-    console.log('updating ...', updations)
     const result = {}
 
     Object.keys(updations).map(prop => {
@@ -342,9 +341,13 @@ function makeUpdations(updations) {
 }
 
 const updateUsersTable = async function (body, trx, ctx) {
+    if (body.role) {
+        // There are many things to be checked to change a user's role
+        await userBll.changeUserRole(body, trx, ctx.params.user_id)
+    }
+
     const user = makeUpdations({
         name: body.name,
-        role: body.role,
         remark: body.remark,
     })
 
@@ -427,11 +430,15 @@ const update = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await selectUsers().where('users.user_id', ctx.params.user_id))[0]
     } catch (error) {
-        console.error('updating user error: ', error)
-
         await trx.rollback()
-        ctx.status = 409
-        ctx.body = error
+
+        if (error instanceof userBll.UserHasConfirmedGroupsCanNotChangeRoleError) {
+            ctx.throw(400, error)
+        } else {
+            console.error('updating user error: ', error)
+            ctx.status = 409
+            ctx.body = error
+        }
     }
 }
 

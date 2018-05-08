@@ -4,13 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test PORT=16999 BASIC_NAME=buzz BASIC_PASS=pass mocha --exit --timeout 3000 ",
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js",
+    "test": "cross-env NODE_ENV=test PORT=16999 BASIC_NAME=buzz BASIC_PASS=pass mocha --compilers js:babel-register --require babel-polyfill --exit --timeout 3000 ",
+    "start": "nodemon server/index.js --exec babel-node --presets es2015,stage-2",
     "lint": "eslint --format node_modules/eslint-friendly-formatter . -- --eff-absolute-paths true",
     "lint:fix": "eslint --format node_modules/eslint-friendly-formatter . --fix -- --eff-absolute-paths true",
-    "precommit": "lint-staged",
-    "local": "cross-env CLEARDB_DATABASE_URL=mysql://b54bd8f2282800:d21a6714@us-cdbr-iron-east-05.cleardb.net/heroku_5399ff1e0057f9d?reconnect=true NODE_ENV=staging npm start"
+    "precommit": "lint-staged"
   },
   "lint-staged": {
     "*.js": [
@@ -21,6 +19,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-register": "^6.26.0",
     "chai": "^4.1.2",
     "chai-http": "^3.0.0",
     "cross-env": "^5.1.4",
@@ -35,6 +38,7 @@
     "sqlite3": "^3.1.13"
   },
   "dependencies": {
+    "babel-plugin-transform-builtin-extend": "^1.1.2",
     "basic-auth": "^2.0.0",
     "bluebird": "^3.5.1",
     "co-wechat-api": "^3.5.0",
@@ -60,7 +64,7 @@
   },
   "apps": [
     {
-      "script": "server/index.js",
+      "script": "server/index.js --exec babel-node --preset es2015,stage-2",
       "watch": "true",
       "name": "buzz-corner-service",
       "instances": "max",

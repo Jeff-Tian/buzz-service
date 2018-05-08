@@ -129,9 +129,9 @@ module.exports = {
         } else if (state === 'need') {
             //  hours: 0, total_count: 1, cancelled_count: 1, done_count: 0, req: 1
             query = query.havingRaw('((req >= total_count) AND (hours >= 0)) AND ((hours + cancelled_count) > 0 AND (req > done_count))')
-        // } else if (state === 'confirmed') {
-        //     // hours: 0, done_count: 1, req: 1
-        //     query = query.havingRaw('done_count >= req AND done_count > 0)')
+            // } else if (state === 'confirmed') {
+            //     // hours: 0, done_count: 1, req: 1
+            //     query = query.havingRaw('done_count >= req AND done_count > 0)')
         }
         let result = await query
         console.log(result)

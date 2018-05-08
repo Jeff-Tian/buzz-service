@@ -1,3 +1,5 @@
+import * as userBookings from './test-data-generators/user-bookings'
+
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
@@ -447,14 +449,19 @@ describe('routes: users', () => {
         })
     })
 
-    async function createUserWithProfileIncomplete(username, userType) {
-        const createStudentResponse = await common.makeRequest('post', '/api/v1/users', {
+    async function createUserWithNameAndRole(username, userType) {
+        const createUserResponse = await common.makeRequest('post', '/api/v1/users', {
             name: username,
             role: userType,
         })
 
-        createStudentResponse.status.should.eql(201)
-        const userId = createStudentResponse.body
+        createUserResponse.status.should.eql(201)
+        const userId = createUserResponse.body
+        return userId
+    }
+
+    async function createUserWithProfileIncomplete(username, userType) {
+        const userId = await createUserWithNameAndRole(username, userType)
 
         userId.should.gt(0)
 
@@ -470,6 +477,50 @@ describe('routes: users', () => {
 
         it('如果中方学生的手机号没填，那么资料是不完整的', async () => {
             await createUserWithProfileIncomplete('companion without email', userBll.MemberType.Companion)
+        })
+    })
+
+    describe(`PUT ${PATH}/:user_id`, () => {
+        it('如果用户已经被排过课，则不能切换角色', async () => {
+            try {
+                const changeRoleResponse = await common.makeRequest('put', `${PATH}/4`, {
+                    role: userBll.MemberType.Student,
+                })
+            } catch (ex) {
+                should.exist(ex)
+                ex.status.should.eql(400)
+                ex.response.text.should.eql(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`)
+
+                try {
+                    await common.makeRequest('put', `${PATH}/4`, {
+                        role: userBll.MemberType.Companion,
+                    })
+                } catch (ex) {
+                    should.not.exist(ex)
+                }
+            }
+
+            const newUser = await userBll.get(4)
+            newUser.role.should.eql(userBll.MemberType.Companion)
+        })
+
+        it('如果用户没有被排过课，则可以切换角色', async () => {
+            try {
+                const userId = await createUserWithNameAndRole('user without groups', userBll.MemberType.Companion)
+
+                try {
+                    await common.makeRequest('put', `${PATH}/${userId}`, {
+                        role: userBll.MemberType.Student,
+                    })
+                } catch (ex) {
+                    should.not.exist(ex)
+                }
+
+                const newUser = await userBll.get(userId)
+                newUser.role.should.eql(userBll.MemberType.Student)
+            } catch (ex) {
+                should.not.exist(ex)
+            }
         })
     })
 })

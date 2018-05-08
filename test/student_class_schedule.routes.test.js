@@ -1,4 +1,6 @@
 // Configure the environment and require Knex
+import ClassScheduleDAL from '../server/dal/class-schedules'
+
 const env = process.env.NODE_ENV || 'test'
 const config = require('../knexfile')[env]
 const server = require('../server/index')
@@ -168,6 +170,18 @@ describe('routes: student class schedule', () => {
 
                     done()
                 })
+        })
+    })
+
+    describe('用户是否被排过课的场景', () => {
+        it('可以根据用户 id 查找他确认参加的小组', async () => {
+            let result = await ClassScheduleDAL.hasConfirmedClassSchedules(4)
+
+            result.should.not.eql(undefined)
+            result.length.should.gt(0)
+
+            result = await ClassScheduleDAL.hasConfirmedClassSchedules(9999)
+            result.length.should.eql(0)
         })
     })
 })
