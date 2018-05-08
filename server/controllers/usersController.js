@@ -8,8 +8,8 @@ const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const Stream = require('stream')
 const crypto = require('crypto')
-const { countBookedClasses } = require('../bll/class-hours')
-const { getUsersByWeekly } = require('../bll/user')
+const {countBookedClasses} = require('../bll/class-hours')
+const {getUsersByWeekly} = require('../bll/user')
 const basicAuth = require('../security/basic-auth')
 
 function joinTables() {
@@ -22,13 +22,13 @@ function joinTables() {
         .groupByRaw('users.user_id')
 }
 
-function selectFields(search, returnSensativeInformation) {
+function selectFields(search, isContextSecure) {
     return search
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
             'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
-            'user_profiles.date_of_birth as date_of_birth', returnSensativeInformation ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
+            'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
             'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
@@ -41,8 +41,8 @@ function selectFields(search, returnSensativeInformation) {
         )
 }
 
-function selectUsers() {
-    return selectFields(joinTables())
+function selectUsers(isContextSecure) {
+    return selectFields(joinTables(), isContextSecure)
 }
 
 function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
@@ -97,14 +97,14 @@ const search = async ctx => {
         console.error(error)
 
         ctx.status = 500
-        ctx.body = { error: error.message }
+        ctx.body = {error: error.message}
     }
 }
 const show = async ctx => {
     try {
-        const { user_id } = ctx.params
-        const users = await selectUsers()
-            .where({ 'users.user_id': user_id })
+        const {user_id} = ctx.params
+        const users = await selectUsers(basicAuth.validate(ctx))
+            .where({'users.user_id': user_id})
 
         if (!users.length) {
             throw new Error('The requested user does not exists')
@@ -148,14 +148,14 @@ const getUserInfoByClassId = async ctx => {
         .select('users.user_id as userId', 'users.name as userName', 'user_profiles.avatar as avatar', 'class_feedback.score as score')
         .where('users.user_id', 'in', arr)
 
-    ctx.body = { class_id: classId, userInfo: userList } || []
+    ctx.body = {class_id: classId, userInfo: userList} || []
 }
 
 const getByFacebookId = async ctx => {
     try {
-        const { facebook_id } = ctx.params
+        const {facebook_id} = ctx.params
         const users = await selectUsers()
-            .where({ 'user_social_accounts.facebook_id': facebook_id })
+            .where({'user_social_accounts.facebook_id': facebook_id})
 
         if (!users.length) {
             throw new Error('The requested user does not exists')
@@ -174,7 +174,7 @@ const getByFacebookId = async ctx => {
 
 const getByWechat = async ctx => {
     try {
-        const { openid, unionid } = ctx.query
+        const {openid, unionid} = ctx.query
         if (!openid && !unionid) {
             throw new Error('Please specifiy a openid or unionid')
         }
@@ -210,7 +210,7 @@ const create = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
-        const { body } = ctx.request
+        const {body} = ctx.request
 
         const users = await trx('users')
             .returning('user_id')
@@ -257,7 +257,7 @@ const create = async ctx => {
 }
 
 const signInByMobileOrEmail = async ctx => {
-    const { mobile, email, password } = ctx.request.body
+    const {mobile, email, password} = ctx.request.body
 
     // 判断用户输入的手机号、邮箱、密码是否为空
     if (!mobile) {
@@ -272,8 +272,8 @@ const signInByMobileOrEmail = async ctx => {
     }
 
     // 通过用户的手机号或邮箱查询用户信息
-    const filterMobile = { 'user_profiles.mobile': mobile }
-    const filterEmail = { 'user_profiles.email': email }
+    const filterMobile = {'user_profiles.mobile': mobile}
+    const filterEmail = {'user_profiles.email': email}
 
     let users
     if (mobile) {
@@ -309,13 +309,13 @@ const signInByMobileOrEmail = async ctx => {
 }
 
 const signIn = async ctx => {
-    const { user_id, facebook_id, wechat_openid, wechat_unionid } = ctx.request.body
+    const {user_id, facebook_id, wechat_openid, wechat_unionid} = ctx.request.body
 
     if (!user_id) {
         return ctx.throw(403, 'sign in not allowed')
     }
 
-    const filter = { 'users.user_id': user_id }
+    const filter = {'users.user_id': user_id}
 
     const users = await selectUsers().where(filter)
 
@@ -324,7 +324,7 @@ const signIn = async ctx => {
     }
 
     // TODO: don't set long term cookies by default:
-    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+    ctx.cookies.set('user_id', user_id, {httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000))})
     ctx.body = users[0]
 }
 
@@ -405,7 +405,7 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
 
         console.log('deleted = ', deleted)
 
-        const values = body.interests.map(i => ({ user_id: ctx.params.user_id, interest: i }))
+        const values = body.interests.map(i => ({user_id: ctx.params.user_id, interest: i}))
 
         console.log('inserting ...', values)
         const inserted = await trx('user_interests')
@@ -418,7 +418,7 @@ const update = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
-        const { body } = ctx.request
+        const {body} = ctx.request
         await updateUsersTable(body, trx, ctx)
         await updateUserProfilesTable(body, trx, ctx)
         await updateUserAccountsTable(body, trx, ctx)
@@ -438,7 +438,7 @@ const update = async ctx => {
 }
 
 const getByUserIdList = async ctx => {
-    const { body } = ctx.request
+    const {body} = ctx.request
     const userIdList = body.userIdList
     try {
         const userAvatarList = await knex('user_profiles')
@@ -482,7 +482,7 @@ const deleteByUserID = async ctx => {
 
 const getAvailableUsers = async ctx => {
     // role: 'student' or 'companion'
-    const { start_time, end_time, role } = ctx.query
+    const {start_time, end_time, role} = ctx.query
     const schedule = `${role}_class_schedule`
     const hasSchedule = start_time && end_time
     // 该时段已排班的用户
