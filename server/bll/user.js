@@ -16,7 +16,7 @@ module.exports = {
             return theUser
         }
 
-        throw new this.UserNotFoundError(`User with id ${userId} not found`, uuidv4)
+        throw new this.UserNotFoundError(`User with id ${userId} not found`, uuidv4())
     },
 
     MemberType: {
@@ -28,4 +28,25 @@ module.exports = {
     getWechatByUserIds: user.getWechatByUserIds,
     getUsersByClassId: user.getUsersByClassId,
     getUsersByWeekly: user.getUsersByWeekly,
+    async isProfileOK(userId) {
+        const theUser = await user.get(userId)
+
+        if (theUser) {
+            if (theUser.role === this.MemberType.Student) {
+                if (!theUser.mobile) {
+                    return false
+                }
+            }
+
+            if (theUser.role === this.MemberType.Companion) {
+                if (!theUser.email) {
+                    return false
+                }
+            }
+
+            return true
+        }
+
+        throw new this.UserNotFoundError(`User with id ${userId} not found`, uuidv4())
+    },
 }

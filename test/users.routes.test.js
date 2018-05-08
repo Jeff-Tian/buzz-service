@@ -1,6 +1,7 @@
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
+const userBll = require('../server/bll/user')
 
 describe('routes: users', () => {
     before(async () => {
@@ -443,6 +444,32 @@ describe('routes: users', () => {
                     res.body.class_id.should.eql('1')
                     done()
                 })
+        })
+    })
+
+    async function createUserWithProfileIncomplete(username, userType) {
+        const createStudentResponse = await common.makeRequest('post', '/api/v1/users', {
+            name: username,
+            role: userType,
+        })
+
+        createStudentResponse.status.should.eql(201)
+        const userId = createStudentResponse.body
+
+        userId.should.gt(0)
+
+        const result = await common.makeRequest('get', `${PATH}/is-profile-ok/${userId}`)
+        result.status.should.eql(200)
+        result.body.should.eql(false)
+    }
+
+    describe(`GET ${PATH}/is-profile-ok/:user_id`, () => {
+        it('如果外籍学生的邮箱没填，那么资料是不完整的', async () => {
+            await createUserWithProfileIncomplete('student without mobile', userBll.MemberType.Student)
+        })
+
+        it('如果中方学生的手机号没填，那么资料是不完整的', async () => {
+            await createUserWithProfileIncomplete('companion without email', userBll.MemberType.Companion)
         })
     })
 })
