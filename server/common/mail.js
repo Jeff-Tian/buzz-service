@@ -1,8 +1,11 @@
+import logger from '../common/logger'
+
 const _ = require('lodash')
 const { DM } = require('waliyun')
 const { redis } = require('./redis')
 const timeHelper = require('./time-helper')
 const config = require('../config')
+const { get: getUserById } = require('../dal/user')
 
 const dm = DM({
     AccessKeyId: process.env.buzz_aliyun_mail_id,
@@ -23,7 +26,7 @@ module.exports = {
             FromAlias: 'BuzzBuzz',
             ...opt,
         })
-        console.log('mail:res', res)
+        logger.info('mail:res: ', res)
     },
     // 验证
     async verifyByCode(mail, code) {
@@ -49,17 +52,20 @@ module.exports = {
         await redis.set(`mail:verify:${mail}`, code, 'ex', expire)
         return { code, expire }
     },
-    //     // 学生给外籍的课程评价通知
-    //     async sendStudentEvaluationTpl(mail, name, class_id, class_topic, companion_id) {
-    //         const url = `${config.endPoints.buzzCorner}/class/evaluation/${companion_id}/${class_id}`
-    //         await this.send({
-    //             ToAddress: mail,
-    //             Subject: 'Evaluation reminder',
-    //             HtmlBody: `Dear ${name || ''},<br/>
-    // Congratulations! You have successfully finished the ${class_topic || ''} session! Please take a few seconds to evaluate your peer tutor (<a href="${url}">evaluation link</a>). <br/>
-    // Your peer tutor wants to know what you think about him/her!`,
-    //         })
-    //     },
+    // 课程安排通知
+    async sendScheduleMail(ToAddress) {
+        const url = config.endPoints.buzzCorner
+        await this.send({
+            // ToAddress: _.get(getUserById(user_id), 'email'),
+            ToAddress,
+            Subject: 'Tutoring plan notification',
+            HtmlBody: `Dear peer tutor,<br/>
+Please find your tutoring plan，<br/>
+Look forward to seeing you LIVE!<br/>
+<a href="${url}">Please click the link to learn your plan details</a><br/>
+PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com) .`,
+        })
+    },
     // 外籍给学生的课程评价通知
     async sendCompanionEvaluationMail(mail, name, class_id, class_topic) {
         const url = `${config.endPoints.buzzCorner}/class/foreign/${class_id}`

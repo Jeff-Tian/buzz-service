@@ -1,10 +1,11 @@
+import logger from '../common/logger'
+
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const classHoursBll = require('../bll/class-hours')
 const integralBll = require('../bll/integral')
-
 const charge = async ctx => {
     const { body } = ctx.request
 
@@ -80,9 +81,8 @@ const consumeIntegral = async ctx => {
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await knex('user_balance').select('integral').where({ user_id: userId }))[0]
-        console.log(ctx.body)
     } catch (error) {
-        console.log(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
@@ -109,9 +109,8 @@ const chargeIntegral = async ctx => {
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await knex('user_balance').select('integral').where({ user_id: userId }))[0]
-        console.log(ctx.body)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500

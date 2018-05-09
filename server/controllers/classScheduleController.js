@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const _ = require('lodash')
 const bluebird = require('bluebird')
 const moment = require('moment-timezone')
@@ -12,6 +14,7 @@ const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
+const { getUsersByClassId } = require('../bll/user')
 const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
@@ -22,11 +25,11 @@ const listSuggested = async ctx => {
             .andWhere('student_class_schedule.status', 'booking')
 
         const suggestions = Scheduling.makeGroups(res)
-        console.log('res = ', res)
+        logger.info('res = ', res)
         ctx.status = 200
         ctx.body = res
     } catch (error) {
-        console.error(error)
+        logger.error(error)
         ctx.throw(500, error)
     }
 }
@@ -113,6 +116,10 @@ const getClassByClassId = async ctx => {
 }
 
 async function addClassJob(classInfo) {
+    if (process.env.NODE_ENV === 'test') {
+        return
+    }
+
     try {
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task`,
@@ -121,7 +128,7 @@ async function addClassJob(classInfo) {
             json: true,
         })
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
     }
 }
 
@@ -154,8 +161,32 @@ const list = async ctx => {
 
         ctx.body = await search
     } catch (error) {
-        console.error(error)
+        logger.error(error)
         ctx.throw(error)
+    }
+}
+
+// 新建/更新班级 如果有新人 给新人创建24小时后的任务
+const addScheduleJob = async (oldClass, newClass) => {
+    if (process.env.NODE_ENV === 'test') {
+        return
+    }
+
+    try {
+        if (_.get(newClass, 'status') !== 'opened') return
+        const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), (_.get(oldClass, 'students') || '').split(','))
+        const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), (_.get(newClass, 'students') || '').split(','))
+        const user_ids = _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
+        if (_.isEmpty(user_ids)) return
+        const start_time = newClass.start_time
+        await request({
+            uri: `${config.endPoints.bullService}/api/v1/task/schedule`,
+            method: 'POST',
+            body: { user_ids, start_time },
+            json: true,
+        })
+    } catch (e) {
+        logger.error(e)
     }
 }
 
@@ -165,6 +196,7 @@ const upsert = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
+        const oldClassInfo = body.class_id ? await getClassById(body.class_id) : {}
         let classIds = [body.class_id]
 
         const data = {
@@ -209,8 +241,6 @@ const upsert = async ctx => {
                 .where({ class_id: body.class_id })
 
             originalCompanions = originalCompanions.map(oc => oc.user_id)
-            console.log('original companions = ', originalCompanions)
-
             const toBeDeletedCompanionSchedules = originalCompanions.filter(c => companionSchedules.map(cs => cs.user_id).indexOf(c) < 0)
             const tbBeUpdatedCompanionSchedules = originalCompanions.filter(c => companionSchedules.map(cs => cs.user_id).indexOf(c) >= 0)
 
@@ -228,23 +258,20 @@ const upsert = async ctx => {
                 if (JSON.stringify(updateForCompanions) !== '{}') {
                     await trx('companion_class_schedule')
                         .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
+                        .andWhere('class_id', '=', body.class_id)
                         .update(updateForCompanions)
                 }
             }
 
             companionSchedules = companionSchedules.filter(s => originalCompanions.indexOf(s.user_id) < 0)
-            console.log('companionSchedules=', companionSchedules)
             let originalStudents = await trx('student_class_schedule')
                 .select('user_id')
                 .where({ class_id: body.class_id })
 
             originalStudents = originalStudents.map(os => os.user_id)
-            console.log('original students = ', originalStudents)
 
             const toBeDeletedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) < 0)
-            console.log('toBeDeleted = ', toBeDeletedStudentSchedules)
             const toBeUpdatedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) >= 0)
-            console.log('tobeUpdated = ', toBeUpdatedStudentSchedules)
 
             await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id)
 
@@ -257,12 +284,12 @@ const upsert = async ctx => {
                 if (JSON.stringify(updateForStudent) !== '{}') {
                     await trx('student_class_schedule')
                         .where('user_id', 'in', toBeUpdatedStudentSchedules)
+                        .andWhere('class_id', '=', body.class_id)
                         .update(updateForStudent)
                 }
             }
 
             studentSchedules = studentSchedules.filter(s => originalStudents.indexOf(s.user_id) < 0)
-            console.log('students after filter = ', studentSchedules)
         } else {
             classIds = await trx('classes')
                 .returning('class_id')
@@ -288,14 +315,15 @@ const upsert = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         const classInfo = await getClassById(classIds[0])
         await addClassJob(classInfo)
+        await addScheduleJob(oldClassInfo, classInfo)
         ctx.body = classInfo
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
         ctx.body = {
-            error: 'Save class failed!',
+            error: `Save class failed! ${error.message}`,
         }
     }
 }
@@ -345,7 +373,7 @@ const change = async ctx => {
         ctx.body = listEnd
         ctx.status = 200
     } catch (error) {
-        console.log(error)
+        logger.error(error)
         await trx.rollback()
     }
 }
@@ -355,10 +383,10 @@ const endClass = async ctx => {
     try {
         const classId = ctx.params.class_id
         const { endTime } = ctx.request.body
-        console.log('需要修改班级状态的班级classID：', classId)
-        console.log('设置定时器的时间endTime：', endTime)
+        logger.info('需要修改班级状态的班级classID：', classId)
+        logger.info('设置定时器的时间endTime：', endTime)
         const cronTime = new Date(endTime).getTime()
-        console.log('已经触发的定时器的时间cronTime:', cronTime)
+        logger.info('已经触发的定时器的时间cronTime:', cronTime)
 
         const classInfo = _.get(await trx('classes')
             .where('class_id', classId), 0)
@@ -369,10 +397,10 @@ const endClass = async ctx => {
             throw new Error(`can't end ${classInfo.status} class`)
         }
         const sqlTime = new Date(classInfo.end_time).getTime()
-        console.log('数据库中班级的结束时间sqlTime', sqlTime)
+        logger.info('数据库中班级的结束时间sqlTime', sqlTime)
 
         if (sqlTime === cronTime) {
-            console.log('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
+            logger.info('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
             await trx('classes')
                 .where('class_id', classId)
                 .update({
@@ -390,7 +418,7 @@ const endClass = async ctx => {
                 .update({
                     status: 'ended',
                 })
-            console.log('修改成功')
+            logger.info('修改成功')
         }
 
         await trx.commit()
@@ -401,9 +429,8 @@ const endClass = async ctx => {
 
         ctx.body = listEnd
         ctx.status = 200
-        console.log('返回的被修改班级的信息', ctx.body)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
@@ -411,62 +438,6 @@ const endClass = async ctx => {
             error: 'end class failed!',
         }
     }
-}
-
-const countBookedClasses = async user_id => {
-    const result = await knex('classes')
-        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
-        .countDistinct('classes.class_id as count')
-        .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereIn('classes.status', ['opened'])
-    return _.get(result, '0.count')
-}
-
-const getUsersByClassId = async ({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) => {
-    const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
-    if (!classInfo) return
-    let students = []
-    if (_.includes(role, 'student')) {
-        const studentQuery = knex('student_class_schedule')
-            .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
-            .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
-            .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
-            .where({
-                'student_class_schedule.class_id': class_id,
-                'student_class_schedule.status': 'confirmed',
-            })
-            .select(
-                'user_social_accounts.wechat_openid as wechat_openid',
-                'user_social_accounts.wechat_name as wechat_name',
-                'student_class_schedule.user_id as user_id',
-                'user_profiles.email as email',
-                'user_profiles.time_zone as time_zone',
-                'users.name as name',
-            )
-        students = await studentQuery
-    }
-    let companions = []
-    if (_.includes(role, 'companion')) {
-        const companionQuery = knex('companion_class_schedule')
-            .leftJoin('user_social_accounts', 'companion_class_schedule.user_id', 'user_social_accounts.user_id')
-            .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
-            .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
-            .select(
-                'user_social_accounts.wechat_openid as wechat_openid',
-                'user_social_accounts.wechat_name as wechat_name',
-                'companion_class_schedule.user_id as user_id',
-                'user_profiles.email as email',
-                'user_profiles.time_zone as time_zone',
-                'users.name as name',
-            )
-            .where({
-                'companion_class_schedule.class_id': class_id,
-                'companion_class_schedule.status': 'confirmed',
-            })
-        companions = await companionQuery
-    }
-    return { classInfo, students, companions }
 }
 
 const sendDayClassBeginMsg = async ctx => {
@@ -477,11 +448,11 @@ const sendDayClassBeginMsg = async ctx => {
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
-            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendDayClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
             }
@@ -489,7 +460,7 @@ const sendDayClassBeginMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }
@@ -502,11 +473,11 @@ const sendMinuteClassBeginMsg = async ctx => {
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
-            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
             }
@@ -514,7 +485,7 @@ const sendMinuteClassBeginMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }
@@ -532,11 +503,11 @@ const sendEvaluationMsg = async ctx => {
                 .get('user_id')
                 .value()
             if (!i.wechat_openid || !companion_id) return
-            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(e => console.error(e))
+            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendCompanionEvaluationMail(i.email, i.name, classInfo.class_id, classInfo.topic)
             }
@@ -544,7 +515,7 @@ const sendEvaluationMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }
@@ -556,8 +527,6 @@ module.exports = {
     change,
     getClassByClassId,
     endClass,
-    countBookedClasses,
-    getUsersByClassId,
     sendDayClassBeginMsg,
     sendMinuteClassBeginMsg,
     sendEvaluationMsg,

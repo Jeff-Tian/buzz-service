@@ -1,14 +1,19 @@
+import logger from '../common/logger'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
+const moment = require('moment-timezone')
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+
 const wechat = require('../common/wechat')
-const qiniu = require('../common/qiniu')
-const Stream = require('stream')
+const mail = require('../common/mail')
 const crypto = require('crypto')
-const { countBookedClasses } = require('./classScheduleController')
+const { countBookedClasses } = require('../bll/class-hours')
+const { getUsersByWeekly } = require('../bll/user')
+const userBll = require('../bll/user')
+const basicAuth = require('../security/basic-auth')
 
 function joinTables() {
     return knex('users')
@@ -20,13 +25,13 @@ function joinTables() {
         .groupByRaw('users.user_id')
 }
 
-function selectFields(search) {
+function selectFields(search, isContextSecure) {
     return search
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.gender as gender',
-            'user_profiles.date_of_birth as date_of_birth', 'user_profiles.mobile as mobile',
+            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
+            'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
             'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
@@ -39,8 +44,8 @@ function selectFields(search) {
         )
 }
 
-function selectUsers() {
-    return selectFields(joinTables())
+function selectUsers(isContextSecure) {
+    return selectFields(joinTables(), isContextSecure)
 }
 
 function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
@@ -49,14 +54,21 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 }
 
 const search = async ctx => {
-    try {
-        const filters = {}
-        if (ctx.query.role) {
-            filters['users.role'] = ctx.query.role
-        }
+    const returnSensativeInformation = basicAuth.validate(ctx)
 
+    try {
         let search = joinTables()
             .orderBy('users.created_at', 'desc')
+
+        const filters = {}
+        const role = ctx.query.role
+        if (role) {
+            filters['users.role'] = role
+            const wsr = ctx.query.weekly_schedule_requirements
+            if (wsr) {
+                search = search.whereIn('users.user_id', await getUsersByWeekly(wsr, role))
+            }
+        }
 
         if (Object.keys(filters).length) {
             search = search.where(filters)
@@ -75,7 +87,6 @@ const search = async ctx => {
         }
 
         if (ctx.query.display_name) {
-            console.log('searching by name = ', ctx.query.display_name, decodeURIComponent(ctx.query.display_name))
             search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
         }
 
@@ -83,10 +94,9 @@ const search = async ctx => {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search)
-        console.log(ctx.body)
+        ctx.body = await selectFields(search, returnSensativeInformation)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         ctx.status = 500
         ctx.body = { error: error.message }
@@ -95,7 +105,7 @@ const search = async ctx => {
 const show = async ctx => {
     try {
         const { user_id } = ctx.params
-        const users = await selectUsers()
+        const users = await selectUsers(basicAuth.validate(ctx))
             .where({ 'users.user_id': user_id })
 
         if (!users.length) {
@@ -107,7 +117,7 @@ const show = async ctx => {
             booked_class_hours: await countBookedClasses(user_id),
         }
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         ctx.status = 404
         ctx.body = {
@@ -155,7 +165,7 @@ const getByFacebookId = async ctx => {
 
         ctx.body = users[0]
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
 
         ctx.status = 404
         ctx.body = {
@@ -179,8 +189,6 @@ const getByWechat = async ctx => {
             filter['user_social_accounts.wechat_unionid'] = unionid
         }
 
-        console.log('filter = ', filter)
-
         const users = await selectUsers().where(filter)
 
         if (!users.length) {
@@ -189,7 +197,7 @@ const getByWechat = async ctx => {
 
         ctx.body = users[0]
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
 
         ctx.status = 404
         ctx.body = {
@@ -238,7 +246,7 @@ const create = async ctx => {
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
         ctx.body = users[0]
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 409
@@ -321,7 +329,6 @@ const signIn = async ctx => {
 }
 
 function makeUpdations(updations) {
-    console.log('updating ...', updations)
     const result = {}
 
     Object.keys(updations).map(prop => {
@@ -336,9 +343,13 @@ function makeUpdations(updations) {
 }
 
 const updateUsersTable = async function (body, trx, ctx) {
+    if (body.role) {
+        // There are many things to be checked to change a user's role
+        await userBll.changeUserRole(body, trx, ctx.params.user_id)
+    }
+
     const user = makeUpdations({
         name: body.name,
-        role: body.role,
         remark: body.remark,
     })
 
@@ -367,6 +378,8 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         state: body.state,
         school_name: body.school_name,
         time_zone: body.time_zone,
+        order_remark: body.order_remark,
+        weekly_schedule_requirements: body.weekly_schedule_requirements,
     })
     if (Object.keys(profiles).length > 0) {
         const userProfile = await trx('user_profiles')
@@ -393,15 +406,10 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
             .where('user_interests.user_id', ctx.params.user_id)
             .del()
 
-        console.log('deleted = ', deleted)
-
         const values = body.interests.map(i => ({ user_id: ctx.params.user_id, interest: i }))
 
-        console.log('inserting ...', values)
         const inserted = await trx('user_interests')
             .insert(values)
-
-        console.log('inserted = ', inserted)
     }
 }
 const update = async ctx => {
@@ -419,11 +427,15 @@ const update = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await selectUsers().where('users.user_id', ctx.params.user_id))[0]
     } catch (error) {
-        console.error('updating user error: ', error)
-
         await trx.rollback()
-        ctx.status = 409
-        ctx.body = error
+
+        if (error instanceof userBll.UserHasConfirmedGroupsCanNotChangeRoleError) {
+            ctx.throw(400, error)
+        } else {
+            logger.error('updating user error: ', error)
+            ctx.status = 409
+            ctx.body = error
+        }
     }
 }
 
@@ -437,9 +449,8 @@ const getByUserIdList = async ctx => {
 
         ctx.body = userAvatarList || {}
         ctx.status = 200
-        console.log(ctx.body)
     } catch (error) {
-        console.log(error)
+        logger.error(error)
     }
 }
 
@@ -459,10 +470,8 @@ const deleteByUserID = async ctx => {
         await trx.commit()
         ctx.status = 200
         ctx.body = 'delete success'
-
-        console.log('delete success:', deleted)
     } catch (error) {
-        console.error('delete user error: ', error)
+        logger.error('delete user error: ', error)
 
         await trx.rollback()
         ctx.status = 409
@@ -501,12 +510,52 @@ const getAvailableUsers = async ctx => {
     ctx.body = result
 }
 
-const getWechatByUserIds = async userIds => knex('users')
-    .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
-    .whereIn('users.user_id', userIds)
-    .whereNotNull('user_social_accounts.wechat_openid')
-    .whereNot('user_social_accounts.wechat_openid', '')
-    .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')
+const appendOrderRemark = async ctx => {
+    try {
+        await knex('user_profiles')
+            .update({
+                order_remark: knex.raw(`CONCAT_WS('\n', '${ctx.request.body.order_remark}', order_remark)`),
+            }).where('user_id', ctx.params.user_id)
+        ctx.body = 'success'
+    } catch (e) {
+        ctx.status = 500
+        ctx.body = e
+    }
+}
+
+const isProfileOK = async ctx => {
+    ctx.body = await userBll.isProfileOK(ctx.params.user_id)
+}
+const sendScheduleMsg = async ctx => {
+    try {
+        const user_id = ctx.params.user_id
+        if (!user_id) return
+        const user = _.get(await knex('users')
+            .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+            .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+            .select('user_profiles.email', 'user_social_accounts.wechat_name', 'user_social_accounts.wechat_openid', 'users.role')
+            .where({ 'users.user_id': user_id }), 0)
+        if (!user) return
+        const role = { s: 'student', c: 'companion' }[user.role]
+        const schedule = `${role}_class_schedule`
+        const start_time = moment().toDate()
+        const classInfo = await knex(schedule)
+            .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
+            .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })
+            .where(`${schedule}.start_time`, '>', start_time)
+        if (_.isEmpty(classInfo)) return
+        if (user.wechat_openid) {
+            await wechat.sendScheduleTpl(user.wechat_openid, user.wechat_name)
+        } else if (user.role === user.email) {
+            await mail.sendScheduleMail(user.email)
+        }
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
 
 module.exports = {
     search,
@@ -521,5 +570,7 @@ module.exports = {
     getByUserIdList,
     delete: deleteByUserID,
     getAvailableUsers,
-    getWechatByUserIds,
+    appendOrderRemark,
+    isProfileOK,
+    sendScheduleMsg,
 }

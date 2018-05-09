@@ -1,7 +1,6 @@
 // Configure the environment and require Knex
 const moment = require('moment')
 const env = process.env.NODE_ENV || 'test'
-console.log('env = ', env)
 const config = require('../knexfile')[env]
 const server = require('../server/index')
 const knex = require('knex')(config)

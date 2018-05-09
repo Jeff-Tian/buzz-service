@@ -1,3 +1,5 @@
+import logger from './common/logger'
+
 const Koa = require('koa')
 const usersRoutes = require('./routes/users.routes')
 const studentClassSchedule = require('./routes/studentClassSchedule.routes')
@@ -33,18 +35,18 @@ app.use(mailRoutes.routes())
 app.use(bookingRoutes.routes())
 
 const server = app.listen(PORT, () => {
-    console.log('Buzz-Service 启动完毕。')
+    logger.info('Buzz-Service 启动完毕。')
 })
 
 server.on('error', err => {
-    console.error('========================')
-    console.error(err)
-    console.error('========================')
+    logger.error('========================')
+    logger.error(err)
+    logger.error('========================')
 })
 
 server.on('close', () => {
     redis.redis.disconnect()
-    console.log('Buzz-Service 关闭了。')
+    logger.info('Buzz-Service 关闭了。')
 })
 
 module.exports = server

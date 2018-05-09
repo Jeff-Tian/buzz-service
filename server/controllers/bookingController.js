@@ -1,5 +1,5 @@
 const { UserNotFoundError } = require('../bll/user')
-const { BalanceClassHourInSufficientError, EndTimeWithinHalfHourLaterOfStartTimeError, StartTimeWithin48HoursError } = require('../bll/booking')
+const { BalanceClassHourInSufficientError, EndTimeWithinHalfHourLaterOfStartTimeError, StartTimeEarlierThanNowError } = require('../bll/booking')
 const bookings = require('../bll/booking')
 
 const env = process.env.NODE_ENV || 'test'
@@ -12,7 +12,7 @@ const batchCreateBookings = async ctx => {
     } catch (ex) {
         console.error(ex)
 
-        if ((ex instanceof UserNotFoundError) || (ex instanceof BalanceClassHourInSufficientError) || (ex instanceof StartTimeWithin48HoursError) || (ex instanceof EndTimeWithinHalfHourLaterOfStartTimeError)) {
+        if ((ex instanceof UserNotFoundError) || (ex instanceof BalanceClassHourInSufficientError) || (ex instanceof StartTimeEarlierThanNowError) || (ex instanceof EndTimeWithinHalfHourLaterOfStartTimeError)) {
             ctx.throw(400, ex)
         } else {
             ctx.throw(500, ex)

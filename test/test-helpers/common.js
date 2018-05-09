@@ -1,5 +1,7 @@
 const server = require('../../server/index')
 const chai = require('chai')
+const chaiHttp = require('chai-http')
+chai.use(chaiHttp)
 
 module.exports = {
     convertErrorResultToResolveReject(resolve, reject) {
@@ -12,10 +14,16 @@ module.exports = {
         }
     },
 
-    async makeRequest(method, uri, data) {
+    async makeRequest(method, uri, data = {}, auth) {
         return await (new Promise((resolve, reject) => {
-            chai
+            const c = chai
                 .request(server)[method](uri)
+
+            if (auth) {
+                c.auth(auth.user, auth.pass)
+            }
+
+            c
                 .send(data)
                 .end(this.convertErrorResultToResolveReject(resolve, reject))
         }))

@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -28,9 +30,8 @@ const getFeedbackList = async ctx => {
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = feedback || {}
-        console.log(ctx.body)
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
         ctx.throw(409, ex)
     }
 }
@@ -67,7 +68,7 @@ const getEvaluateStatus = async ctx => {
         ctx.body = { class_id: classId, feedback: mark }
         ctx.status = 200
     } catch (error) {
-        console.log(error)
+        logger.error(error)
     }
 }
 
@@ -88,7 +89,7 @@ const setFeedbackInfo = async ctx => {
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = inserted
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
         ctx.throw(409, ex)
     }
 }
@@ -101,9 +102,8 @@ const getAdminFeedbackList = async ctx => {
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/admin-list`)
         ctx.body = feedback
-        console.log(ctx.body)
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
         ctx.throw(409, ex)
     }
 }

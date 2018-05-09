@@ -6,63 +6,63 @@ describe('booking tests', () => {
     it('should validate time slot', () => {
         should.throw(() => {
             booking.validateTimeSlot({
-                endTime: new Date(),
+                end_time: new Date(),
             })
         })
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: new Date(),
+                start_time: new Date(),
             })
         })
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: 'xxx',
-                endTime: new Date(),
+                start_time: 'xxx',
+                end_time: new Date(),
             })
         })
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: new Date(),
-                endTime: 'yyy',
+                start_time: new Date(),
+                end_time: 'yyy',
             })
         })
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: new Date(1999, 1, 1),
-                endTime: new Date(1998, 1, 1),
+                start_time: new Date(1999, 1, 1),
+                end_time: new Date(1998, 1, 1),
             })
         })
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: new Date(2018, 3, 25, 12, 0, 0),
-                endTime: new Date(2018, 3, 25, 12, 25, 0),
+                start_time: new Date(2018, 3, 25, 12, 0, 0),
+                end_time: new Date(2018, 3, 25, 12, 25, 0),
             })
         })
 
         const now = moment()
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: now.clone().add(12, 'h').set('minute', 0).set('second', 0),
-                endTime: now.clone().add(12, 'h').set('minute', 30).set('second', 0),
+                start_time: new Date(2010, 1, 1),
+                end_time: now.clone().add(12, 'h').set('minute', 30).set('second', 0),
             })
-        }, booking.StartTimeWithin48HoursError)
+        }, booking.start_timeEarlierThanNowError)
 
         should.throw(() => {
             booking.validateTimeSlot({
-                startTime: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
-                endTime: now.clone().add(50, 'h').set('minute', 0).set('second', 30),
+                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
+                end_time: now.clone().add(50, 'h').set('minute', 0).set('second', 30),
             })
-        }, booking.EndTimeWithinHalfHourLaterOfStartTimeError)
+        }, booking.end_timeWithinHalfHourLaterOfstart_timeError)
 
         should.not.throw(() => {
             booking.validateTimeSlot({
-                startTime: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
-                endTime: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
+                start_time: now.clone().add(50, 'h').set('minute', 0).set('second', 0),
+                end_time: now.clone().add(50, 'h').set('minute', 30).set('second', 0),
             })
         })
     })

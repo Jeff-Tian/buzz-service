@@ -1,37 +1,30 @@
-// Configure the environment and require Knex
-const env = process.env.NODE_ENV || 'test'
-const config = require('../knexfile')[env]
-const server = require('../server/index')
-const knex = require('knex')(config)
+import * as userBookings from './test-data-generators/user-bookings'
+
+const common = require('./test-helpers/common')
+const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
-// Require and configure the assertion library
-const chai = require('chai')
-const should = chai.should()
-const chaiHttp = require('chai-http')
-chai.use(chaiHttp)
-// Rollback, commit and populate the test database before each test
+const userBll = require('../server/bll/user')
+
 describe('routes: users', () => {
-    beforeEach(() => knex.migrate
-        .rollback()
-        .then(() => knex.migrate.latest())
-        .then(() => knex.seed.run()))
-    // Rollback the migration after each test
-    afterEach(() => knex.migrate.rollback())
+    before(async () => {
+        await knex.migrate.rollback()
+        await knex.migrate.latest()
+        await knex.seed.run()
+    })
+
+    after(async () => {
+        await knex.migrate.rollback()
+    })
 
     // Here comes the first test
     describe(`GET ${PATH}`, () => {
-        it('should return all the users', done => {
-            chai
-                .request(server)
-                .get(`${PATH}`)
-                .end((err, res) => {
-                    should.not.exist(err)
-                    res.status.should.eql(200)
-                    res.type.should.eql('application/json')
-                    res.body.length.should.eql(5)
-                    res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'class_hours')
-                    done()
-                })
+        it('should return all the users', async () => {
+            const res = await common.makeRequest('get', `${PATH}`)
+
+            res.status.should.eql(200)
+            res.type.should.eql('application/json')
+            res.body.length.should.eql(5)
+            res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'class_hours')
         })
     })
 
@@ -215,7 +208,7 @@ describe('routes: users', () => {
         it('should find user by wechat open id', done => {
             chai
                 .request(server)
-                .get(`${PATH}/by-wechat?openid=12345`)
+                .get(`${PATH}/by-wechat?openid=oyjHGw_XuFegDeFmObyFh0uTnHXI`)
                 .end((err, res) => {
                     should.not.exist(err)
                     res.status.should.eql(200)
@@ -391,8 +384,6 @@ describe('routes: users', () => {
                         .end((err, res) => {
                             should.not.exist(err)
 
-                            console.log('res = ', res.body)
-
                             res.status.should.eql(200)
                             res.body.name.should.eql('changed')
                             res.body.display_name.should.eql('changed')
@@ -453,6 +444,103 @@ describe('routes: users', () => {
                     res.body.class_id.should.eql('1')
                     done()
                 })
+        })
+    })
+
+    async function createUserWithNameAndRole(username, userType) {
+        const createUserResponse = await common.makeRequest('post', '/api/v1/users', {
+            name: username,
+            role: userType,
+        })
+
+        createUserResponse.status.should.eql(201)
+        const userId = createUserResponse.body
+        return userId
+    }
+
+    async function createUserWithProfileIncomplete(username, userType) {
+        const userId = await createUserWithNameAndRole(username, userType)
+
+        userId.should.gt(0)
+
+        const result = await common.makeRequest('get', `${PATH}/is-profile-ok/${userId}`)
+        result.status.should.eql(200)
+        result.body.should.eql(false)
+    }
+
+    describe(`GET ${PATH}/is-profile-ok/:user_id`, () => {
+        it('如果外籍学生的邮箱没填，那么资料是不完整的', async () => {
+            await createUserWithProfileIncomplete('student without mobile', userBll.MemberType.Student)
+        })
+
+        it('如果中方学生的手机号没填，那么资料是不完整的', async () => {
+            await createUserWithProfileIncomplete('companion without email', userBll.MemberType.Companion)
+        })
+    })
+
+    describe(`PUT ${PATH}/:user_id`, () => {
+        it('如果用户已经被排过课，则不能切换角色', async () => {
+            try {
+                const changeRoleResponse = await common.makeRequest('put', `${PATH}/4`, {
+                    role: userBll.MemberType.Student,
+                })
+            } catch (ex) {
+                should.exist(ex)
+                ex.status.should.eql(400)
+                ex.response.text.should.eql(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`)
+
+                try {
+                    await common.makeRequest('put', `${PATH}/4`, {
+                        role: userBll.MemberType.Companion,
+                    })
+                } catch (ex) {
+                    should.not.exist(ex)
+                }
+            }
+
+            const newUser = await userBll.get(4)
+            newUser.role.should.eql(userBll.MemberType.Companion)
+        })
+
+        it('如果用户没有被排过课，则可以切换角色', async () => {
+            try {
+                const userId = await createUserWithNameAndRole('user without groups', userBll.MemberType.Companion)
+
+                try {
+                    await common.makeRequest('put', `${PATH}/${userId}`, {
+                        role: userBll.MemberType.Student,
+                    })
+                } catch (ex) {
+                    should.not.exist(ex)
+                }
+
+                const newUser = await userBll.get(userId)
+                newUser.role.should.eql(userBll.MemberType.Student)
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+        })
+
+        it('如果用户切换角色，则时区设置会被清空', async () => {
+            const userId = await createUserWithNameAndRole('companion with timezone settings', userBll.MemberType.Companion)
+
+            await common.makeRequest('put', `${PATH}/${userId}`, {
+                time_zone: 'Asia/Samarkand',
+            })
+
+            const newUser = await userBll.get(userId)
+            newUser.time_zone.should.eql('Asia/Samarkand')
+
+            try {
+                await common.makeRequest('put', `${PATH}/${userId}`, {
+                    role: userBll.MemberType.Student,
+                })
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+
+            const roleChangedUser = await userBll.get(userId)
+            should.not.exist(roleChangedUser.time_zone)
         })
     })
 })

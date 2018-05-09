@@ -1,6 +1,8 @@
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+const moment = require('moment-timezone')
+const _ = require('lodash')
 
 module.exports = {
     async get(userId) {
@@ -28,5 +30,119 @@ module.exports = {
             )
             .where({ 'users.user_id': userId }))[0]
     },
-}
 
+    async getWechatByUserIds(userIds) {
+        return await knex('users')
+            .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+            .whereIn('users.user_id', userIds)
+            .whereNotNull('user_social_accounts.wechat_openid')
+            .whereNot('user_social_accounts.wechat_openid', '')
+            .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')
+    },
+
+    async getUsersByClassId({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) {
+        const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
+        if (!classInfo) return
+        let students = []
+        if (_.includes(role, 'student')) {
+            const studentQuery = knex('student_class_schedule')
+                .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+                .leftJoin('user_social_accounts', 'student_class_schedule.user_id', 'user_social_accounts.user_id')
+                .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
+                .where({
+                    'student_class_schedule.class_id': class_id,
+                    'student_class_schedule.status': 'confirmed',
+                })
+                .select(
+                    'user_social_accounts.wechat_openid as wechat_openid',
+                    'user_social_accounts.wechat_name as wechat_name',
+                    'student_class_schedule.user_id as user_id',
+                    'user_profiles.email as email',
+                    'user_profiles.time_zone as time_zone',
+                    'users.name as name',
+                )
+            students = await studentQuery
+        }
+        let companions = []
+        if (_.includes(role, 'companion')) {
+            const companionQuery = knex('companion_class_schedule')
+                .leftJoin('user_social_accounts', 'companion_class_schedule.user_id', 'user_social_accounts.user_id')
+                .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+                .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+                .select(
+                    'user_social_accounts.wechat_openid as wechat_openid',
+                    'user_social_accounts.wechat_name as wechat_name',
+                    'companion_class_schedule.user_id as user_id',
+                    'user_profiles.email as email',
+                    'user_profiles.time_zone as time_zone',
+                    'users.name as name',
+                )
+                .where({
+                    'companion_class_schedule.class_id': class_id,
+                    'companion_class_schedule.status': 'confirmed',
+                })
+            companions = await companionQuery
+        }
+        return { classInfo, students, companions }
+    },
+
+    async getUsersByWeekly(state, r) {
+        // 总排课数: 本周所有状态的排课
+        // 需求数: 本周排课需求
+
+        // 超额排课(表示异常情况, 需要处理): 需求数 < 总排课数 或 可排课课时数 < 0
+        // 无需排课: 不满足超额排课, 且 总排课数 = 可排课课时数 = 0
+        // 排课完成: 不满足超额排课, 且 需求数 = 已发布排课数 > 0
+        // 需排课: 不满足超额排课, 且 (可排课课时数+草稿排课数) > 0 且 已发布排课数 < 需求数
+
+        // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need
+        const role = { s: 'student', c: 'companion' }[r]
+        const schedule = `${role}_class_schedule`
+        const start_time = moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate()
+        const end_time = moment(moment().format('YYYY-MM-DD')).isoWeekday(7).toDate()
+        let query = knex('users')
+            .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+            .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
+            // .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id`)
+            .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id AND ${schedule}.status = 'confirmed' AND ${schedule}.start_time > '${start_time}' AND ${schedule}.start_time <= '${end_time}' AND (${schedule}.class_id IS NOT NULL AND ${schedule}.class_id != '')`)
+            .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
+            .where('users.role', r)
+            .groupBy('users.user_id')
+            .select(
+                knex.raw('(CASE WHEN (user_profiles.weekly_schedule_requirements IS NULL OR user_profiles.weekly_schedule_requirements = \'\') THEN 1 ELSE user_profiles.weekly_schedule_requirements END) as req'),
+                knex.raw('(CASE WHEN (user_balance.class_hours IS NULL OR user_balance.class_hours  = \'\') THEN 0 ELSE user_balance.class_hours END) as hours'),
+                'users.user_id as user_id',
+                knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
+                knex.raw('SUM(CASE WHEN classes.status IN (\'cancelled\') THEN 1 ELSE 0 END) AS cancelled_count'),
+                knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
+                knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\', \'cancelled\') THEN 1 ELSE 0 END) AS total_count'),
+                // knex.raw('group_concat(classes.class_id) as class_ids'),
+                // knex.raw('group_concat(classes.status) as class_statuses'),
+                // knex.raw(`group_concat(${schedule}.start_time) as start_times`),
+                // knex.raw(`group_concat(${schedule}.end_time) as end_times`),
+                // knex.raw(`MIN(${schedule}.start_time) as min_start_time`),
+                knex.raw(`MIN(CASE WHEN classes.status IN ('opened') THEN ${schedule}.start_time END) as min_opened_start_time`),
+            )
+
+        if (state === 'excess') {
+            // hours: -1
+            // req: 1, total_count: 2
+            query = query.havingRaw('(req < total_count) OR (hours < 0)')
+        } else if (state === 'no_need') {
+            // hours: 0, total_count: 0
+            query = query.havingRaw('((req >= total_count) AND (hours >= 0)) AND (total_count = 0 AND hours = 0)')
+        } else if (state === 'done') {
+            // hours: 0, done_count: 1, req: 1
+            query = query.havingRaw('((req >= total_count) AND (hours >= 0)) AND (req = done_count AND done_count > 0)')
+        } else if (state === 'need') {
+            //  hours: 0, total_count: 1, cancelled_count: 1, done_count: 0, req: 1
+            query = query.havingRaw('((req >= total_count) AND (hours >= 0)) AND ((hours + cancelled_count) > 0 AND (req > done_count))')
+            // } else if (state === 'confirmed') {
+            //     // hours: 0, done_count: 1, req: 1
+            //     query = query.havingRaw('done_count >= req AND done_count > 0)')
+        }
+        let result = await query
+        result = _.map(result, 'user_id') || []
+        return result
+    },
+}
