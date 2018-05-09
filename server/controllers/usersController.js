@@ -544,12 +544,9 @@ const sendScheduleMsg = async ctx => {
             .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })
             .where(`${schedule}.start_time`, '>', start_time)
         if (_.isEmpty(classInfo)) return
-        logger.info('sendScheduleTpl', user)
         if (user.wechat_openid) {
-            logger.info('sendScheduleTpl', 'tpl')
             await wechat.sendScheduleTpl(user.wechat_openid, user.wechat_name)
         } else if (user.role === 'c' && user.email) {
-            logger.info('sendScheduleTpl', 'mail')
             await mail.sendScheduleMail(user.email)
         }
         ctx.status = 200
