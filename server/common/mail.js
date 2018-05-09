@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const _ = require('lodash')
 const { DM } = require('waliyun')
 const { redis } = require('./redis')
@@ -24,7 +26,7 @@ module.exports = {
             FromAlias: 'BuzzBuzz',
             ...opt,
         })
-        console.log('mail:res', res)
+        logger.info('mail:res: ', res)
     },
     // 验证
     async verifyByCode(mail, code) {

@@ -142,7 +142,6 @@ module.exports = {
             //     query = query.havingRaw('done_count >= req AND done_count > 0)')
         }
         let result = await query
-        console.log(result)
         result = _.map(result, 'user_id') || []
         return result
     },

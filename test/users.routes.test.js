@@ -384,8 +384,6 @@ describe('routes: users', () => {
                         .end((err, res) => {
                             should.not.exist(err)
 
-                            console.log('res = ', res.body)
-
                             res.status.should.eql(200)
                             res.body.name.should.eql('changed')
                             res.body.display_name.should.eql('changed')

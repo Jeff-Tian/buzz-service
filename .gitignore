@@ -3,3 +3,4 @@ test.sqlite3
 .idea
 tmp.js
 yarn.lock
+buzz-corner-service.log

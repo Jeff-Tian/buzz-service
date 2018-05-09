@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const _ = require('lodash')
 const bluebird = require('bluebird')
 const moment = require('moment-timezone')
@@ -23,11 +25,11 @@ const listSuggested = async ctx => {
             .andWhere('student_class_schedule.status', 'booking')
 
         const suggestions = Scheduling.makeGroups(res)
-        console.log('res = ', res)
+        logger.info('res = ', res)
         ctx.status = 200
         ctx.body = res
     } catch (error) {
-        console.error(error)
+        logger.error(error)
         ctx.throw(500, error)
     }
 }
@@ -126,7 +128,7 @@ async function addClassJob(classInfo) {
             json: true,
         })
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
     }
 }
 
@@ -159,7 +161,7 @@ const list = async ctx => {
 
         ctx.body = await search
     } catch (error) {
-        console.error(error)
+        logger.error(error)
         ctx.throw(error)
     }
 }
@@ -314,7 +316,7 @@ const upsert = async ctx => {
         await addScheduleJob(oldClassInfo, classInfo)
         ctx.body = classInfo
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
@@ -369,7 +371,7 @@ const change = async ctx => {
         ctx.body = listEnd
         ctx.status = 200
     } catch (error) {
-        console.log(error)
+        logger.error(error)
         await trx.rollback()
     }
 }
@@ -379,10 +381,10 @@ const endClass = async ctx => {
     try {
         const classId = ctx.params.class_id
         const { endTime } = ctx.request.body
-        console.log('需要修改班级状态的班级classID：', classId)
-        console.log('设置定时器的时间endTime：', endTime)
+        logger.info('需要修改班级状态的班级classID：', classId)
+        logger.info('设置定时器的时间endTime：', endTime)
         const cronTime = new Date(endTime).getTime()
-        console.log('已经触发的定时器的时间cronTime:', cronTime)
+        logger.info('已经触发的定时器的时间cronTime:', cronTime)
 
         const classInfo = _.get(await trx('classes')
             .where('class_id', classId), 0)
@@ -393,10 +395,10 @@ const endClass = async ctx => {
             throw new Error(`can't end ${classInfo.status} class`)
         }
         const sqlTime = new Date(classInfo.end_time).getTime()
-        console.log('数据库中班级的结束时间sqlTime', sqlTime)
+        logger.info('数据库中班级的结束时间sqlTime', sqlTime)
 
         if (sqlTime === cronTime) {
-            console.log('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
+            logger.info('定时器的时间===数据库中班级的结束时间，即将进行修改信息操作')
             await trx('classes')
                 .where('class_id', classId)
                 .update({
@@ -414,7 +416,7 @@ const endClass = async ctx => {
                 .update({
                     status: 'ended',
                 })
-            console.log('修改成功')
+            logger.info('修改成功')
         }
 
         await trx.commit()
@@ -425,9 +427,8 @@ const endClass = async ctx => {
 
         ctx.body = listEnd
         ctx.status = 200
-        console.log('返回的被修改班级的信息', ctx.body)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
@@ -445,11 +446,11 @@ const sendDayClassBeginMsg = async ctx => {
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
-            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendDayClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendDayClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
             }
@@ -457,7 +458,7 @@ const sendDayClassBeginMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }
@@ -470,11 +471,11 @@ const sendMinuteClassBeginMsg = async ctx => {
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
-            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+            await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
             }
@@ -482,7 +483,7 @@ const sendMinuteClassBeginMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }
@@ -500,11 +501,11 @@ const sendEvaluationMsg = async ctx => {
                 .get('user_id')
                 .value()
             if (!i.wechat_openid || !companion_id) return
-            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(e => console.error(e))
+            await wechat.sendStudentEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time, companion_id).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(e => console.error(e))
+                await wechat.sendCompanionEvaluationTpl(i.wechat_openid, classInfo.class_id, classInfo.topic, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendCompanionEvaluationMail(i.email, i.name, classInfo.class_id, classInfo.topic)
             }
@@ -512,7 +513,7 @@ const sendEvaluationMsg = async ctx => {
         ctx.status = 200
         ctx.body = { done: true }
     } catch (e) {
-        console.error(e)
+        logger.error(e)
         ctx.throw(500, e)
     }
 }

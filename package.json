@@ -49,6 +49,7 @@
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
+    "log4js": "^2.5.3",
     "moment": "^2.22.1",
     "moment-timezone": "^0.5.16",
     "mysql": "^2.15.0",

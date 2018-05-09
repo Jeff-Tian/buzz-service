@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
@@ -54,7 +56,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
         await trx('user_balance').insert(newClassHours)
     }
 
-    console.log('consumed for ', userId)
+    logger.info('consumed for ', userId)
 }
 
 async function chargeClassHours(trx, userId, classHours, remark = '') {
