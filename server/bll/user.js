@@ -62,15 +62,17 @@ module.exports = {
             throw new this.UserNotFoundError(`User with id ${user_id} not found`, uuidv4())
         }
 
-        const confirmedGroups = await
-        ClassScheduleDAL.hasConfirmedClassSchedules(user_id)
+        const confirmedGroups = await ClassScheduleDAL.hasConfirmedClassSchedules(user_id)
 
         if (confirmedGroups.length > 0) {
             if (theUser.role !== role) {
                 throw new UserHasConfirmedGroupsCanNotChangeRoleError(`The user ${user_id} has confirmed groups so can't change role to ${role} from ${theUser.role}`, uuidv4())
             }
         } else {
-            // TODO: Delete timezone settings
+            await trx('user_profiles').where('user_id', user_id).update({
+                time_zone: null,
+            })
+
             await trx('users').where('user_id', user_id).update({
                 role,
             })

@@ -522,5 +522,27 @@ describe('routes: users', () => {
                 should.not.exist(ex)
             }
         })
+
+        it('如果用户切换角色，则时区设置会被清空', async () => {
+            const userId = await createUserWithNameAndRole('companion with timezone settings', userBll.MemberType.Companion)
+
+            await common.makeRequest('put', `${PATH}/${userId}`, {
+                time_zone: 'Asia/Samarkand',
+            })
+
+            const newUser = await userBll.get(userId)
+            newUser.time_zone.should.eql('Asia/Samarkand')
+
+            try {
+                await common.makeRequest('put', `${PATH}/${userId}`, {
+                    role: userBll.MemberType.Student,
+                })
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+
+            const roleChangedUser = await userBll.get(userId)
+            should.not.exist(roleChangedUser.time_zone)
+        })
     })
 })
