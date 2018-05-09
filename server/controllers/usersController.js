@@ -1,3 +1,4 @@
+import logger from '../common/logger'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const promisify = require('../common/promisify')
@@ -82,7 +83,6 @@ const search = async ctx => {
         }
 
         if (ctx.query.display_name) {
-            console.log('searching by name = ', ctx.query.display_name, decodeURIComponent(ctx.query.display_name))
             search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
         }
 
@@ -92,7 +92,7 @@ const search = async ctx => {
 
         ctx.body = await selectFields(search, returnSensativeInformation)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         ctx.status = 500
         ctx.body = { error: error.message }
@@ -113,7 +113,7 @@ const show = async ctx => {
             booked_class_hours: await countBookedClasses(user_id),
         }
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         ctx.status = 404
         ctx.body = {
@@ -161,7 +161,7 @@ const getByFacebookId = async ctx => {
 
         ctx.body = users[0]
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
 
         ctx.status = 404
         ctx.body = {
@@ -185,8 +185,6 @@ const getByWechat = async ctx => {
             filter['user_social_accounts.wechat_unionid'] = unionid
         }
 
-        console.log('filter = ', filter)
-
         const users = await selectUsers().where(filter)
 
         if (!users.length) {
@@ -195,7 +193,7 @@ const getByWechat = async ctx => {
 
         ctx.body = users[0]
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
 
         ctx.status = 404
         ctx.body = {
@@ -244,7 +242,7 @@ const create = async ctx => {
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
         ctx.body = users[0]
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 409
@@ -404,15 +402,10 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
             .where('user_interests.user_id', ctx.params.user_id)
             .del()
 
-        console.log('deleted = ', deleted)
-
         const values = body.interests.map(i => ({ user_id: ctx.params.user_id, interest: i }))
 
-        console.log('inserting ...', values)
         const inserted = await trx('user_interests')
             .insert(values)
-
-        console.log('inserted = ', inserted)
     }
 }
 const update = async ctx => {
@@ -435,7 +428,7 @@ const update = async ctx => {
         if (error instanceof userBll.UserHasConfirmedGroupsCanNotChangeRoleError) {
             ctx.throw(400, error)
         } else {
-            console.error('updating user error: ', error)
+            logger.error('updating user error: ', error)
             ctx.status = 409
             ctx.body = error
         }
@@ -452,9 +445,8 @@ const getByUserIdList = async ctx => {
 
         ctx.body = userAvatarList || {}
         ctx.status = 200
-        console.log(ctx.body)
     } catch (error) {
-        console.log(error)
+        logger.error(error)
     }
 }
 
@@ -474,10 +466,8 @@ const deleteByUserID = async ctx => {
         await trx.commit()
         ctx.status = 200
         ctx.body = 'delete success'
-
-        console.log('delete success:', deleted)
     } catch (error) {
-        console.error('delete user error: ', error)
+        logger.error('delete user error: ', error)
 
         await trx.rollback()
         ctx.status = 409

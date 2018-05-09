@@ -20,7 +20,6 @@ module.exports = {
                 .request(server)[method](uri)
 
             if (auth) {
-                console.log('auth with', auth)
                 c.auth(auth.user, auth.pass)
             }
 

@@ -63,16 +63,12 @@ const create = async ctx => {
 
     try {
         timeHelper.uniformTimes(data)
-        console.log('inserting data1: ', data)
         timeHelper.checkTimeConflicts(data)
-        console.log('inserting data2: ', data)
         for (let i = 0; i < data.length; i++) {
             /* eslint-disable */
             await timeHelper.checkTimeConflictsWithDB('companion_class_schedule', ctx.params.user_id, data[i].start_time, data[i].end_time)
             /* eslint-enable */
         }
-
-        console.log('inserting data3: ', data)
 
         if (process.env.NODE_ENV !== 'test') {
             data.map(d => {

@@ -15,7 +15,6 @@ module.exports = {
 
     clusterBookings(studentBookings, clusters = [], centers = [], loops = 0, maxInteration = 100) {
         while (loops < maxInteration) {
-            console.log('loops = ', loops)
             const ret = recenterAndCluster(clusters)
 
             if (converged(centers, ret.centers)) {
