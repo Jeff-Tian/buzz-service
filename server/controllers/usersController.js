@@ -1,9 +1,13 @@
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
+const moment = require('moment-timezone')
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+
+const wechat = require('../common/wechat')
+const mail = require('../common/mail')
 const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../bll/user')
@@ -532,6 +536,36 @@ const appendOrderRemark = async ctx => {
 const isProfileOK = async ctx => {
     ctx.body = await userBll.isProfileOK(ctx.params.user_id)
 }
+const sendScheduleMsg = async ctx => {
+    try {
+        const user_id = ctx.params.user_id
+        if (!user_id) return
+        const user = _.get(await knex('users')
+            .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+            .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+            .select('user_profiles.email', 'user_social_accounts.wechat_name', 'user_social_accounts.wechat_openid', 'users.role')
+            .where({ 'users.user_id': user_id }), 0)
+        if (!user) return
+        const role = { s: 'student', c: 'companion' }[user.role]
+        const schedule = `${role}_class_schedule`
+        const start_time = moment().toDate()
+        const classInfo = await knex(schedule)
+            .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
+            .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })
+            .where(`${schedule}.start_time`, '>', start_time)
+        if (_.isEmpty(classInfo)) return
+        if (user.wechat_openid) {
+            await wechat.sendScheduleTpl(user.wechat_openid, user.wechat_name)
+        } else if (user.role === user.email) {
+            await mail.sendScheduleMail(user.email)
+        }
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        console.error(e)
+        ctx.throw(500, e)
+    }
+}
 
 module.exports = {
     search,
@@ -548,4 +582,5 @@ module.exports = {
     getAvailableUsers,
     appendOrderRemark,
     isProfileOK,
+    sendScheduleMsg,
 }

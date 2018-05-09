@@ -164,12 +164,35 @@ const list = async ctx => {
     }
 }
 
+// 新建/更新班级 如果有新人 给新人创建24小时后的任务
+const addScheduleJob = async (oldClass, newClass) => {
+    if (process.env.NODE_ENV === 'test') {
+        return
+    }
+
+    try {
+        const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), (_.get(oldClass, 'students') || '').split(','))
+        const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), (_.get(newClass, 'students') || '').split(','))
+        const user_ids = _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
+        const start_time = newClass.start_time
+        await request({
+            uri: `${config.endPoints.bullService}/api/v1/task/schedule`,
+            method: 'POST',
+            body: { user_ids, start_time },
+            json: true,
+        })
+    } catch (e) {
+        console.error(e)
+    }
+}
+
 const upsert = async ctx => {
     const { body } = ctx.request
 
     const trx = await promisify(knex.transaction)
 
     try {
+        const oldClassInfo = body.class_id ? await getClassById(body.class_id) : {}
         let classIds = [body.class_id]
 
         const data = {
@@ -288,6 +311,7 @@ const upsert = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         const classInfo = await getClassById(classIds[0])
         await addClassJob(classInfo)
+        await addScheduleJob(oldClassInfo, classInfo)
         ctx.body = classInfo
     } catch (error) {
         console.error(error)

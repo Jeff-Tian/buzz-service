@@ -15,6 +15,6 @@ router.put(`${BASE_URL}/sign-in-byMobileOrEmail`, usersController.signInByMobile
 router.put(`${BASE_URL}/:user_id`, usersController.update)
 router.post(`${BASE_URL}/appendOrderRemark/:user_id`, usersController.appendOrderRemark)
 router.del(`${BASE_URL}/:user_id`, usersController.delete)
-
 router.get(`${BASE_URL}/is-profile-ok/:user_id`, usersController.isProfileOK)
+router.post(`${BASE_URL}/sendScheduleMsg/:user_id`, usersController.sendScheduleMsg)
 module.exports = router

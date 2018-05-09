@@ -59,10 +59,9 @@ module.exports = {
         return await api.sendTemplate(openid, id, url, color, data)
     },
     // 课程安排通知
-    async sendScheduleTpl(user_id) {
-        const users = await getWechatByUserIds([user_id])
-        const { wechat_openid, name } = _.get(users, '0') || {}
-
+    async sendScheduleTpl(wechat_openid, name) {
+        // const users = await getWechatByUserIds([user_id])
+        // const { wechat_openid, name } = _.get(users, '0') || {}
         const data = {
             openid: wechat_openid,
             id: 'EV-ymavqg5FwN-fQjZHJyj1386TsQcwB1H6KEHC8Cno',

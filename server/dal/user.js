@@ -87,7 +87,15 @@ module.exports = {
     },
 
     async getUsersByWeekly(state, r) {
-        // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need, 需发确认通知 confirmed
+        // 总排课数: 本周所有状态的排课
+        // 需求数: 本周排课需求
+
+        // 超额排课(表示异常情况, 需要处理): 需求数 < 总排课数 或 可排课课时数 < 0
+        // 无需排课: 不满足超额排课, 且 总排课数 = 可排课课时数 = 0
+        // 排课完成: 不满足超额排课, 且 需求数 = 已发布排课数 > 0
+        // 需排课: 不满足超额排课, 且 (可排课课时数+草稿排课数) > 0 且 已发布排课数 < 需求数
+
+        // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need
         const role = { s: 'student', c: 'companion' }[r]
         const schedule = `${role}_class_schedule`
         const start_time = moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate()

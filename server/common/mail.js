@@ -51,10 +51,11 @@ module.exports = {
         return { code, expire }
     },
     // 课程安排通知
-    async sendScheduleMail(user_id) {
+    async sendScheduleMail(ToAddress) {
         const url = config.endPoints.buzzCorner
         await this.send({
-            ToAddress: _.get(getUserById(user_id), 'email'),
+            // ToAddress: _.get(getUserById(user_id), 'email'),
+            ToAddress,
             Subject: 'Tutoring plan notification',
             HtmlBody: `Dear peer tutor,<br/>
 Please find your tutoring plan，<br/>
