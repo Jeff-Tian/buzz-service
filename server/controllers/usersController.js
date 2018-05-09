@@ -546,7 +546,7 @@ const sendScheduleMsg = async ctx => {
         if (_.isEmpty(classInfo)) return
         if (user.wechat_openid) {
             await wechat.sendScheduleTpl(user.wechat_openid, user.wechat_name)
-        } else if (user.role === user.email) {
+        } else if (user.role === 'c' && user.email) {
             await mail.sendScheduleMail(user.email)
         }
         ctx.status = 200
