@@ -37,7 +37,7 @@ module.exports = {
             .whereIn('users.user_id', userIds)
             .whereNotNull('user_social_accounts.wechat_openid')
             .whereNot('user_social_accounts.wechat_openid', '')
-            .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id')
+            .select('user_social_accounts.wechat_openid', 'user_social_accounts.wechat_name', 'users.name', 'users.user_id', 'users.role')
     },
 
     async getUsersByClassId({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) {

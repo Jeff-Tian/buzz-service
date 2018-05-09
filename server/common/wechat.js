@@ -78,8 +78,8 @@ module.exports = {
     // 续费通知
     async  sendRenewTpl(user_id, class_hours) {
         const users = await getWechatByUserIds([user_id])
-        const { wechat_openid, name } = _.get(users, '0') || {}
-
+        const { wechat_openid, name, role } = _.get(users, '0') || {}
+        if (role !== 's') return
         const data = {
             openid: wechat_openid,
             id: '5V00NpImSvNjWATqXCEw7CdbL02Kt4gxZKd5WxDaWDY',
