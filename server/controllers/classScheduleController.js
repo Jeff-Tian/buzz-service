@@ -184,7 +184,7 @@ const addScheduleJob = async (oldClass, newClass) => {
             json: true,
         })
     } catch (e) {
-        console.error(e)
+        logger.error(e)
     }
 }
 
