@@ -176,13 +176,13 @@ const addScheduleJob = async (oldClass, newClass) => {
         if (_.get(newClass, 'status') !== 'opened') return
         const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), (_.get(oldClass, 'students') || '').split(','))
         const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), (_.get(newClass, 'students') || '').split(','))
-        const user_ids = _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
-        if (_.isEmpty(user_ids)) return
+        _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
+        if (_.isEmpty(newUsers)) return
         const start_time = newClass.start_time
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task/schedule`,
             method: 'POST',
-            body: { user_ids, start_time },
+            body: { user_ids: newUsers, start_time },
             json: true,
         })
     } catch (e) {
