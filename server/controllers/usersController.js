@@ -51,12 +51,10 @@ function selectUsers(isContextSecure) {
 
 function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
     return search
-        .andWhereRaw('(exists (select * from student_class_schedule where student_class_schedule.start_time >= ? and student_class_schedule.end_time < ?) or exists (select * from companion_class_schedule where companion_class_schedule.start_time >= ? and companion_class_schedule.end_time < ?))', [start_time, end_time, start_time, end_time])
+        .andWhereRaw('users.user_id in ((select distinct user_id from student_class_schedule where student_class_schedule.start_time >= ? and student_class_schedule.end_time < ?) union all (select distinct user_id from companion_class_schedule where companion_class_schedule.start_time >= ? and companion_class_schedule.end_time < ?))', [start_time, end_time, start_time, end_time])
 }
 
 const search = async ctx => {
-    const returnSensativeInformation = basicAuth.validate(ctx)
-
     try {
         let search = joinTables()
             .orderBy('users.created_at', 'desc')
@@ -88,14 +86,15 @@ const search = async ctx => {
         }
 
         if (ctx.query.display_name) {
-            search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
+            // search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
+            search = search.andWhere('user_profiles.display_name', 'like', `%${ctx.query.display_name}%`)
         }
 
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search, returnSensativeInformation)
+        ctx.body = await selectFields(search, basicAuth.validate(ctx))
     } catch (error) {
         logger.error(error)
 
