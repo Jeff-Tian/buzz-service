@@ -12,10 +12,6 @@ const healthCheck = async ctx => {
         version: pkg.version,
     }
 
-    logger.info('everything is ok log: ', state)
-    logger.error('testing error message, please ignore it.')
-    logger.trace('trace testing in health check')
-
     ctx.body = state
 }
 module.exports = { healthCheck }
