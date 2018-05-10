@@ -376,6 +376,7 @@ describe('routes: users', () => {
                 .end((err, res) => {
                     should.not.exist(err)
                     res.status.should.eql(200)
+
                     res.body.country.should.eql('美国')
                     res.body.remark.should.eql('test')
 
@@ -470,11 +471,11 @@ describe('routes: users', () => {
 
     describe(`GET ${PATH}/is-profile-ok/:user_id`, () => {
         it('如果外籍学生的邮箱没填，那么资料是不完整的', async () => {
-            await createUserWithProfileIncomplete('student without mobile', userBll.MemberType.Student)
+            await createUserWithProfileIncomplete('student without mobile', userBll.MemberType.Companion)
         })
 
         it('如果中方学生的手机号没填，那么资料是不完整的', async () => {
-            await createUserWithProfileIncomplete('companion without email', userBll.MemberType.Companion)
+            await createUserWithProfileIncomplete('companion without email', userBll.MemberType.Student)
         })
     })
 
