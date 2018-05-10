@@ -15,8 +15,8 @@ class UserHasConfirmedGroupsCanNotChangeRoleError extends Error {
 module.exports = {
     UserNotFoundError,
     UserHasConfirmedGroupsCanNotChangeRoleError,
-    async get(userId) {
-        const theUser = await user.get(userId)
+    async get(userId, isContextSecure = false) {
+        const theUser = await user.get(userId, isContextSecure)
 
         if (theUser) {
             return theUser
@@ -39,7 +39,7 @@ module.exports = {
 
         if (theUser) {
             if (theUser.role === this.MemberType.Student) {
-                if (!theUser.mobile) {
+                if (!theUser.mobile || (!theUser.city && !theUser.country && !theUser.location) || !theUser.date_of_birth || !theUser.name) {
                     return false
                 }
             }

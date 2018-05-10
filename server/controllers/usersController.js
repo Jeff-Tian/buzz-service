@@ -26,12 +26,13 @@ function joinTables() {
 }
 
 function selectFields(search, isContextSecure) {
+    // TODO: Move sql to dal and try to reuse userBll.get() for get user by id
     return search
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
             'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
-            'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('"***********" as mobile'),
+            'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN  user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
             'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
@@ -50,12 +51,10 @@ function selectUsers(isContextSecure) {
 
 function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
     return search
-        .andWhereRaw('(exists (select * from student_class_schedule where student_class_schedule.start_time >= ? and student_class_schedule.end_time < ?) or exists (select * from companion_class_schedule where companion_class_schedule.start_time >= ? and companion_class_schedule.end_time < ?))', [start_time, end_time, start_time, end_time])
+        .andWhereRaw('users.user_id in (select distinct user_id from student_class_schedule where student_class_schedule.start_time >= ? and student_class_schedule.end_time < ? union all select distinct user_id from companion_class_schedule where companion_class_schedule.start_time >= ? and companion_class_schedule.end_time < ?)', [start_time, end_time, start_time, end_time])
 }
 
 const search = async ctx => {
-    const returnSensativeInformation = basicAuth.validate(ctx)
-
     try {
         let search = joinTables()
             .orderBy('users.created_at', 'desc')
@@ -87,14 +86,15 @@ const search = async ctx => {
         }
 
         if (ctx.query.display_name) {
-            search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
+            // search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
+            search = search.andWhere('user_profiles.display_name', 'like', `%${ctx.query.display_name}%`)
         }
 
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search, returnSensativeInformation)
+        ctx.body = await selectFields(search, basicAuth.validate(ctx))
     } catch (error) {
         logger.error(error)
 
@@ -425,7 +425,7 @@ const update = async ctx => {
 
         ctx.status = 200
         ctx.set('Location', `${ctx.request.URL}`)
-        ctx.body = (await selectUsers().where('users.user_id', ctx.params.user_id))[0]
+        ctx.body = await userBll.get(ctx.params.user_id, basicAuth.validate(ctx))
     } catch (error) {
         await trx.rollback()
 
@@ -546,7 +546,7 @@ const sendScheduleMsg = async ctx => {
         if (_.isEmpty(classInfo)) return
         if (user.wechat_openid) {
             await wechat.sendScheduleTpl(user.wechat_openid, user.wechat_name)
-        } else if (user.role === user.email) {
+        } else if (user.role === 'c' && user.email) {
             await mail.sendScheduleMail(user.email)
         }
         ctx.status = 200

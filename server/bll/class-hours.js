@@ -38,10 +38,6 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
 
     const booked_class_hours = await countBookedClasses(userId)
     const all_class_hours = _.toInteger(new_class_hours) + _.toInteger(booked_class_hours)
-    // TODO: Read 2 from config
-    if (all_class_hours <= 2) {
-        await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
-    }
 
     const newClassHours = {
         user_id: userId,
@@ -54,6 +50,14 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
             .update(newClassHours)
     } else {
         await trx('user_balance').insert(newClassHours)
+    }
+
+    const now_currentClassHours = await getCurrentClassHours(trx, userId)
+    const now_booked_class_hours = await countBookedClasses(userId)
+    const now_all_class_hours = _.toInteger(now_currentClassHours) + _.toInteger(now_booked_class_hours)
+    // TODO: Read 2 from config
+    if (now_all_class_hours < all_class_hours && all_class_hours <= 2) {
+        await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
     }
 
     logger.info('consumed for ', userId)
