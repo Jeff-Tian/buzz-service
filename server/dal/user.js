@@ -51,8 +51,8 @@ module.exports = {
                 .leftJoin('users', 'student_class_schedule.user_id', 'users.user_id')
                 .where({
                     'student_class_schedule.class_id': class_id,
-                    'student_class_schedule.status': 'confirmed',
                 })
+                .whereIn('student_class_schedule.status', ['ended', 'confirmed'])
                 .select(
                     'user_social_accounts.wechat_openid as wechat_openid',
                     'user_social_accounts.wechat_name as wechat_name',
@@ -79,8 +79,8 @@ module.exports = {
                 )
                 .where({
                     'companion_class_schedule.class_id': class_id,
-                    'companion_class_schedule.status': 'confirmed',
                 })
+                .whereIn('companion_class_schedule.status', ['ended', 'confirmed'])
             companions = await companionQuery
         }
         return { classInfo, students, companions }
