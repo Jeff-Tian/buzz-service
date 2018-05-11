@@ -13,7 +13,7 @@ const countBookedClasses = async user_id => {
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
         .countDistinct('classes.class_id as count')
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereIn('classes.status', ['opened'])
+        .whereIn('classes.status', ['opened', 'cancelled'])
     return _.get(result, '0.count')
 }
 
