@@ -13,7 +13,7 @@ const countBookedClasses = async user_id => {
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
         .countDistinct('classes.class_id as count')
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereIn('classes.status', ['opened'])
+        .whereIn('classes.status', ['opened', 'cancelled'])
     return _.get(result, '0.count')
 }
 
@@ -52,11 +52,8 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
         await trx('user_balance').insert(newClassHours)
     }
 
-    const now_currentClassHours = await getCurrentClassHours(trx, userId)
-    const now_booked_class_hours = await countBookedClasses(userId)
-    const now_all_class_hours = _.toInteger(now_currentClassHours) + _.toInteger(now_booked_class_hours)
     // TODO: Read 2 from config
-    if (now_all_class_hours < all_class_hours && all_class_hours <= 2) {
+    if ((_.toInteger(classHours) > 0) && all_class_hours <= 2) {
         await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
     }
 
