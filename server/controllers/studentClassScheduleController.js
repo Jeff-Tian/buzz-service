@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -46,21 +48,24 @@ const selectSchedulesWithMoreInfo = function () {
 const list = async ctx => {
     try {
         const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
+
+        let search = selectSchedulesWithMoreInfo()
+
         if (process.env.NODE_ENV !== 'test') {
-            ctx.body = await selectSchedulesWithMoreInfo()
-                .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
-                .where('student_class_schedule.user_id', ctx.params.user_id)
-                .andWhere('student_class_schedule.start_time', '>=', start_time)
-                .andWhere('student_class_schedule.end_time', '<=', end_time)
+            search = search.select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
         } else {
-            ctx.body = await selectSchedulesWithMoreInfo()
-                .select(knex.fn.now())
-                .where('student_class_schedule.user_id', ctx.params.user_id)
-                .andWhere('student_class_schedule.start_time', '>=', start_time)
-                .andWhere('student_class_schedule.end_time', '<=', end_time)
+            search = search.select(knex.fn.now())
         }
+
+        search = search
+            .whereNotIn('classes.status', ['cancelled'])
+            .andWhere('student_class_schedule.user_id', ctx.params.user_id)
+            .andWhere('student_class_schedule.start_time', '>=', start_time)
+            .andWhere('student_class_schedule.end_time', '<=', end_time)
+
+        ctx.body = await search
     } catch (error) {
-        console.error(error)
+        logger.error(error)
         ctx.throw(500, error)
     }
 }
