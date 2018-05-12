@@ -17,6 +17,12 @@ const countBookedClasses = async user_id => {
     return _.get(result, '0.count')
 }
 
+const getAllClassHours = async user_id => {
+    const class_hours = _.get(await knex('user_balance').select('class_hours').where({ user_id }), '0.class_hours')
+    const bookedClasses = await countBookedClasses(user_id)
+    return _.toInteger(class_hours) + _.toInteger(bookedClasses)
+}
+
 async function getCurrentClassHours(trx, user_id) {
     return await trx('user_balance')
         .select('class_hours')
@@ -53,9 +59,10 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
     }
 
     // TODO: Read 2 from config
-    if ((_.toInteger(classHours) > 0) && all_class_hours <= 2) {
-        await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
-    }
+    // 只有手动扣 不发续费通知
+    // if ((_.toInteger(classHours) > 0) && all_class_hours <= 2) {
+    //     await wechat.sendRenewTpl(userId, all_class_hours).catch(e => console.error('wechat:sendRenewTpl', e))
+    // }
 
     logger.info('consumed for ', userId)
 }
@@ -90,4 +97,5 @@ module.exports = {
     consume: consumeClassHours,
     charge: chargeClassHours,
     countBookedClasses,
+    getAllClassHours,
 }

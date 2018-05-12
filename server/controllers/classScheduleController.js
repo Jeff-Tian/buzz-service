@@ -15,6 +15,7 @@ const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
 const { getUsersByClassId } = require('../bll/user')
+const { getAllClassHours } = require('../bll/class-hours')
 const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
@@ -184,6 +185,29 @@ const addScheduleJob = async (oldClass, newClass) => {
             method: 'POST',
             body: { user_ids: newUsers, start_time },
             json: true,
+        })
+    } catch (e) {
+        logger.error(e)
+    }
+}
+
+// 续费通知
+const sendRenewTpl = async classInfo => {
+    if (process.env.NODE_ENV === 'test') {
+        return
+    }
+
+    try {
+        if (_.get(classInfo, 'status') !== 'ended') return
+        const users = (_.get(classInfo, 'students') || '').split(',')
+        if (_.isEmpty(users)) return
+        await bluebird.map(users, async user_id => {
+            const all_class_hours = await getAllClassHours(user_id)
+            if (all_class_hours <= 2) {
+                await wechat.sendRenewTpl(user_id, all_class_hours).catch(e => {
+                    logger.error('sendRenewTplErr', e)
+                })
+            }
         })
     } catch (e) {
         logger.error(e)
@@ -426,7 +450,7 @@ const endClass = async ctx => {
         const listEnd = await knex('classes')
             .select()
             .where('class_id', classId)
-
+        await sendRenewTpl(await getClassById(classId))
         ctx.body = listEnd
         ctx.status = 200
     } catch (error) {
