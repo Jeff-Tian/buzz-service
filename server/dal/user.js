@@ -3,6 +3,7 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const moment = require('moment-timezone')
 const _ = require('lodash')
+const timeHelper = require('../common/time-helper')
 
 module.exports = {
     async get(userId, isContextSecure = false) {
@@ -98,13 +99,13 @@ module.exports = {
         // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need
         const role = { s: 'student', c: 'companion' }[r]
         const schedule = `${role}_class_schedule`
-        const start_time = moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate()
-        const end_time = moment(moment().format('YYYY-MM-DD')).isoWeekday(7).toDate()
+        const start_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate())
+        const end_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(7).toDate())
         let query = knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
             // .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id`)
-            .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id AND ${schedule}.status = 'confirmed' AND ${schedule}.start_time > '${start_time}' AND ${schedule}.start_time <= '${end_time}' AND (${schedule}.class_id IS NOT NULL AND ${schedule}.class_id != '')`)
+            .joinRaw(`LEFT JOIN ${schedule} ON users.user_id = ${schedule}.user_id AND ${schedule}.status IN ('confirmed', 'ended') AND ${schedule}.start_time > '${start_time}' AND ${schedule}.start_time <= '${end_time}' AND (${schedule}.class_id IS NOT NULL AND ${schedule}.class_id != '')`)
             .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
             .where('users.role', r)
             .groupBy('users.user_id')

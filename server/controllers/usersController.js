@@ -9,6 +9,7 @@ const knex = require('knex')(config)
 
 const wechat = require('../common/wechat')
 const mail = require('../common/mail')
+const timeHelper = require('../common/time-helper')
 const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../bll/user')
@@ -481,9 +482,14 @@ const deleteByUserID = async ctx => {
 
 const getAvailableUsers = async ctx => {
     // role: 'student' or 'companion'
-    const { start_time, end_time, role } = ctx.query
+    const { role } = ctx.query
+    let { start_time, end_time } = ctx.query
     const schedule = `${role}_class_schedule`
     const hasSchedule = start_time && end_time
+    if (hasSchedule) {
+        start_time = timeHelper.convertToDBFormat(start_time)
+        end_time = timeHelper.convertToDBFormat(end_time)
+    }
     // 该时段已排班的用户
     const confirmedUsers = hasSchedule && _.map(await knex(schedule)
         .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
@@ -538,7 +544,7 @@ const sendScheduleMsg = async ctx => {
         if (!user) return
         const role = { s: 'student', c: 'companion' }[user.role]
         const schedule = `${role}_class_schedule`
-        const start_time = moment().toDate()
+        const start_time = timeHelper.convertToDBFormat(moment().toDate())
         const classInfo = await knex(schedule)
             .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
             .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })
