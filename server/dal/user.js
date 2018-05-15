@@ -90,7 +90,7 @@ module.exports = {
     },
 
     async getUsersByWeekly(state, r) {
-        knex.on('query', query => { logger.info('getUsersByWeekly', query) })
+        // knex.on('query', query => { logger.info('getUsersByWeekly', query) })
         // 总排课数: 本周所有状态的排课
         // 需求数: 本周排课需求
 
@@ -146,7 +146,7 @@ module.exports = {
             //     query = query.havingRaw('done_count >= req AND done_count > 0)')
         }
         let result = await query
-        logger.info('getUsersByWeekly', result)
+        // logger.info('getUsersByWeekly', result)
         result = _.map(result, 'user_id') || []
         return result
     },
