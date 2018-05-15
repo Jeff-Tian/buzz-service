@@ -544,7 +544,7 @@ const sendScheduleMsg = async ctx => {
         if (!user) return
         const role = { s: 'student', c: 'companion' }[user.role]
         const schedule = `${role}_class_schedule`
-        const start_time = timeHelper.convertToDBFormat(moment().toDate())
+        const start_time = timeHelper.convertToDBFormat(moment().toISOString())
         const classInfo = await knex(schedule)
             .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
             .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })

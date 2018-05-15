@@ -102,8 +102,8 @@ module.exports = {
         // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need
         const role = { s: 'student', c: 'companion' }[r]
         const schedule = `${role}_class_schedule`
-        const start_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate())
-        const end_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(7).toDate())
+        const start_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD 00:00:00')).isoWeekday(1).toISOString())
+        const end_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD 00:00:00')).isoWeekday(8).toISOString())
         let query = knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
