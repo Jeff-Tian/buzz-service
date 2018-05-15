@@ -27,7 +27,9 @@ module.exports = {
             ...opt,
         })
         const { Code: code, Message: msg } = res
+
         if (code && msg) {
+            logger.info('mail:error: ', { code, msg })
             return { code, msg }
         }
         logger.info('mail:res: ', res)
