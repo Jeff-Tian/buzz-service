@@ -26,6 +26,10 @@ module.exports = {
             FromAlias: 'BuzzBuzz',
             ...opt,
         })
+        const { Code: code, Message: msg } = res
+        if (code && msg) {
+            return { code, msg }
+        }
         logger.info('mail:res: ', res)
     },
     // 验证
@@ -40,8 +44,9 @@ module.exports = {
     // 发送验证邮件
     async sendVerificationMail(mail, name, digit = 4, expire = 30 * 60) {
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
+        let error
         if (process.env.NODE_ENV !== 'test') {
-            await this.send({
+            error = await this.send({
                 ToAddress: mail,
                 Subject: `${code} Verification code From BuzzBuzz`,
                 HtmlBody: `Dear ${name},<br/>
@@ -50,7 +55,7 @@ module.exports = {
             })
         }
         await redis.set(`mail:verify:${mail}`, code, 'ex', expire)
-        return { code, expire }
+        return { code, expire, error }
     },
     // 课程安排通知
     async sendScheduleMail(ToAddress) {
