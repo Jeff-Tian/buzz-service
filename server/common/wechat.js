@@ -3,6 +3,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const bluebird = require('bluebird')
+const moment = require('moment-timezone')
 const Client = require('co-wechat-oauth')
 const API = require('co-wechat-api')
 const { redis } = require('./redis')
@@ -106,6 +107,21 @@ module.exports = {
                 keyword1: { value: class_topic || '' },
                 keyword2: { value: end_time || '' },
                 remark: { value: '\n请对你的外籍语伴和课程进行评价。\n去评价>>' },
+            },
+        }
+        await this.sendTpl(data)
+    },
+    // 课程评价完成通知
+    async sendFeedbackTpl(from, to, class_id, class_topic, time) {
+        const data = {
+            openid: to.wechat_openid,
+            id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
+            url: `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/:${to.user_id}/${class_id}`,
+            data: {
+                first: { value: `您的学伴${from.name}完成了课后的反馈评价\n` },
+                keyword1: { value: class_topic || '' },
+                keyword2: { value: moment(time).format('YYYY-MM-DD HH:mm:ss') },
+                remark: { value: '\n快来看看吧，点击查看学伴评价内容 >>' },
             },
         }
         await this.sendTpl(data)

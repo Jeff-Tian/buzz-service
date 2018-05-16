@@ -73,6 +73,15 @@ Look forward to seeing you LIVE!<br/>
 PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com) .`,
         })
     },
+    // 课程评价完成通知
+    async sendFeedbackMail(from, to, class_id) {
+        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/:${to.user_id}/${class_id}`
+        await this.send({
+            ToAddress: to.email,
+            Subject: 'Evaluation reminder',
+            HtmlBody: `Dear ${to.name || ''},<br/>Your student ${from.name} has sent you a feedback.<br/>Check the detail <a href="${url}">link</a>. <br/>PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).`,
+        })
+    },
     // 外籍给学生的课程评价通知
     async sendCompanionEvaluationMail(mail, name, class_id, class_topic) {
         const url = `${config.endPoints.buzzCorner}/class/foreign/${class_id}`
