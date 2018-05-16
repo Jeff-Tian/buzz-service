@@ -116,7 +116,7 @@ module.exports = {
         const data = {
             openid: to.wechat_openid,
             id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
-            url: `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/:${to.user_id}/${class_id}`,
+            url: `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}`,
             data: {
                 first: { value: `您的学伴${from.name}完成了课后的反馈评价\n` },
                 keyword1: { value: class_topic || '' },

@@ -75,10 +75,10 @@ PS: this email was sent automatically, please don’t reply. If you have any que
     },
     // 课程评价完成通知
     async sendFeedbackMail(from, to, class_id) {
-        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/:${to.user_id}/${class_id}`
+        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}`
         await this.send({
             ToAddress: to.email,
-            Subject: 'Evaluation reminder',
+            Subject: `Feedback from ${from.name || ''}`,
             HtmlBody: `Dear ${to.name || ''},<br/>Your student ${from.name} has sent you a feedback.<br/>Check the detail <a href="${url}">link</a>. <br/>PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).`,
         })
     },
