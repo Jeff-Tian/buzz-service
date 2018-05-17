@@ -95,7 +95,7 @@ const search = async ctx => {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search, basicAuth.validate(ctx))
+        ctx.body = await selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
         logger.error(error)
 

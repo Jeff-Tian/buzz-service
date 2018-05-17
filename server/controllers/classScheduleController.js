@@ -160,7 +160,7 @@ const list = async ctx => {
             search = filterByTime(search, start_time, end_time)
         }
 
-        ctx.body = await search
+        ctx.body = await search.paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
         logger.error(error)
         ctx.throw(error)
