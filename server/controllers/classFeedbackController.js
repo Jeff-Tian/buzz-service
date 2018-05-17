@@ -31,12 +31,11 @@ const getFeedbackList = async ctx => {
             .andWhere('class_feedback.from_user_id', ctx.params.from_user_id)
             .andWhere('class_feedback.to_user_id', ctx.params.to_user_id)
 
-        ctx.status = 201
-        ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
+        ctx.status = 200
         ctx.body = feedback || {}
     } catch (ex) {
         logger.error(ex)
-        ctx.throw(409, ex)
+        ctx.throw(500, ex)
     }
 }
 
@@ -125,8 +124,37 @@ const getAdminFeedbackList = async ctx => {
         ctx.body = feedback
     } catch (ex) {
         logger.error(ex)
-        ctx.throw(409, ex)
+        ctx.throw(500, ex)
     }
 }
 
-module.exports = { getFeedbackList, getEvaluateStatus, setFeedbackInfo, getAdminFeedbackList }
+// TODO:
+const getFeedBacksTo = async ctx => {
+    try {
+        const classId = ctx.params.class_id
+        const feedbacksToUserId = ctx.params.user_id
+
+        ctx.body = []
+    } catch (ex) {
+        logger.error(ex)
+        ctx.throw(500, ex)
+    }
+}
+
+const getFeedBacksFrom = async ctx => {
+    try {
+        ctx.body = []
+    } catch (ex) {
+        logger.error(ex)
+        ctx.throw(500, ex)
+    }
+}
+
+module.exports = {
+    getFeedbackList,
+    getEvaluateStatus,
+    setFeedbackInfo,
+    getAdminFeedbackList,
+    getFeedBacksTo,
+    getFeedBacksFrom,
+}
