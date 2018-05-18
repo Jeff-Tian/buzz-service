@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -24,7 +26,7 @@ module.exports = {
                 'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
                 'user_profiles.city as city', 'user_social_accounts.facebook_id as facebook_id',
                 'user_social_accounts.wechat_data as wechat_data', 'user_social_accounts.facebook_name as facebook_name',
-                'user_social_accounts.wechat_name as wechat_name', 'user_balance.class_hours as class_hours',
+                'user_social_accounts.wechat_name as wechat_name', 'user_social_accounts.wechat_openid as wechat_openid', 'user_balance.class_hours as class_hours',
                 'user_balance.integral as integral',
                 'user_placement_tests.level as level', 'user_profiles.password as password',
                 knex.raw('group_concat(user_interests.interest) as interests')
@@ -88,6 +90,7 @@ module.exports = {
     },
 
     async getUsersByWeekly(state, r) {
+        // knex.on('query', query => { logger.info('getUsersByWeekly', query) })
         // 总排课数: 本周所有状态的排课
         // 需求数: 本周排课需求
 
@@ -99,8 +102,8 @@ module.exports = {
         // 需排课 need, 排课完成 done, 超额排课 excess, 无需排课 no_need
         const role = { s: 'student', c: 'companion' }[r]
         const schedule = `${role}_class_schedule`
-        const start_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(1).toDate())
-        const end_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD')).isoWeekday(7).toDate())
+        const start_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD 00:00:00')).isoWeekday(1).toISOString())
+        const end_time = timeHelper.convertToDBFormat(moment(moment().format('YYYY-MM-DD 00:00:00')).isoWeekday(8).toISOString())
         let query = knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
@@ -143,6 +146,7 @@ module.exports = {
             //     query = query.havingRaw('done_count >= req AND done_count > 0)')
         }
         let result = await query
+        // logger.info('getUsersByWeekly', result)
         result = _.map(result, 'user_id') || []
         return result
     },

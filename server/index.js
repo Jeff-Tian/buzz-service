@@ -16,6 +16,7 @@ const mailRoutes = require('./routes/mail.routes')
 const bookingRoutes = require('./routes/booking.routes')
 const redis = require('./common/redis')
 const bodyParser = require('koa-bodyparser')
+require('./common/knex')
 
 const app = new Koa()
 const PORT = process.env.PORT || 16888

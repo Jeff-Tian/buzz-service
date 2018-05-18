@@ -3,6 +3,10 @@ import logger from '../common/logger'
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+const _ = require('lodash')
+const user = require('../dal/user')
+const wechat = require('../common/wechat')
+const mail = require('../common/mail')
 
 const selectFeedback = function () {
     return knex('class_feedback')
@@ -27,12 +31,11 @@ const getFeedbackList = async ctx => {
             .andWhere('class_feedback.from_user_id', ctx.params.from_user_id)
             .andWhere('class_feedback.to_user_id', ctx.params.to_user_id)
 
-        ctx.status = 201
-        ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
+        ctx.status = 200
         ctx.body = feedback || {}
     } catch (ex) {
         logger.error(ex)
-        ctx.throw(409, ex)
+        ctx.throw(500, ex)
     }
 }
 
@@ -72,6 +75,23 @@ const getEvaluateStatus = async ctx => {
     }
 }
 
+const sendFeedbackNotification = async (from_user_id, to_user_id, class_id) => {
+    try {
+        const class_topic = _.get(await knex('classes').where({ class_id }), '0.topic')
+        const from = await user.get(from_user_id)
+        const to = await user.get(to_user_id)
+        if (from && to) {
+            if (to.wechat_openid) {
+                await wechat.sendFeedbackTpl(from, to, class_id, class_topic)
+            } else if (to.email) {
+                await mail.sendFeedbackMail(from, to, class_id)
+            }
+        }
+    } catch (e) {
+        logger.error(e)
+    }
+}
+
 const setFeedbackInfo = async ctx => {
     const { body } = ctx.request
     const data = body.map(b => Object.assign({
@@ -84,7 +104,7 @@ const setFeedbackInfo = async ctx => {
         const inserted = await knex('class_feedback')
             .returning('class_id')
             .insert(data)
-
+        await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id)
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = inserted
@@ -104,8 +124,37 @@ const getAdminFeedbackList = async ctx => {
         ctx.body = feedback
     } catch (ex) {
         logger.error(ex)
-        ctx.throw(409, ex)
+        ctx.throw(500, ex)
     }
 }
 
-module.exports = { getFeedbackList, getEvaluateStatus, setFeedbackInfo, getAdminFeedbackList }
+// TODO:
+const getFeedBacksTo = async ctx => {
+    try {
+        const classId = ctx.params.class_id
+        const feedbacksToUserId = ctx.params.user_id
+
+        ctx.body = []
+    } catch (ex) {
+        logger.error(ex)
+        ctx.throw(500, ex)
+    }
+}
+
+const getFeedBacksFrom = async ctx => {
+    try {
+        ctx.body = []
+    } catch (ex) {
+        logger.error(ex)
+        ctx.throw(500, ex)
+    }
+}
+
+module.exports = {
+    getFeedbackList,
+    getEvaluateStatus,
+    setFeedbackInfo,
+    getAdminFeedbackList,
+    getFeedBacksTo,
+    getFeedBacksFrom,
+}

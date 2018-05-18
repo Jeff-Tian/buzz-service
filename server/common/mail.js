@@ -26,6 +26,12 @@ module.exports = {
             FromAlias: 'BuzzBuzz',
             ...opt,
         })
+        const { Code: code, Message: msg } = res
+
+        if (code && msg) {
+            logger.info('mail:error: ', { code, msg })
+            return { code, msg }
+        }
         logger.info('mail:res: ', res)
     },
     // 验证
@@ -40,8 +46,9 @@ module.exports = {
     // 发送验证邮件
     async sendVerificationMail(mail, name, digit = 4, expire = 30 * 60) {
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
+        let error
         if (process.env.NODE_ENV !== 'test') {
-            await this.send({
+            error = await this.send({
                 ToAddress: mail,
                 Subject: `${code} Verification code From BuzzBuzz`,
                 HtmlBody: `Dear ${name},<br/>
@@ -50,7 +57,7 @@ module.exports = {
             })
         }
         await redis.set(`mail:verify:${mail}`, code, 'ex', expire)
-        return { code, expire }
+        return { code, expire, error }
     },
     // 课程安排通知
     async sendScheduleMail(ToAddress) {
@@ -64,6 +71,15 @@ Please find your tutoring plan，<br/>
 Look forward to seeing you LIVE!<br/>
 <a href="${url}">Please click the link to learn your plan details</a><br/>
 PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com) .`,
+        })
+    },
+    // 课程评价完成通知
+    async sendFeedbackMail(from, to, class_id) {
+        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}`
+        await this.send({
+            ToAddress: to.email,
+            Subject: `Feedback from ${from.name || ''}`,
+            HtmlBody: `Dear ${to.name || ''},<br/>Your student ${from.name} has sent you a feedback.<br/>Check the detail <a href="${url}">link</a>. <br/>PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).`,
         })
     },
     // 外籍给学生的课程评价通知

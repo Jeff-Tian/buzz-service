@@ -1,4 +1,7 @@
 // Configure the environment and require Knex
+import * as user from './test-data-generators/user-bookings'
+import groups from './test-data-generators/groups'
+
 const env = process.env.NODE_ENV || 'test'
 const config = require('../knexfile')[env]
 const server = require('../server/index')
@@ -43,7 +46,7 @@ describe('routes:get class feedback', () => {
                 .get(`${PATH}/1/1/evaluate/2`)
                 .end((err, res) => {
                     should.not.exist(err)
-                    res.status.should.eql(201)
+                    res.status.should.eql(200)
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(1)
                     res.body[0].should.include.keys('class_id', 'from_user_id', 'to_user_id', 'comment', 'score', 'from_name', 'to_name', 'from_avatar', 'to_avatar')
@@ -94,6 +97,28 @@ describe('routes:get class feedback', () => {
                     res.body.feedback.should.eql(false)
                     done()
                 })
+        })
+    })
+
+    describe('给定一个班级分组，获取该班级的评价列表', () => {
+        it('列出所有其他用户对我的评价', async () => {
+            const { userId: myUserId } = await user.createTestUserAndBookings()
+            const classId = await groups.createClass([2], [myUserId, 1])
+            // await feedbacks.feedback([{
+            //     from: 1,
+            //     to: myUserId,
+            //     comment: 'good'
+            // }, {
+            //     from: 2,
+            //     to: myUserId,
+            //     comment: 'soso'
+            // }])
+            //
+            // let list = feedbacks.getFeedbacksTo(myUserId)
+        })
+
+        it('列出我对其他用户的评价', async () => {
+
         })
     })
 })
