@@ -56,6 +56,12 @@ module.exports = {
     async userInfo(openid) {
         return await client.getUser(openid)
     },
+    async getUser(openid, lang = 'zh_CN') {
+        return await api.getUser({ openid, lang })
+    },
+    async batchGetUsers(openids) {
+        return await api.batchGetUsers(openids)
+    },
     async sendTpl({ openid, id, url, color, data }) {
         return await api.sendTemplate(openid, id, url, color, data)
     },
