@@ -55,7 +55,7 @@ const query = async ctx => {
             query = query.where({ content_id })
         }
     } else {
-        _.each(['module', 'topic', 'level', 'buzz_level'], i => {
+        _.each(['module', 'topic', 'buzz_level'], i => {
             const v = ctx.query[i]
             if (v) {
                 if (_.isArray(v)) {
