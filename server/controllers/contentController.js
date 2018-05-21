@@ -6,8 +6,8 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const _ = require('lodash')
 
-async function findOneById(trx, content_id) {
-    return await trx('content').where({ content_id })[0]
+async function findOneById(content_id) {
+    return content_id ? _.get(await knex('content').where({ content_id }), 0) : content_id
 }
 
 const upsert = async ctx => {
@@ -17,7 +17,7 @@ const upsert = async ctx => {
 
     try {
         let content_id = body.content_id
-        const current = await findOneById(trx, content_id)
+        const current = await findOneById(content_id)
 
         if (current) {
             await trx('content')
@@ -31,9 +31,9 @@ const upsert = async ctx => {
 
         await trx.commit()
 
-        ctx.body = await findOneById(trx, content_id)
+        ctx.body = await findOneById(content_id)
     } catch (error) {
-        console.error(error)
+        logger.error(error)
 
         await trx.rollback()
         ctx.status = 500
