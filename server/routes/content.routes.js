@@ -5,5 +5,7 @@ const BASE_URL = '/api/v1/content'
 router.get(`${BASE_URL}`, contentController.query)
 router.post(`${BASE_URL}`, contentController.upsert)
 router.get(`${BASE_URL}/topic`, contentController.topic)
+router.get(`${BASE_URL}/module`, contentController.module)
+router.get(`${BASE_URL}/topic_level`, contentController.topic_level)
 
 module.exports = router

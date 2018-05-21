@@ -71,5 +71,15 @@ const topic = async ctx => {
         .distinct('topic')
         .pluck('topic')
 }
+const module = async ctx => {
+    ctx.body = await knex('content')
+        .distinct('module')
+        .pluck('module')
+}
+const topic_level = async ctx => {
+    ctx.body = await knex('content')
+        .distinct('topic_level')
+        .pluck('topic_level')
+}
 
-module.exports = { upsert, query, topic }
+module.exports = { upsert, query, topic, module, topic_level }
