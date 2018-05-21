@@ -20,12 +20,10 @@ const upsert = async ctx => {
         const current = await findOneById(trx, content_id)
 
         if (current) {
-            logger.info(1)
             await trx('content')
                 .update(body)
                 .where('content_id', content_id)
         } else {
-            logger.info(2)
             delete body.content_id
             const result = await trx('content').insert(body)
             content_id = _.get(result, 0)
@@ -33,7 +31,7 @@ const upsert = async ctx => {
 
         await trx.commit()
 
-        ctx.body = { content_id }
+        ctx.body = await findOneById(trx, content_id)
     } catch (error) {
         console.error(error)
 
