@@ -3,11 +3,13 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const bluebird = require('bluebird')
+const retry = require('async-retry')
 const moment = require('moment-timezone')
 const Client = require('co-wechat-oauth')
 const API = require('co-wechat-api')
 const { redis } = require('./redis')
 const timeHelper = require('./time-helper')
+const alert = require('./alert')
 const config = require('../config')
 const { getWechatByUserIds } = require('../dal/user')
 
@@ -56,8 +58,37 @@ module.exports = {
     async userInfo(openid) {
         return await client.getUser(openid)
     },
+    async getUser(openid, lang = 'zh_CN') {
+        return await api.getUser({ openid, lang })
+    },
+    async batchGetUsers(openids) {
+        return await api.batchGetUsers(openids)
+    },
     async sendTpl({ openid, id, url, color, data }) {
-        return await api.sendTemplate(openid, id, url, color, data)
+        await retry(async bail => {
+            await api.sendTemplate(openid, id, url, color, data).catch(e => {
+                if (_.includes(e, 'RequestTimeoutError') || _.includes(e, 'socket hang up')) {
+                    throw e
+                } else {
+                    bail(e)
+                }
+            })
+        }, {
+            retries: 5,
+            minTimeout: 0,
+            maxTimeout: 6000,
+        }).catch(async e => {
+            const name = _.get(e, 'name')
+            const msg = _.get(e, 'message')
+            await alert(`**类型**: 发送模板消息失败
+**错误名称**: ${name}
+**错误信息**: ${msg}
+**openid**: ${openid}
+**data**: ${_.isObjectLike(data) ? JSON.stringify(data) : data}
+**url**: ${url}
+**color**: ${color}
+**id**: ${id}`)
+        })
     },
     // 课程安排通知
     async sendScheduleTpl(wechat_openid, name) {
