@@ -12,11 +12,14 @@ const selectSchedules = function () {
         .select('batch_id', 'user_id', 'class_id', 'status', 'start_time', 'end_time')
 }
 
-const selectSchedulesWithMoreInfo = function () {
+const selectSchedulesWithMoreInfo = function (studentId) {
     return knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
-        .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
+
+        .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+
         .leftJoin('class_feedback', function () {
             this.on(function () {
                 this.on('class_feedback.class_id', 'student_class_schedule.class_id')
@@ -24,6 +27,7 @@ const selectSchedulesWithMoreInfo = function () {
                 this.andOn('class_feedback.from_user_id', 'student_class_schedule.user_id')
             })
         })
+        .groupBy('classes.class_id')
         .select(
             'student_class_schedule.user_id as user_id',
             'student_class_schedule.class_id as class_id',
@@ -34,15 +38,17 @@ const selectSchedulesWithMoreInfo = function () {
             'classes.end_time as class_end_time',
             'classes.status as classes_status',
             'classes.topic as topic',
-            'user_profiles.display_name as companion_name',
-            'user_profiles.user_id as companion_id',
             'classes.name as title',
-            'user_profiles.avatar as companion_avatar',
+
+            knex.raw('group_concat(users.name) as companion_name'),
+            knex.raw('group_concat(user_profiles.user_id) as companion_id'),
+            knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
+            knex.raw('group_concat(user_profiles.country) as companion_country'),
+
             'class_feedback.from_user_id as from_user_id',
             'class_feedback.to_user_id as to_user_id',
             'class_feedback.score as score',
             'class_feedback.comment as comment',
-            'user_profiles.country as companion_country'
         )
 }
 const list = async ctx => {
@@ -58,10 +64,10 @@ const list = async ctx => {
         }
 
         search = search
-            .whereNotIn('classes.status', ['cancelled'])
-            .andWhere('student_class_schedule.user_id', ctx.params.user_id)
-            .andWhere('student_class_schedule.start_time', '>=', start_time)
-            .andWhere('student_class_schedule.end_time', '<=', end_time)
+            .where('student_class_schedule.user_id', ctx.params.user_id)
+            .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
+            .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
+            .andWhere('classes.status', 'not in', ['cancelled'])
 
         ctx.body = await search
     } catch (error) {
@@ -110,16 +116,13 @@ const create = async ctx => {
 const cancel = async ctx => {
     try {
         const { body } = ctx.request
-        let startTime = moment(body.start_time).toISOString().replace('T', ' ').substr(0, 19)
-
-        if (!process.env.NODE_ENV || process.env.NODE_ENV === 'test') {
-            startTime = new Date(body.start_time).getTime()
-        }
+        const startTime = timeHelper.convertToDBFormat(body.start_time)
 
         const filter = {
             user_id: ctx.params.user_id,
             start_time: startTime,
         }
+
         const res = await knex('student_class_schedule').where(filter).andWhere({ status: 'booking' }).update({
             status: 'cancelled',
         })

@@ -107,13 +107,22 @@ const getClassById = async function (classId) {
             .select(companionsAvatarsSubQuery)
             .where('class_id', '=', classId)
 
-    return (await selecting.where('classes.class_id', classId))[0] || {}
+    const result = (await selecting.where('classes.class_id', classId))
+
+    return result[0]
 }
+
 const getClassByClassId = async ctx => {
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
 
     ctx.body = [await getClassById(ctx.params.class_id)]
+}
+
+const getClassByClassIdv2 = async ctx => {
+    ctx.status = 200
+
+    ctx.body = await getClassById(ctx.params.class_id)
 }
 
 async function addClassJob(classInfo) {
@@ -552,6 +561,7 @@ module.exports = {
     upsert,
     change,
     getClassByClassId,
+    getClassByClassIdv2,
     endClass,
     sendDayClassBeginMsg,
     sendMinuteClassBeginMsg,

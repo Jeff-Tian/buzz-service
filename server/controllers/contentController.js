@@ -10,6 +10,18 @@ async function findOneById(content_id) {
     return content_id ? _.get(await knex('content').where({ content_id }), 0) : content_id
 }
 
+async function findOneByClassAndUser({ module, topic, topic_level, level }) {
+    const content = _.get(await knex('content').where({ module, topic, topic_level }), 0)
+    if (!content) return {}
+    _.each(['exercises', 'student_textbook', 'tutor_textbook'], i => {
+        let v = content[i]
+        if (!v) return
+        v = JSON.parse(v)
+        content[i] = v[_.toInteger(level)] || v[0]
+    })
+    return content
+}
+
 const upsert = async ctx => {
     const { body } = ctx.request
 
@@ -53,7 +65,7 @@ const query = async ctx => {
             query = query.where({ content_id })
         }
     } else {
-        _.each(['module', 'topic', 'buzz_level'], i => {
+        _.each(['module', 'topic', 'topic_level'], i => {
             const v = ctx.query[i]
             if (v) {
                 if (_.isArray(v)) {
@@ -82,4 +94,8 @@ const topic_level = async ctx => {
         .pluck('topic_level')
 }
 
-module.exports = { upsert, query, topic, moduleList, topic_level }
+const getByClassAndUser = async ctx => {
+    ctx.body = await findOneByClassAndUser(ctx.query)
+}
+
+module.exports = { upsert, query, topic, moduleList, topic_level, getByClassAndUser }
