@@ -7,5 +7,6 @@ router.post(`${BASE_URL}`, contentController.upsert)
 router.get(`${BASE_URL}/topic`, contentController.topic)
 router.get(`${BASE_URL}/module`, contentController.moduleList)
 router.get(`${BASE_URL}/topic_level`, contentController.topic_level)
+router.get(`${BASE_URL}/getByClassAndUser`, contentController.getByClassAndUser)
 
 module.exports = router
