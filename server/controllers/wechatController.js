@@ -43,8 +43,18 @@ const sendTpl = async ctx => {
         ctx.body = error
     }
 }
+const batchGetUsers = async ctx => {
+    try {
+        ctx.status = 200
+        ctx.body = await wechat.batchGetUsers(ctx.query.openids)
+    } catch (error) {
+        console.error(error)
+        ctx.throw(500, error)
+    }
+}
 module.exports = {
     getJsConfig,
     media,
     sendTpl,
+    batchGetUsers,
 }
