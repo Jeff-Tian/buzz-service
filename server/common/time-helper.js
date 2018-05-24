@@ -30,7 +30,7 @@ const uniformTime = function (theStartTime, theEndTime) {
     if (end_time) {
         end_time = new Date(end_time)
     } else {
-        end_time = new Date(9999, 11, 30)
+        end_time = new Date(2999, 11, 30)
     }
     return { start_time, end_time }
 }
@@ -70,10 +70,7 @@ const checkTimeRangeOverlapWithDB = async function (table, user_id, start_time, 
 }
 
 const convertToDBFormat = function (time) {
-    if (process.env.NODE_ENV !== 'test') {
-        return new Date(time).toISOString().replace('T', ' ').replace('Z', ' ').substr(0, 19)
-    }
-    return new Date(time).getTime()
+    return new Date(time).toISOString().replace('T', ' ').replace('Z', ' ').substr(0, 19)
 }
 
 const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {

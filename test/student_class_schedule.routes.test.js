@@ -1,4 +1,3 @@
-// Configure the environment and require Knex
 import ClassScheduleDAL from '../server/dal/class-schedules'
 
 const env = process.env.NODE_ENV || 'test'
