@@ -46,7 +46,11 @@ const sendTpl = async ctx => {
 const batchGetUsers = async ctx => {
     try {
         ctx.status = 200
-        ctx.body = await wechat.batchGetUsers(ctx.query.openids)
+        if (ctx.query.openids instanceof Array && ctx.query.openids.length) {
+            ctx.body = await wechat.batchGetUsers(ctx.query.openids)
+        } else {
+            ctx.body = await wechat.getUser(ctx.query.openids)
+        }
     } catch (error) {
         console.error(error)
         ctx.throw(500, error)
