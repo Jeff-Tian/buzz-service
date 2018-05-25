@@ -543,5 +543,22 @@ describe('routes: users', () => {
             const roleChangedUser = await userBll.get(userId)
             should.not.exist(roleChangedUser.time_zone)
         })
+
+        it('用户社交账号资料', async () => {
+            const res = await common.makeRequest('post', '/api/v1/users', {
+                name: 'test wechat',
+                role: 's',
+                wechat_openid: 'xxx',
+                wechat_unionid: 'yyy',
+            })
+
+            const userId = res.body
+
+            userId.should.gt(0)
+
+            const socialAccountRes = await common.makeRequest('get', `/api/v1/users/social-account-profile/${userId}`)
+            socialAccountRes.body.should.include.keys('wechat_openid', 'wechat_unionid')
+            socialAccountRes.body.wechat_openid.should.eql('xxx')
+        })
     })
 })

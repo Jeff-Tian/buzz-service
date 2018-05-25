@@ -17,4 +17,5 @@ router.post(`${BASE_URL}/appendOrderRemark/:user_id`, usersController.appendOrde
 router.del(`${BASE_URL}/:user_id`, usersController.delete)
 router.get(`${BASE_URL}/is-profile-ok/:user_id`, usersController.isProfileOK)
 router.post(`${BASE_URL}/sendScheduleMsg/:user_id`, usersController.sendScheduleMsg)
+router.get(`${BASE_URL}/social-account-profile/:user_id`, usersController.getSocialAccountProfile)
 module.exports = router

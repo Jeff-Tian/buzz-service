@@ -2,6 +2,8 @@ import ClassScheduleDAL from '../dal/class-schedules'
 
 const user = require('../dal/user')
 const uuidv4 = require('uuid/v4')
+const knexConfig = require('../../knexfile')[(process.env.NODE_ENV || 'test')]
+const knex = require('knex')(knexConfig)
 
 /*eslint-disable */
 class UserNotFoundError extends Error {
@@ -77,5 +79,10 @@ module.exports = {
                 role,
             })
         }
+    },
+
+    async getSocialAccountProfile(userId) {
+        console.log('checking for ', userId)
+        return (await knex('user_social_accounts').where('user_id', userId))[0]
     },
 }
