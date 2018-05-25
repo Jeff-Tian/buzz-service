@@ -394,6 +394,7 @@ const updateUserAccountsTable = async function (body, trx, ctx) {
         facebook_name: body.facebook_name,
         wechat_openid: body.wechat_openid,
         wechat_unionid: body.wechat_unionid,
+        wechat_data: body.wechat_data,
     })
     if (Object.keys(accounts).length > 0) {
         const userSocialAccounts = await trx('user_social_accounts')
@@ -563,6 +564,10 @@ const sendScheduleMsg = async ctx => {
     }
 }
 
+const getSocialAccountProfile = async ctx => {
+    ctx.body = await userBll.getSocialAccountProfile(ctx.params.user_id)
+}
+
 module.exports = {
     search,
     show,
@@ -579,4 +584,5 @@ module.exports = {
     appendOrderRemark,
     isProfileOK,
     sendScheduleMsg,
+    getSocialAccountProfile,
 }
