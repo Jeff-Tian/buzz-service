@@ -43,6 +43,7 @@
     "axios": "^0.18.0",
     "babel-plugin-transform-builtin-extend": "^1.1.2",
     "basic-auth": "^2.0.0",
+    "bcryptjs": "^2.4.3",
     "bluebird": "^3.5.1",
     "co-wechat-api": "^3.5.0",
     "co-wechat-oauth": "^2.0.1",

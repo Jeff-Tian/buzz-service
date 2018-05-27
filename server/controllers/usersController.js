@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import Password from '../security/password'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const moment = require('moment-timezone')
@@ -258,45 +259,33 @@ const create = async ctx => {
     }
 }
 
-const signInByMobileOrEmail = async ctx => {
-    const { mobile, email, password } = ctx.request.body
+const accountSignIn = async ctx => {
+    const { account, password } = ctx.request.body
 
     // 判断用户输入的手机号、邮箱、密码是否为空
-    if (!mobile) {
-        if (!email) {
-            /* throw new Error('please enter your phone number or email address') */
-            return ctx.throw(403, 'Please enter your phone number or email address')
-        }
+    if (!account) {
+        return ctx.throw(403, 'Please enter your phone number or email address')
     }
+
     if (!password) {
-        /* throw new Error('please enter your password') */
         return ctx.throw(403, 'Please enter your password')
     }
 
-    // 通过用户的手机号或邮箱查询用户信息
-    const filterMobile = { 'user_profiles.mobile': mobile }
-    const filterEmail = { 'user_profiles.email': email }
+    const filterMobile = { 'user_profiles.mobile': account }
+    const filterEmail = { 'user_profiles.email': account }
 
-    let users
-    if (mobile) {
-        users = await selectUsers().where(filterMobile)
-    }
-    if (email) {
+    let users = await selectUsers().where(filterMobile)
+
+    if (!users.length) {
         users = await selectUsers().where(filterEmail)
     }
 
     if (!users.length) {
         return ctx.throw(404, 'The requested user does not exists')
     }
-    // 用户输入的密码和查询返回的users信息中的密码进行比较
-    // 使用md5加密
-    const md5 = crypto.createHash('md5')
-    md5.update(password)
-    const md5digest = md5.digest('hex')
 
-    if (users[0].password === md5digest) {
-        // 把将要返回的用户信息中的密码置为空
-        users[0].password = ''
+    if (Password.compare(password, users[0].password)) {
+        users[0].password = '***********'
 
         ctx.cookies.set('user_id', users[0].user_id, {
             httpOnly: true,
@@ -305,7 +294,6 @@ const signInByMobileOrEmail = async ctx => {
 
         ctx.body = users[0]
     } else {
-        /* throw new Error('Account or password error') */
         return ctx.throw(403, 'Account or password error')
     }
 }
@@ -362,14 +350,12 @@ const updateUsersTable = async function (body, trx, ctx) {
     }
 }
 const updateUserProfilesTable = async function (body, trx, ctx) {
-    const profiles = makeUpdations({
+    let profiles = makeUpdations({
         avatar: body.avatar,
         display_name: body.display_name,
         gender: body.gender,
         date_of_birth: body.date_of_birth,
         description: body.description,
-        mobile: body.mobile,
-        email: body.email,
         language: body.language,
         location: body.location,
         grade: body.grade,
@@ -384,6 +370,25 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         youzan_mobile: body.youzan_mobile,
         weekly_schedule_requirements: body.weekly_schedule_requirements,
     })
+
+    if (basicAuth.validate(ctx)) {
+        if (body.mobile.indexOf('*') < 0) {
+            profiles = Object.assign(profiles, makeUpdations({
+                mobile: body.mobile,
+            }))
+        }
+
+        if (body.email.indexOf('*') < 0) {
+            profiles = Object.assign(profiles, makeUpdations({
+                email: body.email,
+            }))
+        }
+
+        profiles = Object.assign(profiles, makeUpdations({
+            password: Password.encrypt(body.password),
+        }))
+    }
+
     if (Object.keys(profiles).length > 0) {
         const userProfile = await trx('user_profiles')
             .where('user_id', ctx.params.user_id)
@@ -578,7 +583,7 @@ module.exports = {
     getByWechat,
     create,
     signIn,
-    signInByMobileOrEmail,
+    accountSignIn,
     update,
     getByUserIdList,
     delete: deleteByUserID,

@@ -269,10 +269,10 @@ describe('routes: users', () => {
                 })
         })
     })
-    describe(`PUT ${PATH}/sign-in-byMobileOrEmail`, () => {
+    describe(`PUT ${PATH}/account-sign-in`, () => {
         it('should hint mobile or email is empty', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send()
                 .end((err, res) => {
                     should.exist(err)
@@ -282,9 +282,9 @@ describe('routes: users', () => {
         })
         it('should hint the requested user does not exists', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    mobile: '1771737336',
+                    account: '1771737336',
                     password: '123',
                 })
                 .end((err, res) => {
@@ -296,9 +296,9 @@ describe('routes: users', () => {
 
         it('should hint the requested user does not exists', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    email: 'jie.tian@hotmail',
+                    account: 'jie.tian@hotmail',
                     password: '123',
                 })
                 .end((err, res) => {
@@ -310,9 +310,9 @@ describe('routes: users', () => {
 
         it('should hint Account or password error', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    mobile: '17717373367',
+                    account: '17717373367',
                     password: '1',
                 })
                 .end((err, res) => {
@@ -323,9 +323,9 @@ describe('routes: users', () => {
         })
         it('should hint Account or password error', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    email: 'jie.tian@hotmail.com',
+                    account: 'jie.tian@hotmail.com',
                     password: '1',
                 })
                 .end((err, res) => {
@@ -337,9 +337,9 @@ describe('routes: users', () => {
 
         it('should hint login successful', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    mobile: '17717373367',
+                    account: '17717373367',
                     password: '123',
                 })
                 .end((err, res) => {
@@ -349,9 +349,9 @@ describe('routes: users', () => {
         })
         it('should hint login successful', done => {
             chai.request(server)
-                .put(`${PATH}/sign-in-byMobileOrEmail`)
+                .put(`${PATH}/account-sign-in`)
                 .send({
-                    email: 'jie.tian@hotmail.com',
+                    account: 'jie.tian@hotmail.com',
                     password: '123',
                 })
                 .end((err, res) => {
