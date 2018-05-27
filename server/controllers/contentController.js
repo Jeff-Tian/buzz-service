@@ -76,7 +76,7 @@ const query = async ctx => {
             }
         })
     }
-    ctx.body = await query
+    ctx.body = await query.paginate(ctx.query.per_page, ctx.query.current_page)
 }
 const topic = async ctx => {
     ctx.body = await knex('content')
