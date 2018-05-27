@@ -321,7 +321,11 @@ function makeUpdations(updations) {
 
     Object.keys(updations).map(prop => {
         if (typeof updations[prop] !== 'undefined') {
-            result[prop] = updations[prop]
+            if (prop === 'password') {
+                result[prop] = Password.encrypt(updations[prop])
+            } else {
+                result[prop] = updations[prop]
+            }
         }
 
         return prop
@@ -383,7 +387,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         }
 
         profiles = Object.assign(profiles, makeUpdations({
-            password: Password.encrypt(body.password),
+            password: body.password,
         }))
     }
 
