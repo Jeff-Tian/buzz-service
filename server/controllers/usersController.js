@@ -285,8 +285,6 @@ const accountSignIn = async ctx => {
     }
 
     if (Password.compare(password, users[0].password)) {
-        users[0].password = '***********'
-
         ctx.cookies.set('user_id', users[0].user_id, {
             httpOnly: true,
             expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
@@ -372,13 +370,13 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     })
 
     if (basicAuth.validate(ctx)) {
-        if (body.mobile.indexOf('*') < 0) {
+        if (body.mobile && body.mobile.indexOf('*') < 0) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
             }))
         }
 
-        if (body.email.indexOf('*') < 0) {
+        if (body.email && body.email.indexOf('*') < 0) {
             profiles = Object.assign(profiles, makeUpdations({
                 email: body.email,
             }))
