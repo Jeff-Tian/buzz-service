@@ -3,9 +3,9 @@ const mobileCommon = require('../common/mobile')
 const sendVerificationSms = async ctx => {
     try {
         const { mobile, expire: setExpire } = ctx.request.body
-        const { code, expire } = await mobileCommon.sendVerificationSms(mobile, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
+        const { code, expire, error } = await mobileCommon.sendVerificationSms(mobile, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
         ctx.status = 200
-        ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire }
+        ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire, error }
     } catch (error) {
         console.error('sendVerificationSms error: ', error)
         ctx.status = 500
