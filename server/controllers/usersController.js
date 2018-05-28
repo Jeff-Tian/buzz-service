@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import Password from '../security/password'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const moment = require('moment-timezone')
@@ -32,7 +33,8 @@ function selectFields(search, isContextSecure) {
         .select(
             'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
             'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
+            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
+            'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
             'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN  user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
             'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
             'user_profiles.description as description', 'user_profiles.grade as grade',
@@ -257,46 +259,32 @@ const create = async ctx => {
     }
 }
 
-const signInByMobileOrEmail = async ctx => {
-    const { mobile, email, password } = ctx.request.body
+const accountSignIn = async ctx => {
+    const { account, password } = ctx.request.body
 
     // 判断用户输入的手机号、邮箱、密码是否为空
-    if (!mobile) {
-        if (!email) {
-            /* throw new Error('please enter your phone number or email address') */
-            return ctx.throw(403, 'Please enter your phone number or email address')
-        }
+    if (!account) {
+        return ctx.throw(403, 'Please enter your phone number or email address')
     }
+
     if (!password) {
-        /* throw new Error('please enter your password') */
         return ctx.throw(403, 'Please enter your password')
     }
 
-    // 通过用户的手机号或邮箱查询用户信息
-    const filterMobile = { 'user_profiles.mobile': mobile }
-    const filterEmail = { 'user_profiles.email': email }
+    const filterMobile = { 'user_profiles.mobile': account }
+    const filterEmail = { 'user_profiles.email': account }
 
-    let users
-    if (mobile) {
-        users = await selectUsers().where(filterMobile)
-    }
-    if (email) {
+    let users = await selectUsers().where(filterMobile)
+
+    if (!users.length) {
         users = await selectUsers().where(filterEmail)
     }
 
     if (!users.length) {
         return ctx.throw(404, 'The requested user does not exists')
     }
-    // 用户输入的密码和查询返回的users信息中的密码进行比较
-    // 使用md5加密
-    const md5 = crypto.createHash('md5')
-    md5.update(password)
-    const md5digest = md5.digest('hex')
 
-    if (users[0].password === md5digest) {
-        // 把将要返回的用户信息中的密码置为空
-        users[0].password = ''
-
+    if (Password.compare(password, users[0].password)) {
         ctx.cookies.set('user_id', users[0].user_id, {
             httpOnly: true,
             expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
@@ -304,7 +292,6 @@ const signInByMobileOrEmail = async ctx => {
 
         ctx.body = users[0]
     } else {
-        /* throw new Error('Account or password error') */
         return ctx.throw(403, 'Account or password error')
     }
 }
@@ -334,7 +321,11 @@ function makeUpdations(updations) {
 
     Object.keys(updations).map(prop => {
         if (typeof updations[prop] !== 'undefined') {
-            result[prop] = updations[prop]
+            if (prop === 'password') {
+                result[prop] = Password.encrypt(updations[prop])
+            } else {
+                result[prop] = updations[prop]
+            }
         }
 
         return prop
@@ -361,14 +352,12 @@ const updateUsersTable = async function (body, trx, ctx) {
     }
 }
 const updateUserProfilesTable = async function (body, trx, ctx) {
-    const profiles = makeUpdations({
+    let profiles = makeUpdations({
         avatar: body.avatar,
         display_name: body.display_name,
         gender: body.gender,
         date_of_birth: body.date_of_birth,
         description: body.description,
-        mobile: body.mobile,
-        email: body.email,
         language: body.language,
         location: body.location,
         grade: body.grade,
@@ -380,8 +369,28 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         school_name: body.school_name,
         time_zone: body.time_zone,
         order_remark: body.order_remark,
+        youzan_mobile: body.youzan_mobile,
         weekly_schedule_requirements: body.weekly_schedule_requirements,
     })
+
+    if (basicAuth.validate(ctx)) {
+        if (body.mobile && body.mobile.indexOf('*') < 0) {
+            profiles = Object.assign(profiles, makeUpdations({
+                mobile: body.mobile,
+            }))
+        }
+
+        if (body.email && body.email.indexOf('*') < 0) {
+            profiles = Object.assign(profiles, makeUpdations({
+                email: body.email,
+            }))
+        }
+
+        profiles = Object.assign(profiles, makeUpdations({
+            password: body.password,
+        }))
+    }
+
     if (Object.keys(profiles).length > 0) {
         const userProfile = await trx('user_profiles')
             .where('user_id', ctx.params.user_id)
@@ -576,7 +585,7 @@ module.exports = {
     getByWechat,
     create,
     signIn,
-    signInByMobileOrEmail,
+    accountSignIn,
     update,
     getByUserIdList,
     delete: deleteByUserID,
