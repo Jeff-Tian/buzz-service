@@ -15,41 +15,11 @@ const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../bll/user')
 const userBll = require('../bll/user')
+const userDal = require('../dal/user')
 const basicAuth = require('../security/basic-auth')
 
-function joinTables() {
-    return knex('users')
-        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
-        .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
-        .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
-        .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
-        .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
-        .groupByRaw('users.user_id')
-}
-
-function selectFields(search, isContextSecure) {
-    // TODO: Move sql to dal and try to reuse userBll.get() for get user by id
-    return search
-        .select(
-            'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
-            'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
-            'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
-            'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
-            'user_profiles.date_of_birth as date_of_birth', isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN  user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
-            'user_profiles.email as email', 'user_profiles.language as language', 'user_profiles.location as location',
-            'user_profiles.description as description', 'user_profiles.grade as grade',
-            'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
-            'user_profiles.city as city', 'user_social_accounts.facebook_id as facebook_id',
-            'user_social_accounts.wechat_data as wechat_data', 'user_social_accounts.facebook_name as facebook_name',
-            'user_social_accounts.wechat_name as wechat_name', 'user_balance.class_hours as class_hours',
-            'user_balance.integral as integral',
-            'user_placement_tests.level as level', 'user_profiles.password as password',
-            knex.raw('group_concat(user_interests.interest) as interests')
-        )
-}
-
 function selectUsers(isContextSecure) {
-    return selectFields(joinTables(), isContextSecure)
+    return userDal.selectFields(userDal.joinTables(), isContextSecure)
 }
 
 function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
@@ -59,7 +29,7 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 
 const search = async ctx => {
     try {
-        let search = joinTables()
+        let search = userDal.joinTables()
             .orderBy('users.created_at', 'desc')
 
         const filters = {}
@@ -97,7 +67,7 @@ const search = async ctx => {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
-        ctx.body = await selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
+        ctx.body = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
         logger.error(error)
 
