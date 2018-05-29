@@ -85,4 +85,16 @@ module.exports = {
         console.log('checking for ', userId)
         return (await knex('user_social_accounts').where('user_id', userId))[0]
     },
+
+    async getTags(userId) {
+        return user.getTags(userId)
+    },
+
+    async addTags(userId, tags) {
+        await user.addTags(userId, tags)
+    },
+
+    async deleteTags(userId, tags) {
+        await user.deleteTags(userId, tags)
+    },
 }

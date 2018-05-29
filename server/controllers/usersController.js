@@ -67,6 +67,10 @@ const search = async ctx => {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
 
+        if (ctx.query.tags) {
+            search = userDal.filterByTags(search, ctx.query.tags)
+        }
+
         ctx.body = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
         logger.error(error)
@@ -564,4 +568,13 @@ module.exports = {
     isProfileOK,
     sendScheduleMsg,
     getSocialAccountProfile,
+    async getTags(ctx) {
+        ctx.body = await userBll.getTags(ctx.params.user_id)
+    },
+    async deleteTags(ctx) {
+        ctx.body = await userBll.deleteTags(ctx.params.user_id, ctx.request)
+    },
+    async addTags(ctx) {
+        ctx.body = await userBll.addTags(ctx.params.user_id, ctx.request)
+    },
 }

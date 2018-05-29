@@ -15,6 +15,7 @@ module.exports = {
             .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
             .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
+            .leftJoin('user_tags', 'users.user_id', 'user_tags.user_id')
             .groupByRaw('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
@@ -35,8 +36,13 @@ module.exports = {
                 'user_social_accounts.wechat_name as wechat_name', 'user_social_accounts.wechat_openid as wechat_openid', 'user_balance.class_hours as class_hours',
                 'user_balance.integral as integral',
                 'user_placement_tests.level as level', 'user_profiles.password as password',
-                knex.raw('group_concat(user_interests.interest) as interests')
+                knex.raw('group_concat(user_interests.interest) as interests'),
+                knex.raw('group_concat(user_tags.tag) as tags')
             )
+    },
+    filterByTags(search, tags) {
+        return search
+            .andWhereIn('user_tags.tag', tags)
     },
     async get(userId, isContextSecure = false) {
         return (await this.selectFields(this.joinTables(), isContextSecure)
