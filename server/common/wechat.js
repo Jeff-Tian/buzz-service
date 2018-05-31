@@ -80,6 +80,7 @@ module.exports = {
         }).catch(async e => {
             const name = _.get(e, 'name')
             const msg = _.get(e, 'message')
+            if (_.includes(msg, 'require subscribe hint')) return
             await alert(`**类型**: 发送模板消息失败
 **错误名称**: ${name}
 **错误信息**: ${msg}
