@@ -180,6 +180,7 @@ module.exports = {
 
     async addTags(userId, tags) {
         return await knex('user_tags')
+            .returning('user_id')
             .insert(tags.map(tag => ({
                 user_id: userId,
                 tag,

@@ -51,28 +51,6 @@ module.exports = {
         },
     },
 
-    staging_postgresql: {
-        client: 'postgresql',
-        connection: {
-            host: process.env.PG_HOST,
-            database: process.env.PG_DB,
-            user: process.env.PG_USER,
-            password: process.env.PG_PASSWORD,
-            charset: 'utf-8',
-            timezone: 'UTC',
-        },
-        pool: {
-            min: 2,
-            max: 10,
-        },
-        migrations: {
-            directory: path.join(BASE_PATH, 'migrations'),
-        },
-        seeds: {
-            directory: path.join(BASE_PATH, 'seeds'),
-        },
-    },
-
     qa: {
         client: 'mysql',
         connection: {
