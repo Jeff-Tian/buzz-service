@@ -1,5 +1,3 @@
-import logger from '../common/logger'
-
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -41,8 +39,12 @@ module.exports = {
             )
     },
     filterByTags(search, tags) {
+        if (!(tags instanceof Array)) {
+            tags = [tags]
+        }
+
         return search
-            .andWhereIn('user_tags.tag', tags)
+            .andWhere('user_tags.tag', 'in', tags)
     },
     async get(userId, isContextSecure = false) {
         return (await this.selectFields(this.joinTables(), isContextSecure)
