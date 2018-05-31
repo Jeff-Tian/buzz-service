@@ -86,6 +86,10 @@ module.exports = {
         return (await knex('user_social_accounts').where('user_id', userId))[0]
     },
 
+    async listAllTags() {
+        return user.listAllTags()
+    },
+
     async getTags(userId) {
         return user.getTags(userId)
     },

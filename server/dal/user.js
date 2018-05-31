@@ -166,6 +166,12 @@ module.exports = {
         return result
     },
 
+    async listAllTags() {
+        return await knex('user_tags')
+            .distinct('tag')
+            .select()
+    },
+
     async getTags(userId) {
         return await knex('user_tags')
             .where('user_id', userId)

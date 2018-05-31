@@ -568,6 +568,9 @@ module.exports = {
     isProfileOK,
     sendScheduleMsg,
     getSocialAccountProfile,
+    async listAllTags(ctx) {
+        ctx.body = await userBll.listAllTags()
+    },
     async getTags(ctx) {
         ctx.body = await userBll.getTags(ctx.params.user_id)
     },
