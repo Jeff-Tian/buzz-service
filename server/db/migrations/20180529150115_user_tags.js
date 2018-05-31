@@ -5,7 +5,6 @@ exports.up = function (knex, Promise) {
         table.timestamp('created_at').defaultTo(knex.fn.now())
 
         table.primary(['user_id', 'tag'])
-        table.foreign('user_id').references('users.user_id').onDelete('CASCADE').onUpdate('CASCADE')
     })
 }
 
