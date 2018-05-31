@@ -179,8 +179,8 @@ module.exports = {
 
     async deleteTags(userId, tags) {
         return await knex('user_tags')
-            .where('user_id', userId)
-            .andWhereIn('tags', tags)
+            .whereIn('tag', tags)
+            .andWhere('user_id', userId)
             .delete()
     },
 
