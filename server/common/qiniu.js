@@ -1,4 +1,5 @@
 const qiniu = require('qiniu')
+const axios = require('axios')
 
 const config_qiniu = {
     ACCESS_KEY: process.env.buzz_qiniu_access_key,
@@ -54,5 +55,17 @@ module.exports = {
                 }
             })
         })
+    },
+    async urlStream(url) {
+        const { data } = await axios({
+            method: 'get',
+            url,
+            responseType: 'stream',
+        })
+        return data
+    },
+    async uploadUrl(url) {
+        const { key } = await this.uploadStream(await this.urlStream(url))
+        return `${config_qiniu.url.resources_url}${key}`
     },
 }

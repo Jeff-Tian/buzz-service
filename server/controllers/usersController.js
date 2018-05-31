@@ -9,6 +9,7 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 
 const wechat = require('../common/wechat')
+const qiniu = require('../common/qiniu')
 const mail = require('../common/mail')
 const timeHelper = require('../common/time-helper')
 const crypto = require('crypto')
@@ -233,6 +234,24 @@ const create = async ctx => {
     }
 }
 
+const updateWechatInfo = async user_id => {
+    const wechat_openid = _.get(await knex('user_social_accounts').where({ user_id }), '0.wechat_openid')
+    if (!wechat_openid) return
+    const wechat_data = await wechat.getUser(wechat_openid)
+    if (_.isEmpty(wechat_data)) return
+    await knex('user_social_accounts')
+        .update({
+            wechat_name: wechat_data.nickname,
+            wechat_unionid: wechat_data.unionid,
+            wechat_data: JSON.stringify(wechat_data),
+        }).where({ user_id })
+    const user = _.get(await knex('user_profiles').where({ user_id }), '0')
+    if (!user) return
+    if (_.includes(user.avatar, 'buzzbuzzenglish.com') || _.includes(user.avatar, 'clouddn.com')) return
+    const avatar = await qiniu.uploadUrl(wechat_data.headimgurl)
+    await knex('user_profiles').update({ avatar }).where({ user_id })
+}
+
 const accountSignIn = async ctx => {
     const { account, password } = ctx.request.body
 
@@ -263,7 +282,7 @@ const accountSignIn = async ctx => {
             httpOnly: true,
             expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
         })
-
+        await updateWechatInfo(users[0].user_id).catch(e => logger.error('updateWechatInfo', e))
         ctx.body = users[0]
     } else {
         return ctx.throw(403, 'Account or password error')
@@ -276,6 +295,8 @@ const signIn = async ctx => {
     if (!user_id) {
         return ctx.throw(403, 'sign in not allowed')
     }
+
+    await updateWechatInfo(user_id).catch(e => logger.error('updateWechatInfo', e))
 
     const filter = { 'users.user_id': user_id }
 
