@@ -455,8 +455,7 @@ describe('routes: users', () => {
         })
 
         createUserResponse.status.should.eql(201)
-        const userId = createUserResponse.body
-        return userId
+        return createUserResponse.body
     }
 
     async function createUserWithProfileIncomplete(username, userType) {

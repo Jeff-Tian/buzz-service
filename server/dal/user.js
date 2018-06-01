@@ -186,8 +186,8 @@ module.exports = {
             .delete()
     },
 
-    async addTags(userId, tags) {
-        return await knex('user_tags')
+    async addTags(userId, tags, trx = knex) {
+        return await trx('user_tags')
             .returning('user_id')
             .insert(tags.map(tag => ({
                 user_id: userId,

@@ -218,6 +218,14 @@ const create = async ctx => {
             wechat_name: body.wechat_name || null,
         })
 
+        if (body.role === userBll.MemberType.Student) {
+            try {
+                await userBll.addTags(users[0], ['leads'], trx)
+            } catch (ex) {
+                logger.error(ex)
+            }
+        }
+
         await trx.commit()
 
         ctx.status = 201
