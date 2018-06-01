@@ -1,3 +1,5 @@
+import logger from '../common/logger'
+
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -193,5 +195,13 @@ module.exports = {
                 user_id: userId,
                 tag,
             })))
+    },
+
+    async tryAddTags(userId, tags, trx = knex) {
+        try {
+            await this.addTags(userId, tags, trx)
+        } catch (ex) {
+            logger.error(ex)
+        }
     },
 }

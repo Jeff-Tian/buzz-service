@@ -95,25 +95,25 @@ module.exports = {
         return user.getTags(userId)
     },
 
-    async addTags(userId, tags, trx = null) {
-        await user.addTags(userId, tags, trx)
+    async addTags(userId, tags) {
+        await user.addTags(userId, tags)
     },
 
-    async tryAddTags(userId, tags, trx = null) {
+    async tryAddTags(userId, tags) {
         try {
-            await user.addTags(userId, tags, trx)
+            await user.addTags(userId, tags)
         } catch (ex) {
             logger.error(ex)
         }
     },
 
-    async deleteTags(userId, tags, trx = null) {
-        await user.deleteTags(userId, tags, trx)
+    async deleteTags(userId, tags) {
+        await user.deleteTags(userId, tags)
     },
 
-    async tryDeleteTags(userId, tags, trx = null) {
+    async tryDeleteTags(userId, tags) {
         try {
-            await user.deleteTags(userId, tags, trx)
+            await user.deleteTags(userId, tags)
         } catch (ex) {
             logger.error(ex)
         }

@@ -25,6 +25,7 @@ describe('routes: users', () => {
                 name: 'leads example',
                 role: userBll.MemberType.Student,
             })).body
+
             let userDetail = await userBll.get(userId)
             userDetail.tags.should.eql(UserTags.Leads)
 

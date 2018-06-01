@@ -220,11 +220,7 @@ const create = async ctx => {
         })
 
         if (body.role === userBll.MemberType.Student) {
-            try {
-                await userBll.addTags(users[0], [UserTags.Leads], trx)
-            } catch (ex) {
-                logger.error(ex)
-            }
+            await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
         }
 
         await trx.commit()
