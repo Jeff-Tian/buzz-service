@@ -30,6 +30,11 @@ describe('routes: users', () => {
 
             await classHours.charge(null, userId, 1)
             userDetail = await userBll.get(userId)
+            userDetail.tags.indexOf(UserTags.Leads).should.lt(0)
+            userDetail.tags.should.eql(UserTags.NeedCharge)
+
+            await classHours.charge(null, userId, 10)
+            userDetail = await userBll.get(userId)
             should.equal(userDetail.tags, null)
         })
 
@@ -42,7 +47,7 @@ describe('routes: users', () => {
             should.equal(userDetail.tags, null)
         })
 
-        it.skip('当用户课时数发生变化，如果余额小于等于 2，自动添加上 "需续费" 标签。当余额大于 2 时，自动移除 "需续费" 标签。', async () => {
+        it('当用户课时数发生变化，如果余额小于等于 2，自动添加上 "需续费" 标签。当余额大于 2 时，自动移除 "需续费" 标签。', async () => {
             const userId = (await userHelper.createUserRequest({
                 name: 'new User',
                 role: userBll.MemberType.Student,

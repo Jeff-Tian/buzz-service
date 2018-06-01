@@ -1,4 +1,6 @@
 import logger from '../common/logger'
+import * as userBll from '../bll/user'
+import { NeedChargeThreshold, UserTags } from '../common/constants'
 
 const _ = require('lodash')
 const bluebird = require('bluebird')
@@ -212,7 +214,8 @@ const sendRenewTpl = async classInfo => {
         if (_.isEmpty(users)) return
         await bluebird.map(users, async user_id => {
             const all_class_hours = await getAllClassHours(user_id)
-            if (all_class_hours <= 2) {
+            if (all_class_hours <= NeedChargeThreshold) {
+                await userBll.tryAddTags(user_id, [UserTags.NeedCharge])
                 await wechat.sendRenewTpl(user_id, all_class_hours).catch(e => {
                     logger.error('sendRenewTplErr', e)
                 })

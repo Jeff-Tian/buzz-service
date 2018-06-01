@@ -1,4 +1,5 @@
 import ClassScheduleDAL from '../dal/class-schedules'
+import logger from '../common/logger'
 
 const user = require('../dal/user')
 const uuidv4 = require('uuid/v4')
@@ -98,7 +99,23 @@ module.exports = {
         await user.addTags(userId, tags, trx)
     },
 
+    async tryAddTags(userId, tags, trx = null) {
+        try {
+            await user.addTags(userId, tags, trx)
+        } catch (ex) {
+            logger.error(ex)
+        }
+    },
+
     async deleteTags(userId, tags, trx = null) {
         await user.deleteTags(userId, tags, trx)
+    },
+
+    async tryDeleteTags(userId, tags, trx = null) {
+        try {
+            await user.deleteTags(userId, tags, trx)
+        } catch (ex) {
+            logger.error(ex)
+        }
     },
 }
