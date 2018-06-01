@@ -20,7 +20,7 @@ describe('routes: users', () => {
     })
 
     describe('自动给用户打标签的场景', () => {
-        it('新注册的学生账号自动打上 leads 标签', async () => {
+        it('新注册的学生账号自动打上 leads 标签，充课时后自动移除', async () => {
             const userId = (await userHelper.createUserRequest({
                 name: 'leads example',
                 role: userBll.MemberType.Student,
@@ -39,6 +39,25 @@ describe('routes: users', () => {
                 role: userBll.MemberType.Companion,
             })).body
             const userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+        })
+
+        it.skip('当用户课时数发生变化，如果余额小于等于 2，自动添加上 "需续费" 标签。当余额大于 2 时，自动移除 "需续费" 标签。', async () => {
+            const userId = (await userHelper.createUserRequest({
+                name: 'new User',
+                role: userBll.MemberType.Student,
+            })).body
+
+            await classHours.charge(null, userId, 10)
+            let userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+
+            await classHours.consume(null, userId, 9)
+            userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, UserTags.NeedCharge)
+
+            await classHours.charge(null, userId, 2)
+            userDetail = await userBll.get(userId)
             should.equal(userDetail.tags, null)
         })
     })

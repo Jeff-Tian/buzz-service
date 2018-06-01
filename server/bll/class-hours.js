@@ -32,6 +32,10 @@ async function getCurrentClassHours(trx, user_id) {
 }
 
 async function consumeClassHours(trx, userId, classHours, remark = '') {
+    if (!trx) {
+        trx = knex
+    }
+
     await trx('user_balance_history')
         .insert({
             user_id: userId,
