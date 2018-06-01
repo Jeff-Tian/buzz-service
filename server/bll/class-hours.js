@@ -1,4 +1,6 @@
 import logger from '../common/logger'
+import * as userBll from './user'
+import { UserTags } from '../common/constants'
 
 const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
@@ -68,6 +70,10 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
 }
 
 async function chargeClassHours(trx, userId, classHours, remark = '') {
+    if (trx === null) {
+        trx = knex
+    }
+
     await trx('user_balance_history')
         .insert({
             user_id: userId,
@@ -90,6 +96,12 @@ async function chargeClassHours(trx, userId, classHours, remark = '') {
             .update(newClassHours)
     } else {
         await trx('user_balance').insert(newClassHours)
+    }
+
+    try {
+        await userBll.deleteTags(userId, [UserTags.Leads], trx)
+    } catch (ex) {
+        logger.error(ex)
     }
 }
 

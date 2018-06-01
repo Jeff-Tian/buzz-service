@@ -1,4 +1,6 @@
 import * as userBookings from './test-data-generators/user-bookings'
+import * as classHours from '../server/bll/class-hours'
+import { UserTags } from '../server/common/constants'
 
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
@@ -23,8 +25,12 @@ describe('routes: users', () => {
                 name: 'leads example',
                 role: userBll.MemberType.Student,
             })).body
-            const userDetail = await userBll.get(userId)
-            userDetail.tags.should.eql('leads')
+            let userDetail = await userBll.get(userId)
+            userDetail.tags.should.eql(UserTags.Leads)
+
+            await classHours.charge(null, userId, 1)
+            userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
         })
 
         it('新注册的外籍语伴账号不会被打上 leads 标签', async () => {

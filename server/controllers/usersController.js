@@ -1,5 +1,6 @@
 import logger from '../common/logger'
 import Password from '../security/password'
+import { UserTags } from '../common/constants'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const moment = require('moment-timezone')
@@ -220,7 +221,7 @@ const create = async ctx => {
 
         if (body.role === userBll.MemberType.Student) {
             try {
-                await userBll.addTags(users[0], ['leads'], trx)
+                await userBll.addTags(users[0], [UserTags.Leads], trx)
             } catch (ex) {
                 logger.error(ex)
             }

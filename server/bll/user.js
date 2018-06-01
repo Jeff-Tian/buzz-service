@@ -98,7 +98,7 @@ module.exports = {
         await user.addTags(userId, tags, trx)
     },
 
-    async deleteTags(userId, tags) {
-        await user.deleteTags(userId, tags)
+    async deleteTags(userId, tags, trx = null) {
+        await user.deleteTags(userId, tags, trx)
     },
 }
