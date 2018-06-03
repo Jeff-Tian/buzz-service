@@ -215,7 +215,7 @@ const sendRenewTpl = async classInfo => {
         await bluebird.map(users, async user_id => {
             const all_class_hours = await getAllClassHours(user_id)
             if (all_class_hours <= NeedChargeThreshold) {
-                await userBll.tryAddTags(user_id, [UserTags.NeedCharge])
+                await userBll.tryAddTags(user_id, [{ name: UserTags.NeedCharge, remark: '计算总课时数时课时不足自动添加此标签' }])
                 await wechat.sendRenewTpl(user_id, all_class_hours).catch(e => {
                     logger.error('sendRenewTplErr', e)
                 })

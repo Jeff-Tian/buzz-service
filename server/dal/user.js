@@ -191,10 +191,19 @@ module.exports = {
     async addTags(userId, tags, trx = knex) {
         return await trx('user_tags')
             .returning('user_id')
-            .insert(tags.map(tag => ({
-                user_id: userId,
-                tag,
-            })))
+            .insert(tags.map(tag => {
+                if (typeof tag === 'string') {
+                    return {
+                        user_id: userId,
+                        tag,
+                    }
+                }
+                return {
+                    user_id: userId,
+                    tag: tag.name,
+                    remark: tag.remark,
+                }
+            }))
     },
 
     async tryAddTags(userId, tags, trx = knex) {

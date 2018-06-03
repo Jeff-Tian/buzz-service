@@ -66,7 +66,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
     const frozenClassHours = await countFrozenClassHours(userId)
 
     if (balance + frozenClassHours <= NeedChargeThreshold) {
-        await userBll.tryAddTags(userId, [UserTags.NeedCharge], trx)
+        await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '扣课时后课时不足自动添加此标签' }], trx)
     }
 }
 
@@ -102,7 +102,7 @@ async function chargeClassHours(trx, userId, classHours, remark = '') {
     await userBll.tryDeleteTags(userId, [UserTags.Leads], trx)
 
     if (newClassHours.class_hours <= NeedChargeThreshold) {
-        await userBll.tryAddTags(userId, [UserTags.NeedCharge], trx)
+        await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '充值后课时仍然不足自动添加此标签' }], trx)
     } else {
         await userBll.tryDeleteTags(userId, [UserTags.NeedCharge], trx)
     }
