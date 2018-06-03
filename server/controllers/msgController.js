@@ -56,4 +56,14 @@ const query = async ctx => {
         .paginate(qs.per_page, qs.current_page)
 }
 
-module.exports = { upsert, query }
+const queryByToUser = async ctx => {
+    const type = ctx.query.type
+    delete ctx.query.type
+    ctx.query.to_user_id = ctx.params.to_user_id
+    if (type === 'advisor') {
+        ctx.query.type = ['class_feedback']
+    }
+    await query(ctx)
+}
+
+module.exports = { upsert, query, queryByToUser }
