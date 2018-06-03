@@ -7,6 +7,7 @@ const _ = require('lodash')
 const user = require('../dal/user')
 const wechat = require('../common/wechat')
 const mail = require('../common/mail')
+const msgDal = require('../dal/msg')
 
 const selectFeedback = function () {
     return knex('class_feedback')
@@ -104,6 +105,7 @@ const setFeedbackInfo = async ctx => {
         const inserted = await knex('class_feedback')
             .returning('class_id')
             .insert(data)
+        await msgDal.upsert({ type: 'class_feedback', class_id: ctx.params.class_id, from_user_id: ctx.params.from_user_id, to_user_id: ctx.params.to_user_id }).catch(e => logger.error('upsert msg error', e))
         await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id)
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
