@@ -1,9 +1,9 @@
 exports.up = function (knex, Promise) {
     return knex.schema.createTable('msg', table => {
         table.bigIncrements('msg_id')
-        table.bigInteger('class_id').unsigned().notNullable()
-        table.bigInteger('from_user_id').unsigned().notNullable()
-        table.bigInteger('to_user_id').unsigned().notNullable()
+        table.bigInteger('class_id').unsigned()
+        table.bigInteger('from_user_id').unsigned()
+        table.bigInteger('to_user_id').unsigned()
         table.string('type')
         table.boolean('read').defaultTo(false)
         table.boolean('deleted').defaultTo(false)
