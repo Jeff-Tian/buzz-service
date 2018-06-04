@@ -6,6 +6,8 @@ module.exports = {
             .andWhere({ class_id: classId })
             .del()
 
+        console.log('deleted: ', userIds)
+
         await Promise.all(userIds.map(userId => classHours.charge(trx, userId, 1, `cancelled booking for class id = ${classId}`)))
     },
 

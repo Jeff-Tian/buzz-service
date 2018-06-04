@@ -42,7 +42,7 @@ module.exports = {
 
         if (theUser) {
             if (theUser.role === this.MemberType.Student) {
-                logger.info(theUser, theUser.mobile, !theUser.mobile, !'', !null, theUser.mobile === '');
+                logger.info(theUser, theUser.mobile, !theUser.mobile, !'', !null, theUser.mobile === '')
                 if (!theUser.mobile || (!theUser.city && !theUser.country && !theUser.location) || !theUser.date_of_birth || !theUser.name) {
                     return false
                 }
@@ -100,9 +100,9 @@ module.exports = {
         await user.addTags(userId, tags)
     },
 
-    async tryAddTags(userId, tags) {
+    async tryAddTags(userId, tags, trx) {
         try {
-            await user.addTags(userId, tags)
+            await user.addTags(userId, tags, trx)
         } catch (ex) {
             logger.error(ex)
         }
@@ -112,9 +112,9 @@ module.exports = {
         await user.deleteTags(userId, tags)
     },
 
-    async tryDeleteTags(userId, tags) {
+    async tryDeleteTags(userId, tags, trx) {
         try {
-            await user.deleteTags(userId, tags)
+            await user.deleteTags(userId, tags, trx)
         } catch (ex) {
             logger.error(ex)
         }
