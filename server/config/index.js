@@ -34,7 +34,7 @@ const config = {
     production: {
         endPoints: {
             bullService: 'http://localhost:16222',
-            redis: `redis://:${process.env.redis_password}@localhost:6379`,
+            redis: `redis://:${process.env.redis_password}@${process.env.redis_ip}:6379`,
             buzzCorner: process.env.corner_base || 'http://live.buzzbuzzenglish.com',
         },
     },

@@ -38,7 +38,7 @@ module.exports = {
     getUsersByClassId: user.getUsersByClassId,
     getUsersByWeekly: user.getUsersByWeekly,
     async isProfileOK(userId) {
-        const theUser = await user.get(userId)
+        const theUser = await user.get(userId, true)
 
         if (theUser) {
             if (theUser.role === this.MemberType.Student) {
