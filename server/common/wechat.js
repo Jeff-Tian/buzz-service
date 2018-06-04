@@ -144,11 +144,11 @@ module.exports = {
         await this.sendTpl(data)
     },
     // 课程评价完成通知
-    async sendFeedbackTpl(from, to, class_id, class_topic, time) {
+    async sendFeedbackTpl(from, to, class_id, class_topic, msg_id, time) {
         const data = {
             openid: to.wechat_openid,
             id: '2_kY3e151Exjf9uGmVb8bZARsibKH_3warWNN4mWW30',
-            url: `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}`,
+            url: `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}?msg_id=${msg_id}`,
             data: {
                 first: { value: `您的学伴${from.name}完成了课后的反馈评价\n` },
                 keyword1: { value: class_topic || '' },

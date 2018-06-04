@@ -74,8 +74,8 @@ PS: this email was sent automatically, please don’t reply. If you have any que
         })
     },
     // 课程评价完成通知
-    async sendFeedbackMail(from, to, class_id) {
-        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}`
+    async sendFeedbackMail(from, to, class_id, msg_id) {
+        const url = `${config.endPoints.buzzCorner}/evaluation/${from.user_id}/${to.user_id}/${class_id}?msg_id=${msg_id}`
         await this.send({
             ToAddress: to.email,
             Subject: `Feedback from ${from.name || ''}`,

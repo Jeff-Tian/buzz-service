@@ -76,16 +76,16 @@ const getEvaluateStatus = async ctx => {
     }
 }
 
-const sendFeedbackNotification = async (from_user_id, to_user_id, class_id) => {
+const sendFeedbackNotification = async (from_user_id, to_user_id, class_id, msg_id) => {
     try {
         const class_topic = _.get(await knex('classes').where({ class_id }), '0.topic')
         const from = await user.get(from_user_id)
         const to = await user.get(to_user_id)
         if (from && to) {
             if (to.wechat_openid) {
-                await wechat.sendFeedbackTpl(from, to, class_id, class_topic)
+                await wechat.sendFeedbackTpl(from, to, class_id, class_topic, msg_id)
             } else if (to.email) {
-                await mail.sendFeedbackMail(from, to, class_id)
+                await mail.sendFeedbackMail(from, to, class_id, msg_id)
             }
         }
     } catch (e) {
@@ -105,8 +105,8 @@ const setFeedbackInfo = async ctx => {
         const inserted = await knex('class_feedback')
             .returning('class_id')
             .insert(data)
-        await msgDal.upsert({ type: 'class_feedback', class_id: ctx.params.class_id, from_user_id: ctx.params.from_user_id, to_user_id: ctx.params.to_user_id }).catch(e => logger.error('upsert msg error', e))
-        await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id)
+        const msg = await msgDal.upsert({ type: 'class_feedback', class_id: ctx.params.class_id, from_user_id: ctx.params.from_user_id, to_user_id: ctx.params.to_user_id }).catch(e => logger.error('upsert msg error', e))
+        await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id, _.get(msg, 'msg_id'))
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = inserted
