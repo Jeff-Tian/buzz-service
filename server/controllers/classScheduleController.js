@@ -60,6 +60,10 @@ function filterByTime(search, start_time, end_time) {
         .andWhere('classes.end_time', '<=', end_time)
 }
 
+function filterByStatus(search, statuses) {
+    return search.andWhereIn('classes.status', statuses)
+}
+
 function selectClasses() {
     return knex('classes')
         .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
@@ -146,7 +150,7 @@ async function addClassJob(classInfo) {
 
 const list = async ctx => {
     try {
-        const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
+        const { start_time, end_time, status: statuses } = uniformTime(ctx.query.start_time, ctx.query.end_time)
 
         const studentsSubQuery = knex('student_class_schedule')
             .select(knex.raw('group_concat(user_id) as students'), 'class_id').groupBy('student_class_schedule.class_id')
@@ -169,6 +173,10 @@ const list = async ctx => {
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
+        }
+
+        if (statuses) {
+            search = filterByStatus(search, statuses)
         }
 
         ctx.body = await search.paginate(ctx.query.per_page, ctx.query.current_page)
