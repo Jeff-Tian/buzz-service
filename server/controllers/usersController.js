@@ -301,7 +301,7 @@ const signIn = async ctx => {
         return ctx.throw(403, 'sign in not allowed')
     }
 
-    await updateWechatInfo(user_id).catch(e => logger.error('updateWechatInfo', e))
+    await updateWechatInfo(user_id).catch(e => logger.error('updateWechatInfo', JSON.stringify(e)))
 
     const filter = { 'users.user_id': user_id }
 

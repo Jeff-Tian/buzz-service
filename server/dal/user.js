@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import { ClassStatusCode } from '../common/constants'
 
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -11,6 +12,12 @@ module.exports = {
     joinTables() {
         const interestsSubQuery = knex('user_interests').select('user_id', knex.raw('group_concat(interest) as interests')).groupBy('user_id').as('user_interests')
         const userTagsSubQuery = knex('user_tags').select('user_id', knex.raw('group_concat(tag) as tags')).groupBy('user_id').as('user_tags')
+        const lockedClassHoursSubQuery =
+            knex.from(function () {
+                this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule').whereIn('status', [ClassStatusCode.Open]).groupBy('user_id')
+            }, false).unionAll(function () {
+                this.select('user_id').count({ locked_class_hours: 'user_id' }).from('companion_class_schedule').whereIn('status', [ClassStatusCode.Open]).groupBy('user_id')
+            }, false).as('user_locked_class_hours')
 
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
@@ -19,7 +26,8 @@ module.exports = {
             .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
             .leftJoin(userTagsSubQuery, 'users.user_id', 'user_tags.user_id')
             .leftJoin(interestsSubQuery, 'users.user_id', 'user_interests.user_id')
-            .groupByRaw('users.user_id')
+            .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
+            .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
         return joinedTables
@@ -40,7 +48,8 @@ module.exports = {
                 'user_balance.integral as integral',
                 'user_placement_tests.level as level', 'user_profiles.password as password',
                 'user_interests.interests',
-                'user_tags.tags'
+                'user_tags.tags',
+                'user_locked_class_hours.locked_class_hours'
             )
     },
     filterByTags(search, tags) {
