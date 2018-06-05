@@ -21,14 +21,16 @@ module.exports = {
         const lockedClassHoursSubQuery =
             knex
                 .from(function () {
-                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule').whereIn('status', [ClassStatusCode.Open]).groupBy('user_id').as('t1')
+                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule')
+                        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id').as('t1')
                 }, false)
                 .unionAll(function () {
-                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('companion_class_schedule').whereIn('status', [ClassStatusCode.Open]).groupBy('user_id')
+                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('companion_class_schedule')
+                        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id')
                 }, false)
                 .as('user_locked_class_hours')
-
-        console.log('sub query = ', lockedClassHoursSubQuery.toSQL())
 
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
