@@ -9,13 +9,16 @@ const timeHelper = require('../common/time-helper')
 
 module.exports = {
     joinTables() {
+        const interestsSubQuery = knex('user_interests').select('user_id', knex.raw('group_concat(interest) as interests')).groupBy('user_id').as('user_interests')
+        const userTagsSubQuery = knex('user_tags').select('user_id', knex.raw('group_concat(tag) as tags')).groupBy('user_id').as('user_tags')
+
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
-            .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
             .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
-            .leftJoin('user_tags', 'users.user_id', 'user_tags.user_id')
+            .leftJoin(userTagsSubQuery, 'users.user_id', 'user_tags.user_id')
+            .leftJoin(interestsSubQuery, 'users.user_id', 'user_interests.user_id')
             .groupByRaw('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
@@ -36,8 +39,8 @@ module.exports = {
                 'user_social_accounts.wechat_name as wechat_name', 'user_social_accounts.wechat_openid as wechat_openid', 'user_balance.class_hours as class_hours',
                 'user_balance.integral as integral',
                 'user_placement_tests.level as level', 'user_profiles.password as password',
-                knex.raw('group_concat(user_interests.interest) as interests'),
-                knex.raw('group_concat(user_tags.tag) as tags')
+                'user_interests.interests',
+                'user_tags.tags'
             )
     },
     filterByTags(search, tags) {

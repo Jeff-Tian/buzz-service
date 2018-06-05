@@ -389,7 +389,7 @@ describe('routes: users', () => {
                             res.body.name.should.eql('changed')
                             res.body.display_name.should.eql('changed')
                             res.body.facebook_name.should.eql('changed')
-                            res.body.interests.should.eql('art,business')
+                            res.body.interests.should.eql('business,art')
                             res.body.country.should.eql('美国')
                             res.body.remark.should.eql('test')
 
@@ -398,7 +398,7 @@ describe('routes: users', () => {
                                 .send({ interests: ['business', 'art'] })
                                 .end((err, res) => {
                                     should.not.exist(err)
-                                    res.body.interests.should.eql('art,business')
+                                    res.body.interests.should.eql('business,art')
 
                                     done()
                                 })
