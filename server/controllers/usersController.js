@@ -31,7 +31,7 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 
 const search = async ctx => {
     try {
-        let search = userDal.joinTables()
+        let search = userDal.joinTables(ctx.query.tags)
             .orderBy('users.created_at', 'desc')
 
         const filters = {}
@@ -67,10 +67,6 @@ const search = async ctx => {
 
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
-        }
-
-        if (ctx.query.tags) {
-            search = userDal.filterByTags(search, ctx.query.tags)
         }
 
         ctx.body = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)

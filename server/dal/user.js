@@ -9,9 +9,15 @@ const _ = require('lodash')
 const timeHelper = require('../common/time-helper')
 
 module.exports = {
-    joinTables() {
+    joinTables(filters = {}) {
         const interestsSubQuery = knex('user_interests').select('user_id', knex.raw('group_concat(interest) as interests')).groupBy('user_id').as('user_interests')
-        const userTagsSubQuery = knex('user_tags').select('user_id', knex.raw('group_concat(tag) as tags')).groupBy('user_id').as('user_tags')
+
+        let userTagsSubQuery = knex('user_tags').select('user_id', knex.raw('group_concat(tag) as tags'))
+        if (filters.tags instanceof Array) {
+            userTagsSubQuery = userTagsSubQuery.whereIn('tag', filters.tags)
+        }
+        userTagsSubQuery = userTagsSubQuery.groupBy('user_id').as('user_tags')
+
         const lockedClassHoursSubQuery =
             knex.from(function () {
                 this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule').whereIn('status', [ClassStatusCode.Open]).groupBy('user_id')
