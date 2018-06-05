@@ -58,14 +58,6 @@ module.exports = {
                 'user_locked_class_hours.locked_class_hours'
             )
     },
-    filterByTags(search, tags) {
-        if (!(tags instanceof Array)) {
-            tags = [tags]
-        }
-
-        return search
-            .andWhere('user_tags.tag', 'in', tags)
-    },
     async get(userId, isContextSecure = false) {
         return (await this.selectFields(this.joinTables(), isContextSecure)
             .where({ 'users.user_id': userId }))[0]

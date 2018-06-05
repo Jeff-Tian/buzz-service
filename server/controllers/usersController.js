@@ -31,11 +31,15 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 
 const search = async ctx => {
     try {
-        let search = userDal.joinTables(ctx.query.tags)
-            .orderBy('users.created_at', 'desc')
-
         const filters = {}
         const role = ctx.query.role
+
+        if (ctx.query.tags) {
+            filters.tags = ctx.query.tags instanceof Array ? ctx.query.tags : [ctx.query.tags]
+        }
+
+        let search = userDal.joinTables(filters)
+            .orderBy('users.created_at', 'desc')
         if (role) {
             filters['users.role'] = role
             const wsr = ctx.query.weekly_schedule_requirements

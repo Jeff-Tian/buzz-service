@@ -26,6 +26,13 @@ describe('routes: users', () => {
             res.body.length.should.eql(5)
             res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'class_hours')
         })
+
+        it('should should return the first 2 users', async () => {
+            const res = await common.makeRequest('get', `${PATH}?per_page=2&current_page=1&tags=`)
+
+            res.status.should.eql(200)
+            res.body.data.length.should.eql(2)
+        })
     })
 
     describe(`GET ${PATH}?role=s`, () => {
