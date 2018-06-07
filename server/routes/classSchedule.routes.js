@@ -10,5 +10,6 @@ router.put(`${BASE_URL}`, classScheduleController.change)
 router.put(`${BASE_URL}/:class_id`, classScheduleController.endClass)
 router.post(`${BASE_URL}/sendDayClassBeginMsg`, classScheduleController.sendDayClassBeginMsg)
 router.post(`${BASE_URL}/sendMinuteClassBeginMsg`, classScheduleController.sendMinuteClassBeginMsg)
+router.post(`${BASE_URL}/sendNowClassBeginMsg`, classScheduleController.sendNowClassBeginMsg)
 router.post(`${BASE_URL}/sendEvaluationMsg`, classScheduleController.sendEvaluationMsg)
 module.exports = router

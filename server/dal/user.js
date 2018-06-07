@@ -80,7 +80,7 @@ module.exports = {
     },
 
     async getUsersByClassId({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) {
-        const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
+        const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time', 'room_url'), 0)
         if (!classInfo) return
         let students = []
         if (_.includes(role, 'student')) {

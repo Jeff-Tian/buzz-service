@@ -208,4 +208,21 @@ module.exports = {
         }
         await this.sendTpl(data)
     },
+    // 开课提醒通知3 课程开始时间前5分钟
+    async sendNowClassBeginTpl(wechat_openid, name, class_id, class_topic, class_start_time, class_end_time, room_url) {
+        const start_time = timeHelper.zhStartEndTime(class_start_time, class_end_time)
+        const fromNow = timeHelper.zhFromNow(class_start_time)
+        const data = {
+            openid: wechat_openid,
+            id: 'jqjLPR5NICbT_PZxSlwNts0DNnzcMonKcVLOfgydrmo',
+            url: room_url,
+            data: {
+                first: { value: '亲爱的用户\n' },
+                keyword1: { value: class_topic || '' },
+                keyword2: { value: name || '' },
+                remark: { value: `课程时间：${start_time}\n\n您的课程马上开始啦，点击可立即进入教室。` },
+            },
+        }
+        await this.sendTpl(data)
+    },
 }

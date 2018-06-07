@@ -535,6 +535,31 @@ const sendMinuteClassBeginMsg = async ctx => {
     }
 }
 
+const sendNowClassBeginMsg = async ctx => {
+    try {
+        const { class_id } = ctx.request.body
+        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        // 不发送过去的通知
+        if (moment(classInfo.start_time).isBefore(moment())) return
+        await bluebird.map(students, async i => {
+            if (!i.wechat_openid) return
+            await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, classInfo.room_url).catch(logger.error)
+        })
+        await bluebird.map(companions, async i => {
+            if (i.wechat_openid) {
+                await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, classInfo.room_url).catch(logger.error)
+            } else if (i.email) {
+                await mail.sendNowClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone, classInfo.room_url)
+            }
+        })
+        ctx.status = 200
+        ctx.body = { done: true }
+    } catch (e) {
+        logger.error(e)
+        ctx.throw(500, e)
+    }
+}
+
 const sendEvaluationMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
@@ -575,5 +600,6 @@ module.exports = {
     endClass,
     sendDayClassBeginMsg,
     sendMinuteClassBeginMsg,
+    sendNowClassBeginMsg,
     sendEvaluationMsg,
 }
