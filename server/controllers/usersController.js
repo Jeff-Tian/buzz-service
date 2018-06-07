@@ -168,7 +168,7 @@ const getByWechat = async ctx => {
             filter['user_social_accounts.wechat_unionid'] = unionid
         }
 
-        const users = await selectUsers().where(filter)
+        const users = await selectUsers(basicAuth.validate(ctx)).where(filter)
 
         if (!users.length) {
             throw new Error('The requested user does not exists')
