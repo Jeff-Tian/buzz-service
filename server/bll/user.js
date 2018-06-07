@@ -42,7 +42,6 @@ module.exports = {
 
         if (theUser) {
             if (theUser.role === this.MemberType.Student) {
-                logger.info(theUser, theUser.mobile, !theUser.mobile, !'', !null, theUser.mobile === '');
                 if (!theUser.mobile || (!theUser.city && !theUser.country && !theUser.location) || !theUser.date_of_birth || !theUser.name) {
                     return false
                 }
