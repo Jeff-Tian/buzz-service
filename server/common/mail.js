@@ -125,4 +125,20 @@ Thank you :)<br/>
 PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).<br/>`,
         })
     },
+    // 开课提醒通知3 课程开始时间前5分钟
+    async sendNowClassBeginMail(mail, name, class_id, class_topic, class_start_time, time_zone, room_url) {
+        const url = `${config.endPoints.buzzCorner}/class/${class_id}`
+        const fromNow = timeHelper.enFromNow(class_start_time)
+        const start_time = timeHelper.enStartTime(class_start_time, time_zone)
+        await this.send({
+            ToAddress: mail,
+            Subject: 'Session reminder',
+            HtmlBody: `Dear ${name || ''},<br/>
+Your session ${class_topic} starts right away. <br/>
+Start time: ${start_time}<br/>
+<a href="${url}">Click to enter the classroom immediately</a>.<br/>
+Thank you :)<br/>
+PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).<br/>`,
+        })
+    },
 }

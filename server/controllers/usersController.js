@@ -31,11 +31,15 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
 
 const search = async ctx => {
     try {
-        let search = userDal.joinTables()
-            .orderBy('users.created_at', 'desc')
-
         const filters = {}
         const role = ctx.query.role
+
+        if (ctx.query.tags) {
+            filters.tags = ctx.query.tags instanceof Array ? ctx.query.tags : [ctx.query.tags]
+        }
+
+        let search = userDal.joinTables(filters)
+            .orderBy('users.created_at', 'desc')
         if (role) {
             filters['users.role'] = role
             const wsr = ctx.query.weekly_schedule_requirements
@@ -67,10 +71,6 @@ const search = async ctx => {
 
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
-        }
-
-        if (ctx.query.tags) {
-            search = userDal.filterByTags(search, ctx.query.tags)
         }
 
         ctx.body = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
@@ -301,7 +301,7 @@ const signIn = async ctx => {
         return ctx.throw(403, 'sign in not allowed')
     }
 
-    await updateWechatInfo(user_id).catch(e => logger.error('updateWechatInfo', e))
+    await updateWechatInfo(user_id).catch(e => logger.error('updateWechatInfo', JSON.stringify(e)))
 
     const filter = { 'users.user_id': user_id }
 

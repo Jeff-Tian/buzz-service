@@ -61,8 +61,6 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
         await trx('user_balance').insert(newClassHours)
     }
 
-    logger.info('consumed for ', userId)
-
     const frozenClassHours = await countFrozenClassHours(userId)
 
     if (balance + frozenClassHours <= NeedChargeThreshold) {

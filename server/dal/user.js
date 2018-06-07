@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import { ClassStatusCode } from '../common/constants'
 
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -8,15 +9,38 @@ const _ = require('lodash')
 const timeHelper = require('../common/time-helper')
 
 module.exports = {
-    joinTables() {
+    joinTables(filters = {}) {
+        const interestsSubQuery = knex('user_interests').select('user_id', knex.raw('group_concat(interest) as interests')).groupBy('user_id').as('user_interests')
+
+        let userTagsSubQuery = knex('user_tags').select('user_id', knex.raw('group_concat(tag) as tags'))
+        if (filters.tags instanceof Array) {
+            userTagsSubQuery = userTagsSubQuery.whereIn('tag', filters.tags)
+        }
+        userTagsSubQuery = userTagsSubQuery.groupBy('user_id').as('user_tags')
+
+        const lockedClassHoursSubQuery =
+            knex
+                .from(function () {
+                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule')
+                        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id').as('t1')
+                }, false)
+                .unionAll(function () {
+                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('companion_class_schedule')
+                        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id')
+                }, false)
+                .as('user_locked_class_hours')
+
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
-            .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
             .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
             .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
-            .leftJoin('user_tags', 'users.user_id', 'user_tags.user_id')
-            .groupByRaw('users.user_id')
+            .leftJoin(userTagsSubQuery, 'users.user_id', 'user_tags.user_id')
+            .leftJoin(interestsSubQuery, 'users.user_id', 'user_interests.user_id')
+            .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
+            .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
         return joinedTables
@@ -36,17 +60,10 @@ module.exports = {
                 'user_social_accounts.wechat_name as wechat_name', 'user_social_accounts.wechat_openid as wechat_openid', 'user_balance.class_hours as class_hours',
                 'user_balance.integral as integral',
                 'user_placement_tests.level as level', 'user_profiles.password as password',
-                knex.raw('group_concat(user_interests.interest) as interests'),
-                knex.raw('group_concat(user_tags.tag) as tags')
+                'user_interests.interests',
+                'user_tags.tags',
+                'user_locked_class_hours.locked_class_hours'
             )
-    },
-    filterByTags(search, tags) {
-        if (!(tags instanceof Array)) {
-            tags = [tags]
-        }
-
-        return search
-            .andWhere('user_tags.tag', 'in', tags)
     },
     async get(userId, isContextSecure = false) {
         return (await this.selectFields(this.joinTables(), isContextSecure)
@@ -63,7 +80,7 @@ module.exports = {
     },
 
     async getUsersByClassId({ class_id, class_status = ['opened', 'ended'], role = ['student', 'companion'] }) {
-        const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time'), 0)
+        const classInfo = _.get(await knex('classes').where({ class_id }).whereIn('classes.status', class_status).select('class_id', 'topic', 'status', 'start_time', 'end_time', 'room_url'), 0)
         if (!classInfo) return
         let students = []
         if (_.includes(role, 'student')) {
@@ -137,7 +154,6 @@ module.exports = {
                 'users.user_id as user_id',
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'cancelled\') THEN 1 ELSE 0 END) AS cancelled_count'),
-                knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\', \'cancelled\') THEN 1 ELSE 0 END) AS total_count'),
                 // knex.raw('group_concat(classes.class_id) as class_ids'),
                 // knex.raw('group_concat(classes.status) as class_statuses'),

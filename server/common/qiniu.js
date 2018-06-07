@@ -51,7 +51,7 @@ module.exports = {
                         ...config_qiniu,
                     })
                 } else {
-                    reject(new Error({ status: respInfo.statusCode, body: respBody }))
+                    reject(new Error(JSON.stringify({ status: respInfo.statusCode, body: respBody })))
                 }
             })
         })
