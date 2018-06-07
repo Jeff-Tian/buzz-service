@@ -154,7 +154,6 @@ module.exports = {
                 'users.user_id as user_id',
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'cancelled\') THEN 1 ELSE 0 END) AS cancelled_count'),
-                knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\', \'cancelled\') THEN 1 ELSE 0 END) AS total_count'),
                 // knex.raw('group_concat(classes.class_id) as class_ids'),
                 // knex.raw('group_concat(classes.status) as class_statuses'),
