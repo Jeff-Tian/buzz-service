@@ -7,13 +7,13 @@ const moment = require('moment-timezone')
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
+const buzzConfig = require('../config')
 const knex = require('knex')(config)
 
 const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const mail = require('../common/mail')
 const timeHelper = require('../common/time-helper')
-const crypto = require('crypto')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../bll/user')
 const userBll = require('../bll/user')
@@ -312,7 +312,15 @@ const signIn = async ctx => {
     }
 
     // TODO: don't set long term cookies by default:
-    ctx.cookies.set('user_id', user_id, { httpOnly: true, expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) })
+    const cookieOptions = {
+        httpOnly: true,
+        expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
+    }
+
+    if (buzzConfig.rootDomain) {
+        cookieOptions.domain = buzzConfig.rootDomain
+    }
+    ctx.cookies.set('user_id', user_id, cookieOptions)
     ctx.body = users[0]
 }
 

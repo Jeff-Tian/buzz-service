@@ -5,6 +5,7 @@ const config = {
             redis: 'redis://rediscloud:UP18QdLqqApiPtX8Y3cnbOBT9DrAQMVk@redis-16745.c12.us-east-1-4.ec2.cloud.redislabs.com:16745',
             buzzCorner: process.env.corner_base || 'http://corner-test.buzzbuzzenglish.com',
         },
+        rootDomain: undefined,
     },
 
     test: {
@@ -13,6 +14,7 @@ const config = {
             redis: 'redis://:UP18QdLqqApiPtX8Y3cnbOBT9DrAQMVk@redis-16745.c12.us-east-1-4.ec2.cloud.redislabs.com:16745',
             buzzCorner: process.env.corner_base || 'http://corner-test.buzzbuzzenglish.com',
         },
+        rootDomain: '.buzzbuzzenglish.com',
     },
 
     staging: {
@@ -29,6 +31,7 @@ const config = {
             redis: 'redis://localhost:6379',
             buzzCorner: process.env.corner_base || 'http://corner-test.buzzbuzzenglish.com',
         },
+        rootDomain: '.buzzbuzzenglish.com',
     },
 
     production: {
@@ -37,6 +40,7 @@ const config = {
             redis: `redis://:${process.env.redis_password}@${process.env.redis_ip}:6379`,
             buzzCorner: process.env.corner_base || 'http://live.buzzbuzzenglish.com',
         },
+        rootDomain: '.buzzbuzzenglish.com',
     },
 }
 
