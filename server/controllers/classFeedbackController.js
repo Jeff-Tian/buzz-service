@@ -107,8 +107,8 @@ const setFeedbackInfo = async ctx => {
             .insert(data)
         const msg = await msgDal.upsert({ type: 'class_feedback', class_id: ctx.params.class_id, from_user_id: ctx.params.from_user_id, to_user_id: ctx.params.to_user_id }).catch(e => logger.error('upsert msg error', e))
         await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id, _.get(msg, 'msg_id'))
-        ctx.status = 201
-        ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
+        // ctx.status = 201
+        // ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
         ctx.body = inserted
     } catch (ex) {
         logger.error(ex)
