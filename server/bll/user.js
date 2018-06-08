@@ -1,5 +1,7 @@
 import ClassScheduleDAL from '../dal/class-schedules'
 import logger from '../common/logger'
+import { SystemUserTags } from '../common/constants'
+import Tags from './tags'
 
 const user = require('../dal/user')
 const uuidv4 = require('uuid/v4')
@@ -95,7 +97,9 @@ module.exports = {
         return user.getTags(userId)
     },
 
-    async addTags(userId, tags) {
+    async addTags(userId, tags, ctx) {
+        Tags.checkHttpContext(ctx, tags)
+
         await user.addTags(userId, tags)
     },
 
@@ -107,7 +111,8 @@ module.exports = {
         }
     },
 
-    async deleteTags(userId, tags) {
+    async deleteTags(userId, tags, ctx) {
+        Tags.checkHttpContext(ctx, tags)
         await user.deleteTags(userId, tags)
     },
 

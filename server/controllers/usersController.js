@@ -612,6 +612,6 @@ module.exports = {
         ctx.body = (await userBll.deleteTags(ctx.params.user_id, ctx.request.body)) || { message: 'done' }
     },
     async addTags(ctx) {
-        ctx.body = (await userBll.addTags(ctx.params.user_id, ctx.request.body)) || { message: 'done' }
+        ctx.body = (await userBll.addTags(ctx.params.user_id, ctx.request.body, ctx)) || { message: 'done' }
     },
 }
