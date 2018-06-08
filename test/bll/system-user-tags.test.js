@@ -25,14 +25,14 @@ describe('System user tags tests', () => {
 describe('交互测试', () => {
     const { server, should, chai, knex } = require('../test-helpers/prepare')
 
-    before(async () => {
+    beforeEach(async () => {
         await knex.migrate.rollback()
         const v = await knex.migrate.latest()
         console.log('v = ', v)
         await knex.seed.run()
     })
 
-    after(async () => {
+    afterEach(async () => {
         await knex.migrate.rollback()
     })
 
@@ -61,24 +61,81 @@ describe('交互测试', () => {
             },
         }
 
-        const createUserResponse = await userHelper.createUserRequest({
+        const newUserId = (await userHelper.createUserRequest({
             name: 'super user',
-        })
-
-        createUserResponse.status.should.eql(201)
-        const userId = createUserResponse.body
-        userId.should.gt(0)
+        })).body
 
         try {
-            await userBll.addTags(userId, [SystemUserTags.Admin], context)
+            await userBll.addTags(newUserId, [SystemUserTags.Admin], context)
         } catch (ex) {
             should.not.exist(ex)
         }
 
         try {
-            await userBll.addTags(userId, [SystemUserTags.Super], context)
+            await userBll.addTags(newUserId, [SystemUserTags.Super], context)
         } catch (e) {
             should.exist(e)
         }
+    })
+
+    it('超级管理员可以管理所有标签', async () => {
+        const context = {
+            state: {
+                user: {
+                    user_id: 1,
+                },
+            },
+        }
+
+        await userBll.addTags(1, [SystemUserTags.Super], context)
+        try {
+            await userBll.addTags(2, [SystemUserTags.Super], context)
+            await userBll.deleteTags(2, [SystemUserTags.Super], context)
+            await userBll.addTags(2, [SystemUserTags.Admin], context)
+            await userBll.addTags(2, ['whatever'], context)
+        } catch (ex) {
+            should.not.exist(ex)
+        }
+    })
+
+    it('系统管理员不能管理超级管理员标签和系统管理员标签', async () => {
+        const context = {
+            state: {
+                user: {
+                    user_id: 1,
+                },
+            },
+        }
+
+        await userBll.addTags(1, [SystemUserTags.Super], context)
+        await userBll.addTags(2, [SystemUserTags.Admin], context)
+
+        context.state.user.user_id = 2
+        try {
+            await userBll.addTags(3, [SystemUserTags.Super], context)
+        } catch (ex) {
+            should.exist(ex)
+        }
+
+        try {
+            await userBll.addTags(3, [SystemUserTags.Admin], context)
+        } catch (ex) {
+            should.exist(ex)
+        }
+
+        try {
+            await userBll.addTags(3, ['whatever'], context)
+        } catch (e) {
+            should.not.exist(e)
+        }
+    })
+
+    it('判断用户是不是系统使用者', async () => {
+        (await userBll.isSystemUsers(1)).should.eql(false)
+        await userBll.addTags(1, [SystemUserTags.Super])
+        should.equal(await userBll.isSystemUsers(1), true)
+        await userBll.deleteTags(1, [SystemUserTags.Super])
+        await userBll.addTags(1, [SystemUserTags.Admin])
+        should.equal(await userBll.isSystemUsers(1), true)
     })
 })

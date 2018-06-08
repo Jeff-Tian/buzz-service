@@ -127,4 +127,8 @@ module.exports = {
     async getUsersByTag(tag) {
         return user.getUsersByTag(tag)
     },
+
+    async isSystemUsers(userId) {
+        return Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
+    },
 }
