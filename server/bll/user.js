@@ -123,4 +123,8 @@ module.exports = {
             logger.error(ex)
         }
     },
+
+    async getUsersByTag(tag) {
+        return user.getUsersByTag(tag)
+    },
 }

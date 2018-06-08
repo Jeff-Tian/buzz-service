@@ -193,8 +193,12 @@ module.exports = {
     },
 
     async getTags(userId) {
-        return await knex('user_tags')
+        const r = await knex('sqlite_master').where('type', 'table').select('name')
+        console.log(r)
+        const rr = await knex('user_tags')
             .where('user_id', userId)
+        console.log(rr)
+        return rr
     },
 
     async deleteTags(userId, tags, trx = knex) {
@@ -228,5 +232,10 @@ module.exports = {
         } catch (ex) {
             logger.error(ex)
         }
+    },
+
+    async getUsersByTag(tag) {
+        return await knex('user_tags')
+            .where('tag', tag)
     },
 }
