@@ -79,8 +79,8 @@ const getEvaluateStatus = async ctx => {
 const sendFeedbackNotification = async (from_user_id, to_user_id, class_id, msg_id) => {
     try {
         const class_topic = _.get(await knex('classes').where({ class_id }), '0.topic')
-        const from = await user.get(from_user_id)
-        const to = await user.get(to_user_id)
+        const from = await user.get(from_user_id, true)
+        const to = await user.get(to_user_id, true)
         if (from && to) {
             if (to.wechat_openid) {
                 await wechat.sendFeedbackTpl(from, to, class_id, class_topic, msg_id)
