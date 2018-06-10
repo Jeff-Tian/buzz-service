@@ -1,6 +1,7 @@
 import logger from '../common/logger'
 import Password from '../security/password'
 import { UserTags } from '../common/constants'
+import * as systemLogsDal from '../bll/system-logs'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const moment = require('moment-timezone')
@@ -94,6 +95,7 @@ const show = async ctx => {
         ctx.body = {
             ...users[0],
             booked_class_hours: await countBookedClasses(user_id),
+            isSystemUser: await userBll.isOfSystemUsers(user_id),
         }
     } catch (error) {
         logger.error(error)
@@ -442,6 +444,8 @@ const update = async ctx => {
         await updateUserInterestsTable(body, trx, ctx)
         await trx.commit()
 
+        await systemLogsDal.log(ctx.state.user.user_id, `update user ${ctx.params.user_id} to ${JSON.stringify(body)}`)
+
         ctx.status = 200
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = await userBll.get(ctx.params.user_id, basicAuth.validate(ctx))
@@ -488,6 +492,7 @@ const deleteByUserID = async ctx => {
 
         await trx.commit()
         ctx.status = 200
+        await systemLogsDal.log(ctx.state.user.user_id, `delete user ${userID}`)
         ctx.body = 'delete success'
     } catch (error) {
         logger.error('delete user error: ', error)

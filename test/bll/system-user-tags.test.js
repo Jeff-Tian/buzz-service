@@ -3,6 +3,7 @@ import Tags, { OnlySuperUserCanManageSystemUserTagsError } from '../../server/bl
 import { SystemUserTags } from '../../server/common/constants'
 import userHelper from '../test-helpers/user'
 import * as userBll from '../../server/bll/user'
+import * as systemLogsDal from '../../server/dal/system-logs'
 
 const should = chai.should()
 
@@ -145,11 +146,14 @@ describe('交互测试', () => {
                 },
             },
         }
-        should.equal(await userBll.isSystemUsers(1), false)
+        should.equal(await userBll.isOfSystemUsers(1), false)
         await userBll.addTags(1, [SystemUserTags.Super], context)
-        should.equal(await userBll.isSystemUsers(1), true)
+        should.equal(await userBll.isOfSystemUsers(1), true)
         await userBll.deleteTags(1, [SystemUserTags.Super], context)
         await userBll.addTags(1, [SystemUserTags.Admin], context)
-        should.equal(await userBll.isSystemUsers(1), true)
+        should.equal(await userBll.isOfSystemUsers(1), true)
+
+        const logs = await systemLogsDal.getAllLogs()
+        logs.length.should.gt(0)
     })
 })

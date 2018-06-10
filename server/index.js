@@ -23,6 +23,17 @@ require('./common/knex')
 
 const app = new Koa()
 const PORT = process.env.PORT || 16888
+
+app.use(async (ctx, next) => {
+    if (ctx.cookies) {
+        ctx.state.user = {
+            user_id: ctx.cookies.get('user_id'),
+        }
+    }
+
+    await next()
+})
+
 app.use(bodyParser())
 app.use(usersRoutes.routes())
 app.use(studentClassSchedule.routes())

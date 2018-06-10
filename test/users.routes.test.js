@@ -459,7 +459,7 @@ describe('routes: users', () => {
         const createUserResponse = await common.makeRequest('post', '/api/v1/users', {
             name: username,
             role: userType,
-        })
+        }, null, 'user_id=1')
 
         createUserResponse.status.should.eql(201)
         return createUserResponse.body
@@ -490,7 +490,7 @@ describe('routes: users', () => {
             try {
                 const changeRoleResponse = await common.makeRequest('put', `${PATH}/4`, {
                     role: userBll.MemberType.Student,
-                })
+                }, null, 'user_id=1')
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
@@ -533,7 +533,7 @@ describe('routes: users', () => {
 
             await common.makeRequest('put', `${PATH}/${userId}`, {
                 time_zone: 'Asia/Samarkand',
-            })
+            }, null, 'user_id=1')
 
             const newUser = await userBll.get(userId)
             newUser.time_zone.should.eql('Asia/Samarkand')
@@ -541,7 +541,7 @@ describe('routes: users', () => {
             try {
                 await common.makeRequest('put', `${PATH}/${userId}`, {
                     role: userBll.MemberType.Student,
-                })
+                }, null, 'user_id=1')
             } catch (ex) {
                 should.not.exist(ex)
             }
@@ -556,7 +556,7 @@ describe('routes: users', () => {
                 role: 's',
                 wechat_openid: 'xxx',
                 wechat_unionid: 'yyy',
-            })
+            }, null, 'user_id=1')
 
             const userId = res.body
 

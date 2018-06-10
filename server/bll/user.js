@@ -2,6 +2,7 @@ import ClassScheduleDAL from '../dal/class-schedules'
 import logger from '../common/logger'
 import { SystemUserTags } from '../common/constants'
 import Tags from './tags'
+import * as systemLogDal from '../dal/system-logs'
 
 const user = require('../dal/user')
 const uuidv4 = require('uuid/v4')
@@ -100,6 +101,7 @@ module.exports = {
     async addTags(userId, tags, ctx) {
         await Tags.checkHttpContext(ctx, tags)
 
+        await systemLogDal.log(ctx.state.user.user_id, `tags ${userId} with ${tags.join(', ')}`)
         await user.addTags(userId, tags)
     },
 
@@ -113,6 +115,8 @@ module.exports = {
 
     async deleteTags(userId, tags, ctx) {
         await Tags.checkHttpContext(ctx, tags)
+
+        await systemLogDal.log(ctx.state.user.user_id, `delete tags from ${userId} of ${tags.join(', ')}`)
         await user.deleteTags(userId, tags)
     },
 
@@ -128,7 +132,7 @@ module.exports = {
         return user.getUsersByTag(tag)
     },
 
-    async isSystemUsers(userId) {
+    async isOfSystemUsers(userId) {
         return Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
     },
 }
