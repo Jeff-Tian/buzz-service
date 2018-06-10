@@ -34,6 +34,10 @@ function currentUserIsNotSuper(currentUserTags) {
 }
 
 export default class Tags {
+    static async superUserExists() {
+        return await superUserExists()
+    }
+
     static containSystemUserTags(tags) {
         return containSystemUserTags(tags)
     }
