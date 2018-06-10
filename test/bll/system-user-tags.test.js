@@ -1,5 +1,5 @@
 import chai from 'chai'
-import Tags from '../../server/bll/tags'
+import Tags, { OnlySuperUserCanManageSystemUserTagsError } from '../../server/bll/tags'
 import { SystemUserTags } from '../../server/common/constants'
 import userHelper from '../test-helpers/user'
 import * as userBll from '../../server/bll/user'
@@ -27,8 +27,7 @@ describe('交互测试', () => {
 
     beforeEach(async () => {
         await knex.migrate.rollback()
-        const v = await knex.migrate.latest()
-        console.log('v = ', v)
+        await knex.migrate.latest()
         await knex.seed.run()
     })
 
@@ -110,16 +109,24 @@ describe('交互测试', () => {
         await userBll.addTags(1, [SystemUserTags.Super], context)
         await userBll.addTags(2, [SystemUserTags.Admin], context)
 
+        let user3Tags = await userBll.getTags(3)
+
         context.state.user.user_id = 2
         try {
             await userBll.addTags(3, [SystemUserTags.Super], context)
+
+            user3Tags = await userBll.getTags(3)
         } catch (ex) {
             should.exist(ex)
         }
 
         try {
             await userBll.addTags(3, [SystemUserTags.Admin], context)
+
+            const tags = await userBll.getTags(3)
+            tags.length.should.eql(user3Tags.length)
         } catch (ex) {
+            should.equal(true, ex instanceof OnlySuperUserCanManageSystemUserTagsError)
             should.exist(ex)
         }
 
@@ -131,11 +138,18 @@ describe('交互测试', () => {
     })
 
     it('判断用户是不是系统使用者', async () => {
-        (await userBll.isSystemUsers(1)).should.eql(false)
-        await userBll.addTags(1, [SystemUserTags.Super])
+        const context = {
+            state: {
+                user: {
+                    user_id: 1,
+                },
+            },
+        }
+        should.equal(await userBll.isSystemUsers(1), false)
+        await userBll.addTags(1, [SystemUserTags.Super], context)
         should.equal(await userBll.isSystemUsers(1), true)
-        await userBll.deleteTags(1, [SystemUserTags.Super])
-        await userBll.addTags(1, [SystemUserTags.Admin])
+        await userBll.deleteTags(1, [SystemUserTags.Super], context)
+        await userBll.addTags(1, [SystemUserTags.Admin], context)
         should.equal(await userBll.isSystemUsers(1), true)
     })
 })

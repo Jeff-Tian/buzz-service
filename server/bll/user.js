@@ -98,7 +98,7 @@ module.exports = {
     },
 
     async addTags(userId, tags, ctx) {
-        Tags.checkHttpContext(ctx, tags)
+        await Tags.checkHttpContext(ctx, tags)
 
         await user.addTags(userId, tags)
     },
@@ -112,7 +112,7 @@ module.exports = {
     },
 
     async deleteTags(userId, tags, ctx) {
-        Tags.checkHttpContext(ctx, tags)
+        await Tags.checkHttpContext(ctx, tags)
         await user.deleteTags(userId, tags)
     },
 
