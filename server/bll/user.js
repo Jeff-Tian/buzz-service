@@ -129,7 +129,7 @@ module.exports = {
     },
 
     async getUsersByTag(tag) {
-        return user.getUsersByTag(tag)
+        return await user.getUsersByTag(tag)
     },
 
     async isOfSystemUsers(userId) {
