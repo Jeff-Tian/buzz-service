@@ -48,7 +48,7 @@ export default class Tags {
         }
 
         const superUserExistsInSystem = await superUserExists()
-        const currentUserTags = (await TagDal.getTags(context.state.user.user_id)).map(t => t.tag)
+        const currentUserTags = (await TagDal.getTagsByUserId(context.state.user.user_id)).map(t => t.tag)
 
         if (superUserExistsInSystem && currentUserHasNoPrevelege(currentUserTags)) {
             throw new TagsOperationNotAllowedForNormalUsersError()
