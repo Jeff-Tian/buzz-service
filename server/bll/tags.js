@@ -1,6 +1,5 @@
 import { SystemUserTags, SystemUserTagSet } from '../common/constants'
-
-const userBll = require('./user')
+import TagDal from '../dal/tag'
 
 function containSystemUserTags(tags) {
     return !!tags.filter(x => SystemUserTagSet.has(x)).length
@@ -27,7 +26,7 @@ export class OnlySuperUserCanManageSystemUserTagsError extends Error {
 }
 
 const superUserExists = async function () {
-    return (await userBll.getUsersByTag(SystemUserTags.Super)).length > 0
+    return (await TagDal.getUsersByTag(SystemUserTags.Super)).length > 0
 }
 
 function currentUserIsNotSuper(currentUserTags) {
@@ -49,7 +48,7 @@ export default class Tags {
         }
 
         const superUserExistsInSystem = await superUserExists()
-        const currentUserTags = (await userBll.getTags(context.state.user.user_id)).map(t => t.tag)
+        const currentUserTags = (await TagDal.getTags(context.state.user.user_id)).map(t => t.tag)
 
         if (superUserExistsInSystem && currentUserHasNoPrevelege(currentUserTags)) {
             throw new TagsOperationNotAllowedForNormalUsersError()
