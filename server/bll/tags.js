@@ -1,5 +1,6 @@
 import { SystemUserTags, SystemUserTagSet } from '../common/constants'
-import * as userBll from './user'
+
+const userBll = require('./user')
 
 function containSystemUserTags(tags) {
     return !!tags.filter(x => SystemUserTagSet.has(x)).length
