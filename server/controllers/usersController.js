@@ -65,6 +65,10 @@ const search = async ctx => {
             search = search.andWhere('user_social_accounts.wechat_name', 'like', `%${ctx.query.wechat_name}%`)
         }
 
+        if (ctx.query.name) {
+            search = search.andWhere('users.name', 'like', `%${ctx.query.name}%`)
+        }
+
         if (ctx.query.display_name) {
             // search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
             search = search.andWhere('user_profiles.display_name', 'like', `%${ctx.query.display_name}%`)
