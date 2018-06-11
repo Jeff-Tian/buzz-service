@@ -133,6 +133,6 @@ module.exports = {
     },
 
     async isOfSystemUsers(userId) {
-        return !Tags.superUserExists() || Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
+        return !(await Tags.superUserExists()) || Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
     },
 }
