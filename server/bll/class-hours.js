@@ -9,8 +9,8 @@ const knex = require('knex')(knexConfig)
 
 const wechat = require('../common/wechat')
 
-const countFrozenClassHours = async user_id => {
-    const result = await knex('classes')
+const countFrozenClassHours = async (user_id, trx = knex) => {
+    const result = await trx('classes')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
         .countDistinct('classes.class_id as count')
@@ -19,9 +19,9 @@ const countFrozenClassHours = async user_id => {
     return _.get(result, '0.count')
 }
 
-const getAllClassHours = async user_id => {
-    const balance = _.get(await knex('user_balance').select('class_hours').where({ user_id }), '0.class_hours')
-    const frozenClassHours = await countFrozenClassHours(user_id)
+const getAllClassHours = async (user_id, trx = knex) => {
+    const balance = _.get(await trx('user_balance').select('class_hours').where({ user_id }), '0.class_hours')
+    const frozenClassHours = await countFrozenClassHours(user_id, trx)
     return _.toInteger(balance) + _.toInteger(frozenClassHours)
 }
 
@@ -99,7 +99,8 @@ async function chargeClassHours(trx, userId, classHours, remark = '') {
 
     await userBll.tryDeleteTags(userId, [UserTags.Leads], trx)
 
-    if (newClassHours.class_hours <= NeedChargeThreshold) {
+    const allClassHours = await getAllClassHours(userId, trx)
+    if (allClassHours <= NeedChargeThreshold) {
         await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '充值后课时仍然不足自动添加此标签' }], trx)
     } else {
         await userBll.tryDeleteTags(userId, [UserTags.NeedCharge], trx)
