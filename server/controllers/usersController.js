@@ -100,6 +100,7 @@ const show = async ctx => {
             ...users[0],
             booked_class_hours: await countBookedClasses(user_id),
             isSystemUser: await userBll.isOfSystemUsers(user_id),
+            isSuper: await userBll.isSuper(user_id),
         }
     } catch (error) {
         logger.error(error)
