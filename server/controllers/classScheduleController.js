@@ -133,22 +133,42 @@ const list = async ctx => {
     try {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
         const statuses = ctx.query.statuses
+        let { student_ids, companion_ids } = ctx.query
+        if (student_ids && !_.isArray(student_ids)) {
+            student_ids = [student_ids]
+        }
+        if (companion_ids && !_.isArray(companion_ids)) {
+            companion_ids = [companion_ids]
+        }
 
-        const studentsSubQuery = knex('student_class_schedule')
+        let studentsSubQuery = knex('student_class_schedule')
             .select(knex.raw('group_concat(user_id) as students'), 'class_id').groupBy('student_class_schedule.class_id')
             .as('students')
-        const companionsSubQuery = knex('companion_class_schedule')
+        if (!_.isEmpty(student_ids)) {
+            studentsSubQuery = studentsSubQuery.whereIn('user_id', student_ids)
+        }
+        let companionsSubQuery = knex('companion_class_schedule')
             .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
             .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
             .select(knex.raw('group_concat(users.user_id) as companions'), knex.raw('group_concat(users.name) as companion_name'), knex.raw('group_concat(user_profiles.avatar) as companion_avatar'), 'class_id').groupBy('companion_class_schedule.class_id')
             .as('companions')
-
-        const selecting =
+        if (!_.isEmpty(companion_ids)) {
+            companionsSubQuery = companionsSubQuery.whereIn('user_id', companion_ids)
+        }
+        let selecting =
             knex('classes')
                 .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
                 .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
-                .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
-                .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+        if (!_.isEmpty(student_ids)) {
+            selecting = selecting.innerJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
+        } else {
+            selecting = selecting.leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
+        }
+        if (!_.isEmpty(companion_ids)) {
+            selecting = selecting.innerJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+        } else {
+            selecting = selecting.leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+        }
 
         let search = selecting
             .orderBy('classes.start_time', 'DESC')
