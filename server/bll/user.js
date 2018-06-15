@@ -135,4 +135,8 @@ module.exports = {
     async isOfSystemUsers(userId) {
         return !(await Tags.superUserExists()) || Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
     },
+
+    async isSuper(userId) {
+        return Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
+    },
 }
