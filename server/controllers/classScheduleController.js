@@ -134,6 +134,7 @@ const list = async ctx => {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
         const statuses = ctx.query.statuses
         let { student_ids, companion_ids } = ctx.query
+
         if (student_ids && !_.isArray(student_ids)) {
             student_ids = [student_ids]
         }
@@ -182,6 +183,19 @@ const list = async ctx => {
         }
 
         ctx.body = await search.paginate(ctx.query.per_page, ctx.query.current_page)
+    } catch (error) {
+        logger.error(error)
+        ctx.throw(error)
+    }
+}
+const getByUserId = async ctx => {
+    try {
+        const user_id = ctx.params.user_id
+        ctx.body = await knex('classes').orderBy('classes.start_time', 'DESC')
+            .whereIn('class_id', knex.select('class_id').from('student_class_schedule').where({ user_id }).union(function () {
+                this.select('class_id').from('companion_class_schedule').where({ user_id })
+            }))
+            .paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
         logger.error(error)
         ctx.throw(error)
@@ -613,6 +627,7 @@ const sendEvaluationMsg = async ctx => {
 module.exports = {
     listSuggested,
     list,
+    getByUserId,
     upsert,
     change,
     getClassByClassId,
