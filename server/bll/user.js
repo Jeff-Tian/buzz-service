@@ -68,9 +68,9 @@ module.exports = {
             throw new this.UserNotFoundError(`User with id ${user_id} not found`, uuidv4())
         }
 
-        const confirmedGroups = await ClassScheduleDAL.hasConfirmedClassSchedules(user_id)
+        const classGroups = await ClassScheduleDAL.hasClassSchedules(user_id)
 
-        if (confirmedGroups.length > 0) {
+        if (classGroups.length > 0) {
             if (theUser.role !== role) {
                 throw new UserHasConfirmedGroupsCanNotChangeRoleError(`The user ${user_id} has confirmed groups so can't change role to ${role} from ${theUser.role}`, uuidv4())
             }

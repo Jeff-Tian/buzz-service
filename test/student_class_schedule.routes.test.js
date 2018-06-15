@@ -28,7 +28,7 @@ describe('routes: student class schedule', () => {
                     should.not.exist(err)
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
-                    res.body.length.should.eql(3)
+                    res.body.length.should.eql(2)
                     res.body[0].should.include.keys('user_id', 'status', 'classes_status', 'topic', 'companion_name', 'companion_avatar', 'title', 'comment', 'score', 'from_user_id', 'to_user_id', 'companion_id', 'CURRENT_TIMESTAMP')
                     done()
                 })
@@ -173,13 +173,13 @@ describe('routes: student class schedule', () => {
     })
 
     describe('用户是否被排过课的场景', () => {
-        it('可以根据用户 id 查找他确认参加的小组', async () => {
-            let result = await ClassScheduleDAL.hasConfirmedClassSchedules(4)
+        it('可以根据用户 id 查找他是否被排课--', async () => {
+            let result = await ClassScheduleDAL.hasClassSchedules(4)
 
             result.should.not.eql(undefined)
             result.length.should.gt(0)
 
-            result = await ClassScheduleDAL.hasConfirmedClassSchedules(9999)
+            result = await ClassScheduleDAL.hasClassSchedules(9999)
             result.length.should.eql(0)
         })
     })
