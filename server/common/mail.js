@@ -136,7 +136,7 @@ PS: this email was sent automatically, please don’t reply. If you have any que
             HtmlBody: `Dear ${name || ''},<br/>
 Your session ${class_topic} starts right away. <br/>
 Start time: ${start_time}<br/>
-<a href="${url}">Click to enter the classroom immediately</a>.<br/>
+<a href="${room_url}">Click to enter the classroom immediately</a>.<br/>
 Thank you :)<br/>
 PS: this email was sent automatically, please don’t reply. If you have any questions, please contact your private advisor (peertutor@buzzbuzzenglish.com).<br/>`,
         })

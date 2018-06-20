@@ -561,15 +561,18 @@ const sendNowClassBeginMsg = async ctx => {
         const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
+        let room_url = classInfo.room_url || ''
+        const zoom_number = room_url.split('/')[room_url.split('/').length - 1] || ''
+        room_url = `${config.endPoints.buzzCorner}/zoom-join?zoom_number=${zoom_number}&user_name=`
         await bluebird.map(students, async i => {
             if (!i.wechat_openid) return
-            await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, classInfo.room_url).catch(logger.error)
+            await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, room_url + i.name).catch(logger.error)
         })
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
-                await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, classInfo.room_url).catch(logger.error)
+                await wechat.sendNowClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time, room_url + i.name).catch(logger.error)
             } else if (i.email) {
-                await mail.sendNowClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone, classInfo.room_url)
+                await mail.sendNowClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone, room_url + i.name)
             }
         })
         ctx.status = 200
