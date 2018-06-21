@@ -511,14 +511,19 @@ const getByUserIdList = async ctx => {
     const { body } = ctx.request
     const userIdList = body.userIdList
     try {
-        let userAvatarList
-        if (_.isArray(userIdList) && _.isEqual(userIdList.sort(), ['rookie_01', 'rookie_02'].sort())) {
-            userAvatarList = [{ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png', user_id: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png' }, { avatar: '', user_id: 'rookie_02' }]
-        } else {
-            userAvatarList = await knex('user_profiles')
-                .select('user_id', 'avatar')
-                .where('user_id', 'in', userIdList)
-        }
+        // if (_.isArray(userIdList) && ) {
+        //     userAvatarList = [{ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png', user_id: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png' }, { avatar: '', user_id: 'rookie_02' }]
+        // } else {
+        const userAvatarList = await knex('user_profiles')
+            .select('user_id', 'avatar')
+            .where('user_id', 'in', userIdList)
+        _.each(userIdList, i => {
+            if (i === 'rookie_01') {
+                userAvatarList.push({ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png', user_id: 'rookie_01' })
+            } else if (i === 'rookie_02') {
+                userAvatarList.push({ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png', user_id: 'rookie_02' })
+            }
+        })
 
         ctx.body = userAvatarList || {}
         ctx.status = 200

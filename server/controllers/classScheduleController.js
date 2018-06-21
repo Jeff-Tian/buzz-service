@@ -118,7 +118,7 @@ const getClassByClassId = async ctx => {
         name: '入门指导课',
         remark: null,
         status: 'confirmed',
-        students: 'rookie_01, rookie_02',
+        students: `rookie_01,rookie_02,${ctx.query.user_id}`,
         room_url: null,
 
     }] : [await getClassById(class_id)]
