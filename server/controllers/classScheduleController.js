@@ -102,8 +102,26 @@ const getClassById = async function (classId) {
 const getClassByClassId = async ctx => {
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
+    const class_id = ctx.params.class_id
+    ctx.body = class_id === 'rookie' ? [{
+        // CURRENT_TIMESTAMP: '2018-06-21T07:28:04.000Z',
+        // end_time: '2018-05-06T09:30:00.000Z',
+        // start_time: '2018-05-06T09:00:00.000Z',
+        adviser_id: 0,
+        class_id: 'rookie',
+        companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+        companion_name: 'BuzzBuzz',
+        companions: 'BuzzBuzz',
+        topic_level: 'Basic',
+        topic: 'School Campus',
+        module: 'School',
+        name: '入门指导课',
+        remark: null,
+        status: 'confirmed',
+        students: 'rookie_01, rookie_02',
+        room_url: null,
 
-    ctx.body = [await getClassById(ctx.params.class_id)]
+    }] : [await getClassById(class_id)]
 }
 
 const getClassByClassIdv2 = async ctx => {
