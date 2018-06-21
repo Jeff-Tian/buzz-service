@@ -89,19 +89,59 @@ const search = async ctx => {
 const show = async ctx => {
     try {
         const { user_id } = ctx.params
-        const users = await selectUsers(basicAuth.validate(ctx))
-            .where({ 'users.user_id': user_id })
+        let result
+        if (user_id === 'BuzzBuzz') {
+            result = {
+                avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+                country: 'china',
+                interests: 'lifestyle',
+                name: 'BuzzBuzz',
+                user_id: 'BuzzBuzz',
+                gender: 'f',
+                grade: 9,
+                city: '上海',
+                date_of_birth: '2002-01-05T00:00:00.000Z',
+            }
+        } else if (user_id === 'rookie_01') {
+            result = {
+                avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png',
+                country: 'china',
+                interests: 'art,lifestyle',
+                name: 'Peter',
+                user_id: 'rookie_01',
+                gender: 'm',
+                grade: 5,
+                city: '北京',
+                date_of_birth: '2006-09-10T00:00:00.000Z',
+            }
+        } else if (user_id === 'rookie_02') {
+            result = {
+                avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png',
+                country: 'china',
+                interests: 'entertainment,people',
+                name: 'Tom',
+                user_id: 'rookie_02',
+                gender: 'm',
+                grade: 3,
+                city: '上海',
+                date_of_birth: '2008-06-24T00:00:00.000Z',
+            }
+        } else {
+            const users = await selectUsers(basicAuth.validate(ctx))
+                .where({ 'users.user_id': user_id })
 
-        if (!users.length) {
-            throw new Error('The requested user does not exists')
-        }
+            if (!users.length) {
+                throw new Error('The requested user does not exists')
+            }
 
-        ctx.body = {
-            ...users[0],
-            booked_class_hours: await countBookedClasses(user_id),
-            isSystemUser: await userBll.isOfSystemUsers(user_id),
-            isSuper: await userBll.isSuper(user_id),
+            result = {
+                ...users[0],
+                booked_class_hours: await countBookedClasses(user_id),
+                isSystemUser: await userBll.isOfSystemUsers(user_id),
+                isSuper: await userBll.isSuper(user_id),
+            }
         }
+        ctx.body = result
     } catch (error) {
         logger.error(error)
 
@@ -471,9 +511,14 @@ const getByUserIdList = async ctx => {
     const { body } = ctx.request
     const userIdList = body.userIdList
     try {
-        const userAvatarList = await knex('user_profiles')
-            .select('user_id', 'avatar')
-            .where('user_id', 'in', userIdList)
+        let userAvatarList
+        if (_.isArray(userIdList) && _.isEqual(userIdList.sort(), ['rookie_01', 'rookie_02'].sort())) {
+            userAvatarList = [{ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png', user_id: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png' }, { avatar: '', user_id: 'rookie_02' }]
+        } else {
+            userAvatarList = await knex('user_profiles')
+                .select('user_id', 'avatar')
+                .where('user_id', 'in', userIdList)
+        }
 
         ctx.body = userAvatarList || {}
         ctx.status = 200

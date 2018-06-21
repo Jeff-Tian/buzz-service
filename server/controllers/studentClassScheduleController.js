@@ -68,8 +68,33 @@ const list = async ctx => {
             .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
             .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
             .andWhere('classes.status', 'not in', ['cancelled'])
-
-        ctx.body = await search
+        const result = await search
+        if (_.isEmpty(result)) {
+            result.push({
+                // CURRENT_TIMESTAMP: '2018-06-21T06:05:24.000Z',
+                // class_end_time: '2018-05-10T16:00:00.000Z',
+                // end_time: '2018-05-10T16:00:00.000Z',
+                // start_time: '2018-05-10T15:30:00.000Z',
+                // class_start_time: '2018-05-10T15:30:00.000Z',
+                class_id: 'rookie',
+                classes_status: 'confirmed',
+                comment: null,
+                companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+                companion_country: 'china',
+                companion_id: 'BuzzBuzz',
+                companion_name: 'BuzzBuzz',
+                from_user_id: null,
+                score: null,
+                status: 'confirmed',
+                title: '入门指导课',
+                to_user_id: null,
+                topic_level: 'Basic',
+                topic: 'School Campus',
+                module: 'School',
+                user_id: ctx.params.user_id,
+            })
+        }
+        ctx.body = result
     } catch (error) {
         logger.error(error)
         ctx.throw(500, error)
