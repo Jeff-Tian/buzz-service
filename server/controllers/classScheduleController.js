@@ -16,7 +16,7 @@ const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
-const { getUsersByClassId } = require('../bll/user')
+const { getUsersByClassId, getClassesByUserId } = require('../bll/user')
 const { getAllClassHours } = require('../bll/class-hours')
 const config = require('../config/index')
 const listSuggested = async ctx => {
@@ -103,25 +103,40 @@ const getClassByClassId = async ctx => {
     ctx.status = 200
     ctx.set('Location', `${ctx.request.URL}/${ctx.params.class_id}`)
     const class_id = ctx.params.class_id
-    ctx.body = class_id === 'rookie' ? [{
-        // CURRENT_TIMESTAMP: '2018-06-21T07:28:04.000Z',
-        // end_time: '2018-05-06T09:30:00.000Z',
-        // start_time: '2018-05-06T09:00:00.000Z',
-        adviser_id: 0,
-        class_id: 'rookie',
-        companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
-        companion_name: 'BuzzBuzz',
-        companions: 'BuzzBuzz',
-        topic_level: 'Basic',
-        topic: 'School Campus',
-        module: 'School',
-        name: '入门指导课',
-        remark: null,
-        status: 'confirmed',
-        students: `rookie_01,rookie_02,${ctx.query.user_id}`,
-        room_url: null,
+    let body
+    if (class_id === 'rookie') {
+        const user_id = ctx.query.user_id
+        const result = user_id ? await getClassesByUserId(user_id) : []
+        const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = status === 'confirmed' ? moment().hour(23).minute(59).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(23).minute(59).second(0).millisecond(0).utc().format()
+        body = [{
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
+            classes_status: status,
+            status,
+            adviser_id: 0,
+            class_id: 'rookie',
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_name: 'BuzzBuzz',
+            companions: 'BuzzBuzz',
+            topic_level: 'Basic',
+            topic: 'School Campus',
+            module: 'School',
+            name: '入门指导课',
+            remark: null,
+            students: `rookie_01,rookie_02,${user_id}`,
+            room_url: null,
 
-    }] : [await getClassById(class_id)]
+        }]
+    } else {
+        body = [await getClassById(class_id)]
+    }
+    ctx.body = body
 }
 
 const getClassByClassIdv2 = async ctx => {
