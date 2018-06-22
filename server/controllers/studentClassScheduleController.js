@@ -4,7 +4,7 @@ const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
-const moment = require('moment')
+const moment = require('moment-timezone')
 const _ = require('lodash')
 
 const selectSchedules = function () {
@@ -71,12 +71,15 @@ const list = async ctx => {
         let result = await search
         if (!_.isArray(result)) result = []
         const status = _.find(result, i => (i.classes_status === 'ended') || i.status === 'ended') ? 'ended' : 'confirmed'
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = status === 'confirmed' ? moment().hour(23).minute(59).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(23).minute(59).second(0).millisecond(0).utc().format()
         result.push({
-            // CURRENT_TIMESTAMP: '2018-06-21T06:05:24.000Z',
-            // class_end_time: '2018-05-10T16:00:00.000Z',
-            // end_time: '2018-05-10T16:00:00.000Z',
-            // start_time: '2018-05-10T15:30:00.000Z',
-            // class_start_time: '2018-05-10T15:30:00.000Z',
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
             classes_status: status,
             status,
             class_id: 'rookie',
