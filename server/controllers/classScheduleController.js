@@ -125,7 +125,7 @@ const getClassByClassId = async ctx => {
             companion_name: 'BuzzBuzz',
             companions: 'BuzzBuzz',
             topic_level: 'Basic',
-            topic: 'School Campus',
+            topic: '入门指导课',
             module: 'School',
             name: '入门指导课',
             remark: null,

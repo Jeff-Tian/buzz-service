@@ -93,7 +93,7 @@ const list = async ctx => {
             title: '入门指导课',
             to_user_id: null,
             topic_level: 'Basic',
-            topic: 'School Campus',
+            topic: '入门指导课',
             module: 'School',
             user_id: ctx.params.user_id,
         })
