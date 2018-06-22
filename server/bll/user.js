@@ -61,6 +61,9 @@ module.exports = {
 
         throw new this.UserNotFoundError(`User with id ${userId} not found`, uuidv4())
     },
+    async getClassesByUserId(user_id) {
+        return await ClassScheduleDAL.hasClassSchedules(user_id)
+    },
     async changeUserRole({ role }, trx, user_id) {
         const theUser = await user.get(user_id)
 

@@ -70,7 +70,7 @@ const list = async ctx => {
             .andWhere('classes.status', 'not in', ['cancelled'])
         let result = await search
         if (!_.isArray(result)) result = []
-        const status = _.find(result, i => (i.classes_status === 'ended') || i.status === 'ended') ? 'ended' : 'confirmed'
+        const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
         const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(0).minute(0).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(23).minute(59).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(23).minute(59).second(0).millisecond(0).utc().format()
