@@ -68,32 +68,32 @@ const list = async ctx => {
             .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
             .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
             .andWhere('classes.status', 'not in', ['cancelled'])
-        const result = await search
-        if (_.isEmpty(result)) {
-            result.push({
-                // CURRENT_TIMESTAMP: '2018-06-21T06:05:24.000Z',
-                // class_end_time: '2018-05-10T16:00:00.000Z',
-                // end_time: '2018-05-10T16:00:00.000Z',
-                // start_time: '2018-05-10T15:30:00.000Z',
-                // class_start_time: '2018-05-10T15:30:00.000Z',
-                class_id: 'rookie',
-                classes_status: 'confirmed',
-                comment: null,
-                companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
-                companion_country: 'china',
-                companion_id: 'BuzzBuzz',
-                companion_name: 'BuzzBuzz',
-                from_user_id: null,
-                score: null,
-                status: 'confirmed',
-                title: '入门指导课',
-                to_user_id: null,
-                topic_level: 'Basic',
-                topic: 'School Campus',
-                module: 'School',
-                user_id: ctx.params.user_id,
-            })
-        }
+        let result = await search
+        if (!_.isArray(result)) result = []
+        const status = _.find(result, i => (i.classes_status === 'ended') || i.status === 'ended') ? 'ended' : 'confirmed'
+        result.push({
+            // CURRENT_TIMESTAMP: '2018-06-21T06:05:24.000Z',
+            // class_end_time: '2018-05-10T16:00:00.000Z',
+            // end_time: '2018-05-10T16:00:00.000Z',
+            // start_time: '2018-05-10T15:30:00.000Z',
+            // class_start_time: '2018-05-10T15:30:00.000Z',
+            classes_status: status,
+            status,
+            class_id: 'rookie',
+            comment: null,
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_country: 'china',
+            companion_id: 'BuzzBuzz',
+            companion_name: 'BuzzBuzz',
+            from_user_id: null,
+            score: null,
+            title: '入门指导课',
+            to_user_id: null,
+            topic_level: 'Basic',
+            topic: 'School Campus',
+            module: 'School',
+            user_id: ctx.params.user_id,
+        })
         ctx.body = result
     } catch (error) {
         logger.error(error)
