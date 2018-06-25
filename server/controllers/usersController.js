@@ -265,7 +265,7 @@ const updateWechatInfo = async user_id => {
 }
 
 const accountSignIn = async ctx => {
-    const { account, password } = ctx.request.body
+    const { account, password, user_id } = ctx.request.body
 
     // 判断用户输入的手机号、邮箱、密码是否为空
     if (!account) {
@@ -289,16 +289,28 @@ const accountSignIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
-    if (Password.compare(password, users[0].password)) {
+    users = users.filter(u => Password.compare(password, u.password))
+
+    if (user_id) {
+        users = users.filter(u => Number(u.user_id) === Number(user_id))
+    }
+
+    if (!users.length) {
+        return ctx.throw(403, 'Account or password error')
+    }
+
+    if (users.length === 1) {
         ctx.cookies.set('user_id', users[0].user_id, {
             httpOnly: true,
             expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
         })
         await updateWechatInfo(users[0].user_id).catch(e => logger.error('updateWechatInfo', e))
         ctx.body = users[0]
-    } else {
-        return ctx.throw(403, 'Account or password error')
+
+        return
     }
+
+    ctx.body = users
 }
 
 const signIn = async ctx => {
