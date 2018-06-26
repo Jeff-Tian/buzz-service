@@ -1,4 +1,3 @@
-import logger from '../common/logger'
 import * as userBll from './user'
 import { NeedChargeThreshold, UserTags } from '../common/constants'
 
@@ -6,8 +5,6 @@ const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
-
-const wechat = require('../common/wechat')
 
 const countFrozenClassHours = async (user_id, trx = knex) => {
     const result = await trx('classes')
@@ -61,7 +58,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
         await trx('user_balance').insert(newClassHours)
     }
 
-    const frozenClassHours = await countFrozenClassHours(userId)
+    const frozenClassHours = await countFrozenClassHours(userId, trx)
 
     if (balance + frozenClassHours <= NeedChargeThreshold) {
         await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '扣课时后课时不足自动添加此标签' }], trx)

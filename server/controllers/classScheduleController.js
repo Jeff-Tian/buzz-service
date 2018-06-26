@@ -489,7 +489,7 @@ const endClass = async ctx => {
         const classInfo = _.get(await trx('classes')
             .where('class_id', classId), 0)
         if (!classInfo) {
-            throw new Error('class not found')
+            throw new Error(`class of id ${classId} not found`)
         }
         if (classInfo.status !== 'opened') {
             throw new Error(`can't end ${classInfo.status} class`)
