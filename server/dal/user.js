@@ -50,7 +50,7 @@ module.exports = {
                 'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
                 'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
                 'user_profiles.date_of_birth as date_of_birth',
-                isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN  user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
+                isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
                 isContextSecure ? 'user_profiles.email as email' : knex.raw('(CASE WHEN user_profiles.email IS NOT NULL THEN "***@***" ELSE null END) as email'),
                 'user_profiles.language as language', 'user_profiles.location as location',
                 'user_profiles.description as description', 'user_profiles.grade as grade',
@@ -59,7 +59,8 @@ module.exports = {
                 'user_social_accounts.wechat_data as wechat_data', 'user_social_accounts.facebook_name as facebook_name',
                 'user_social_accounts.wechat_name as wechat_name', 'user_social_accounts.wechat_openid as wechat_openid', 'user_balance.class_hours as class_hours',
                 'user_balance.integral as integral', 'user_placement_tests.detail as placement_test',
-                'user_placement_tests.level as level', 'user_profiles.password as password',
+                'user_placement_tests.level as level',
+                isContextSecure ? 'user_profiles.password as password' : knex.raw('(CASE WHEN user_profiles.password IS NOT NULL THEN "******" ELSE null END) as password'),
                 'user_interests.interests',
                 'user_tags.tags',
                 'user_locked_class_hours.locked_class_hours'
