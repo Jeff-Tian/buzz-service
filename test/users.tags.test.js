@@ -1,6 +1,6 @@
 import * as userBookings from './test-data-generators/user-bookings'
 import * as classHours from '../server/bll/class-hours'
-import { UserTags } from '../server/common/constants'
+import { UserTags, NeedChargeThreshold, ClassStatusCode } from '../server/common/constants'
 
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
@@ -63,6 +63,54 @@ describe('routes: users', () => {
             should.equal(userDetail.tags, UserTags.NeedCharge)
 
             await classHours.charge(null, userId, 2)
+            userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+        })
+
+        it(`Alice 买单 ${NeedChargeThreshold + 1} 个课时，当被排进班级小组时，不会被打上“需续费”标签`, async () => {
+            const userId = (await userHelper.createUserRequest({
+                name: 'Alice',
+                role: userBll.MemberType.Student,
+            })).body
+
+            await classHours.charge(null, userId, NeedChargeThreshold + 1)
+            let userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+
+            let startTime = new Date(2018, 12, 1, 9, 0, 0)
+            let endTime = new Date(2018, 12, 1, 10, 0, 0)
+            let classInfo = (await common.makeRequest('post', '/api/v1/class-schedule', {
+                level: 'A',
+                start_time: startTime,
+                end_time: endTime,
+                status: ClassStatusCode.Open,
+                name: 'Test Class',
+                remark: 'no remark',
+                topic: 'a fake class',
+                students: [userId],
+            })).body
+
+            userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+
+            await common.makeRequest('put', `/api/v1/class-schedule/${classInfo.class_id}`)
+
+            userDetail = await userBll.get(userId)
+            should.equal(userDetail.tags, null)
+
+            startTime = new Date(2018, 12, 2, 9, 0, 0)
+            endTime = new Date(2018, 12, 2, 10, 0, 0)
+            classInfo = (await common.makeRequest('post', '/api/v1/class-schedule', {
+                level: 'A',
+                start_time: startTime,
+                end_time: endTime,
+                status: ClassStatusCode.Open,
+                name: 'Test Class again',
+                remark: 'no remark',
+                topic: 'a fake class',
+                students: [userId],
+            })).body
+
             userDetail = await userBll.get(userId)
             should.equal(userDetail.tags, null)
         })
