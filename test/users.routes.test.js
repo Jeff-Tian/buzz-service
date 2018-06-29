@@ -566,5 +566,42 @@ describe('routes: users', () => {
             socialAccountRes.body.should.include.keys('wechat_openid', 'wechat_unionid')
             socialAccountRes.body.wechat_openid.should.eql('xxx')
         })
+
+        it('多个账号绑定同一手机号登录', async () => {
+            const userId1 = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'user1',
+                role: 's',
+                mobile: '18888888888',
+                password: 'hahaha',
+            })).body
+
+            const res = await common.makeRequest('put', `/api/v1/users/${userId1}`, {
+                password: 'hahaha',
+            }, { user: 'buzz', pass: 'pass' })
+
+            const userId2 = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'user2',
+                role: 's',
+                mobile: '18888888888',
+                password: 'hahaha',
+            })).body
+
+            await common.makeRequest('put', `/api/v1/users/${userId2}`, {
+                password: 'hahaha',
+            }, { user: 'buzz', pass: 'pass' })
+
+            try {
+                const loginResponse = (await common.makeRequest('put', '/api/v1/users/account-sign-in', {
+                    account: '18888888888',
+                    password: 'hahaha',
+                    user_id: null,
+                }))
+
+                console.log('response = ', loginResponse.body)
+                loginResponse.body.length.should.gt(1)
+            } catch (ex) {
+                should.not.exist(ex)
+            }
+        })
     })
 })

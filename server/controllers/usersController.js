@@ -319,19 +319,21 @@ const accountSignIn = async ctx => {
     const filterMobile = { 'user_profiles.mobile': account }
     const filterEmail = { 'user_profiles.email': account }
 
-    let users = await selectUsers().where(filterMobile)
+    let users = await selectUsers(true).where(filterMobile)
 
     if (!users.length) {
-        users = await selectUsers().where(filterEmail)
+        users = await selectUsers(true).where(filterEmail)
     }
 
     if (!users.length) {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
+    console.log('before filter:', users)
     users = users.filter(u => Password.compare(password, u.password))
+    console.log('after filter:', users)
 
-    if (user_id) {
+    if (Number(user_id) > 0) {
         users = users.filter(u => Number(u.user_id) === Number(user_id))
     }
 
@@ -441,6 +443,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     })
 
     if (basicAuth.validate(ctx)) {
+        console.log('authed!!!!')
         if (typeof body.mobile !== 'undefined' && body.mobile.indexOf('*') < 0) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
