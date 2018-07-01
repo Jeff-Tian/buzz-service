@@ -55,9 +55,16 @@ const uniformTime = function (theStartTime, theEndTime) {
 }
 
 function filterByTime(search, start_time, end_time) {
+    if (start_time && end_time) {
+        return search
+            .where('classes.start_time', '>=', start_time)
+            .andWhere('classes.end_time', '<', end_time)
+    } else if (start_time) {
+        return search
+            .where('classes.start_time', '>=', start_time)
+    }
     return search
-        .where('classes.start_time', '>=', start_time)
-        .andWhere('classes.end_time', '<=', end_time)
+        .where('classes.end_time', '<', end_time)
 }
 
 function filterByStatus(search, statuses) {
