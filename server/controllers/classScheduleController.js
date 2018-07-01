@@ -109,8 +109,8 @@ const getClassByClassId = async ctx => {
         const result = user_id ? await getClassesByUserId(user_id) : []
         const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
         const CURRENT_TIMESTAMP = moment().utc().format()
-        const startTime = status === 'confirmed' ? moment().hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(0).minute(0).second(0).millisecond(0).utc().format()
-        const endTime = status === 'confirmed' ? moment().hour(23).minute(59).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(23).minute(59).second(0).millisecond(0).utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = status === 'confirmed' ? moment().hour(20).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(20).minute(0).second(0).millisecond(0).utc().format()
         body = [{
             CURRENT_TIMESTAMP: moment().utc().format(),
             class_end_time: endTime,
