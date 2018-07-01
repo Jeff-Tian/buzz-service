@@ -131,6 +131,7 @@ const getClassByClassId = async ctx => {
             remark: null,
             students: `rookie_01,rookie_02,${user_id}`,
             room_url: 'https://zoom.us/j/2019579072',
+            zc: 1,
         }]
     } else {
         body = [await getClassById(class_id)]
