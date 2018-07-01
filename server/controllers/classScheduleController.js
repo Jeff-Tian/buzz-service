@@ -169,6 +169,20 @@ async function addClassJob(classInfo) {
     }
 }
 
+function sortSearch(selecting, ctx) {
+    const orderby = ctx.query.orderby
+    let orderBy = 'diff'
+    let direction = 'ASC'
+
+    if (orderby) {
+        orderBy = orderby.split(' ')[0]
+        direction = orderby.split(' ')[1]
+    }
+    const search = selecting
+        .orderBy(orderBy, direction)
+    return search
+}
+
 const list = async ctx => {
     try {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
@@ -195,8 +209,7 @@ const list = async ctx => {
                 .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
                 .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
 
-        let search = selecting
-            .orderBy('diff', 'ASC')
+        let search = sortSearch(selecting, ctx)
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
