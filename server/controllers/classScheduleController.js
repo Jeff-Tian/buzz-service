@@ -190,10 +190,13 @@ const list = async ctx => {
         const selecting =
             knex('classes')
                 .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
-                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now()).leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id').leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('abs(timestampdiff(MICROSECOND, classes.start_time, UTC_TIMESTAMP)) as diff') : knex.raw('abs(julianday("now") - julianday("classes.start_time")) as diff'))
+                .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
+                .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
 
         let search = selecting
-            .orderBy('classes.start_time', 'DESC')
+            .orderBy('diff', 'ASC')
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
