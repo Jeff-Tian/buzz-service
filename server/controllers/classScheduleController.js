@@ -55,9 +55,16 @@ const uniformTime = function (theStartTime, theEndTime) {
 }
 
 function filterByTime(search, start_time, end_time) {
+    if (start_time && end_time) {
+        return search
+            .where('classes.start_time', '>=', start_time)
+            .andWhere('classes.end_time', '<', end_time)
+    } else if (start_time) {
+        return search
+            .where('classes.start_time', '>=', start_time)
+    }
     return search
-        .where('classes.start_time', '>=', start_time)
-        .andWhere('classes.end_time', '<=', end_time)
+        .where('classes.end_time', '<', end_time)
 }
 
 function filterByStatus(search, statuses) {
@@ -162,6 +169,20 @@ async function addClassJob(classInfo) {
     }
 }
 
+function sortSearch(selecting, ctx) {
+    const orderby = ctx.query.orderby
+    let orderBy = 'diff'
+    let direction = 'ASC'
+
+    if (orderby) {
+        orderBy = orderby.split(' ')[0]
+        direction = orderby.split(' ')[1]
+    }
+    const search = selecting
+        .orderBy(orderBy, direction)
+    return search
+}
+
 const list = async ctx => {
     try {
         const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
@@ -183,10 +204,12 @@ const list = async ctx => {
         const selecting =
             knex('classes')
                 .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
-                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now()).leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id').leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
+                .select(process.env.NODE_ENV !== 'test' ? knex.raw('abs(timestampdiff(MICROSECOND, classes.start_time, UTC_TIMESTAMP)) as diff') : knex.raw('abs(julianday("now") - julianday("classes.start_time")) as diff'))
+                .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
+                .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
 
-        let search = selecting
-            .orderBy('classes.start_time', 'DESC')
+        let search = sortSearch(selecting, ctx)
 
         if (start_time || end_time) {
             search = filterByTime(search, start_time, end_time)
