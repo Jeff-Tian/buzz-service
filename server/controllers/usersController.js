@@ -439,6 +439,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         time_zone: body.time_zone,
         order_remark: body.order_remark,
         youzan_mobile: body.youzan_mobile,
+        intro_done: body.intro_done,
         weekly_schedule_requirements: body.weekly_schedule_requirements,
     })
 
