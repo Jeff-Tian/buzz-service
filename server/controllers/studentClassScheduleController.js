@@ -97,7 +97,7 @@ const list = async ctx => {
             module: 'School',
             user_id: ctx.params.user_id,
             room_url: 'https://zoom.us/j/2019579072',
-            zc: 1,
+            zc: 0,
         })
         ctx.body = result
     } catch (error) {
