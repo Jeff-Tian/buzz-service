@@ -5,6 +5,7 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const _ = require('lodash')
+const timeHelper = require('../common/time-helper')
 
 async function findOneById(banner_id) {
     return banner_id ? _.get(await knex('banner').where({ banner_id }), 0) : banner_id
@@ -12,6 +13,12 @@ async function findOneById(banner_id) {
 
 const upsert = async ctx => {
     const { body } = ctx.request
+    if (body.start_at) {
+        body.start_at = timeHelper.convertToDBFormat(body.start_at)
+    }
+    if (body.end_at) {
+        body.end_at = timeHelper.convertToDBFormat(body.end_at)
+    }
 
     const trx = await promisify(knex.transaction)
 
