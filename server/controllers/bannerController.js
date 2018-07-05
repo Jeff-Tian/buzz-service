@@ -52,6 +52,23 @@ const queryFn = ctx => {
         } else {
             query = query.where({ banner_id })
         }
+    } else {
+        _.each(['position'], i => {
+            const v = ctx.query[i]
+            if (v) {
+                if (_.isArray(v)) {
+                    query = query.whereIn(i, v)
+                } else {
+                    query = query.where(i, v)
+                }
+            }
+        })
+        _.each(['name', 'title'], i => {
+            const v = ctx.query[i]
+            if (v) {
+                query = query.andWhere(i, 'like', `%${v}%`)
+            }
+        })
     }
     query = query.orderBy('banner_id', 'desc').paginate(ctx.query.per_page, ctx.query.current_page)
     return query
@@ -60,6 +77,10 @@ const query = async ctx => {
     const query = queryFn(ctx)
     ctx.body = await query
 }
+const getById = async ctx => {
+    ctx.body = await findOneById(ctx.params.id)
+}
+
 const getByUserRole = async ctx => {
     const query = queryFn(ctx).whereNotIn('public', [0, false])
         .where('start_at', '<=', knex.fn.now())
@@ -67,4 +88,4 @@ const getByUserRole = async ctx => {
     ctx.body = await query
 }
 
-module.exports = { upsert, query, getByUserRole }
+module.exports = { upsert, query, getByUserRole, getById }
