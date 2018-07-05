@@ -5,3 +5,4 @@ tmp.js
 yarn.lock
 buzz-corner-service.log
 .vscode
+.fnmrc
