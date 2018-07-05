@@ -48,7 +48,7 @@ module.exports = {
                 'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
                 'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
                 'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
-                'user_profiles.youzan_mobile as youzan_mobile','user_profiles.intro_done as intro_done', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
+                'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.intro_done as intro_done', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
                 'user_profiles.date_of_birth as date_of_birth',
                 isContextSecure ? 'user_profiles.mobile as mobile' : knex.raw('(CASE WHEN user_profiles.mobile IS NOT NULL THEN "***********" ELSE null END) as mobile'),
                 isContextSecure ? 'user_profiles.email as email' : knex.raw('(CASE WHEN user_profiles.email IS NOT NULL THEN "***@***" ELSE null END) as email'),
