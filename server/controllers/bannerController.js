@@ -52,17 +52,6 @@ const queryFn = ctx => {
         } else {
             query = query.where({ banner_id })
         }
-    } else {
-        _.each(_.omit(_.keys(ctx.query), ['per_page', 'current_page']), i => {
-            const v = ctx.query[i]
-            if (v) {
-                if (_.isArray(v)) {
-                    query = query.whereIn(i, v)
-                } else {
-                    query = query.where(i, v)
-                }
-            }
-        })
     }
     query = query.orderBy('banner_id', 'desc').paginate(ctx.query.per_page, ctx.query.current_page)
     return query
