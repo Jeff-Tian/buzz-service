@@ -12,5 +12,13 @@ log4js.configure({
     },
 })
 const logger = log4js.getLogger()
+const oldErrorLogger = logger.error
+logger.error = function (err) {
+    const fundebug = require('fundebug-nodejs')
+    fundebug.apikey = '94756ccf446bb3095ab55793f767a5ba2c74b21d9e6f8b947eb4b1447e59e002'
+    fundebug.notifyError(err)
+
+    oldErrorLogger.apply(this, err)
+}
 
 export default logger

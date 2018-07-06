@@ -9,8 +9,8 @@ function checkTimeConflicts(data) {
         for (let j = i + 1; j < data.length; j++) {
             if (
                 (data[i].start_time >= data[j].start_time
-                    && data[i].start_time <= data[j].end_time) ||
-                (data[i].end_time >= data[j].start_time
+                    && data[i].start_time < data[j].end_time) ||
+                (data[i].end_time > data[j].start_time
                     && data[i].end_time <= data[j].end_time)) {
                 throw new Error('schedule conflicts!')
             }
@@ -47,7 +47,7 @@ const checkTimeRangeOverlapWithDBTime = async function (table, user_id, time, st
     const selected = await knex(table)
         .where('user_id', '=', user_id)
         .andWhere(time, '>=', start_time)
-        .andWhere(time, '<=', end_time)
+        .andWhere(time, '<', end_time)
         .andWhere('status', '!=', 'cancelled')
         .select('user_id')
 
@@ -77,7 +77,7 @@ const checkDBTimeRangeOverlapWithTime = async function (table, user_id, time) {
     const selected = await knex(table)
         .where('user_id', '=', user_id)
         .andWhere('start_time', '<=', time)
-        .andWhere('end_time', '>=', time)
+        .andWhere('end_time', '>', time)
         .andWhere('status', '!=', 'cancelled')
         .select('user_id')
 
@@ -142,7 +142,6 @@ module.exports = {
     },
     uniformTime,
     convertToDBFormat,
-    tzShift,
     zhEndTime,
     zhStartEndTime,
     enStartTime,
