@@ -10,12 +10,24 @@ const uuidv4 = require('uuid/v4')
 
 /*eslint-disable */
 class StartTimeEarlierThanNowError extends Error {
+    constructor(s, uuid) {
+        super(`${s} <${uuid}>`)
+        this.name = 'StartTimeEarlierThanNowError'
+    }
 }
 
 class EndTimeWithinHalfHourLaterOfStartTimeError extends Error {
+    constructor(s, uuid) {
+        super(`${s} <${uuid}>`)
+        this.name = 'EndTimeWithinHalfHourLaterOfStartTimeError'
+    }
 }
 
 class BalanceClassHourInSufficientError extends Error {
+    constructor(s, uuid) {
+        super(`${s} <${uuid}>`)
+        this.name = 'BalanceClassHourInSufficientError'
+    }
 }
 
 /* eslint-enable */
