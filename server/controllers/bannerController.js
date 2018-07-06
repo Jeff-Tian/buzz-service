@@ -77,7 +77,7 @@ const queryFn = ctx => {
             }
         })
     }
-    query = query.orderBy('start_at', 'desc').paginate(ctx.query.per_page, ctx.query.current_page)
+    query = query.orderBy('start_at', 'ASC').paginate(ctx.query.per_page, ctx.query.current_page)
     return query
 }
 const query = async ctx => {
