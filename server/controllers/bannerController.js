@@ -88,11 +88,11 @@ const getById = async ctx => {
     ctx.body = await findOneById(ctx.params.id)
 }
 
-const getByUserRole = async ctx => {
+const available = async ctx => {
     const query = queryFn(ctx).whereNotIn('public', [0, false])
         .where('start_at', '<=', knex.fn.now())
         .where('end_at', '>=', knex.fn.now())
     ctx.body = await query
 }
 
-module.exports = { upsert, query, getByUserRole, getById }
+module.exports = { upsert, query, available, getById }
