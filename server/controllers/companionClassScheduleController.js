@@ -39,7 +39,9 @@ const listAll = async ctx => {
 
 const list = async ctx => {
     try {
-        const { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
+        let { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
+        start_time = timeHelper.convertToDBFormat(start_time)
+        end_time = timeHelper.convertToDBFormat(end_time)
         let search = selectCompanionWithMoreInfo()
         if (process.env.NODE_ENV !== 'test') {
             search = search
@@ -92,7 +94,7 @@ const create = async ctx => {
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}`)
         ctx.body = inserted
     } catch (ex) {
-        console.error(ex)
+        logger.error(ex)
         ctx.throw(409, ex)
     }
 }

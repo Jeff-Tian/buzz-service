@@ -1,6 +1,5 @@
 import ClassScheduleDAL from '../dal/class-schedules'
 import logger from '../common/logger'
-import { SystemUserTags } from '../common/constants'
 import Tags from './tags'
 import * as systemLogDal from '../dal/system-logs'
 
@@ -11,11 +10,19 @@ const knex = require('knex')(knexConfig)
 
 /*eslint-disable */
 class UserNotFoundError extends Error {
+    constructor(message, id) {
+        super(`${message} <${id}>`)
+        this.name = 'UserNotFoundError'
+    }
 }
 
 /* eslint-enable */
 
 class UserHasConfirmedGroupsCanNotChangeRoleError extends Error {
+    constructor(message, id) {
+        super(`${message} <${id}>`)
+        this.name = 'UserHasConfirmedGroupsCanNotChangeRoleError'
+    }
 }
 
 module.exports = {

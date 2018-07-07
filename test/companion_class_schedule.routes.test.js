@@ -28,8 +28,9 @@ describe('routes: companion class schedule', () => {
                     should.not.exist(err)
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
-                    res.body.length.should.eql(3)
+                    res.body.length.should.eql(1)
                     res.body[0].should.include.keys('user_id', 'status', 'batch_id')
+                    res.body[0].status.should.eql('booking')
                     done()
                 })
         })
@@ -71,7 +72,23 @@ describe('routes: companion class schedule', () => {
                     should.exist(err)
                     res.status.should.eql(409)
                     res.type.should.eql('text/plain')
-                    res.text.should.eql('Schedule start_time conflicts!')
+                    res.text.should.eql('Existing schedules conflict with 2018-02-24 01:00:00!')
+                    done()
+                })
+        })
+        it('如果两个时间段连接着，不应该报时间冲突', done => {
+            chai
+                .request(server)
+                .post(`${PATH}/1`)
+                .send([{
+                    start_time: new Date(2019, 1, 24, 9, 0),
+                    end_time: new Date(2019, 1, 24, 10, 0),
+                }, {
+                    start_time: new Date(2019, 1, 24, 10, 0),
+                    end_time: new Date(2019, 1, 24, 11, 0),
+                }])
+                .end((err, res) => {
+                    should.not.exist(err)
                     done()
                 })
         })
