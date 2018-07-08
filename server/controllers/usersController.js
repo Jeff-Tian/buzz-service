@@ -535,9 +535,15 @@ const getByUserIdList = async ctx => {
             .where('user_id', 'in', userIdList)
         _.each(userIdList, i => {
             if (i === 'rookie_01') {
-                userAvatarList.push({ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png', user_id: 'rookie_01' })
+                userAvatarList.push({
+                    avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_01.png',
+                    user_id: 'rookie_01',
+                })
             } else if (i === 'rookie_02') {
-                userAvatarList.push({ avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png', user_id: 'rookie_02' })
+                userAvatarList.push({
+                    avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_user_02.png',
+                    user_id: 'rookie_02',
+                })
             }
         })
 
@@ -685,7 +691,7 @@ module.exports = {
         ctx.body = await userBll.getTags(ctx.params.user_id)
     },
     async deleteTags(ctx) {
-        ctx.body = (await userBll.deleteTags(ctx.params.user_id, ctx.request.body)) || { message: 'done' }
+        ctx.body = (await userBll.deleteTags(ctx.params.user_id, ctx.request.body, ctx)) || { message: 'done' }
     },
     async addTags(ctx) {
         ctx.body = (await userBll.addTags(ctx.params.user_id, ctx.request.body, ctx)) || { message: 'done' }

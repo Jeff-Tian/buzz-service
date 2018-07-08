@@ -61,9 +61,7 @@ const server = app.listen(PORT, () => {
 })
 
 server.on('error', err => {
-    logger.error('========================')
     logger.error(err)
-    logger.error('========================')
 })
 
 server.on('close', () => {
