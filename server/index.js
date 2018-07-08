@@ -60,11 +60,11 @@ const server = app.listen(PORT, () => {
     logger.info('Buzz-Service 启动完毕。')
 })
 
-server.on('error', err => {
+app.on('error', err => {
     logger.error(err)
 })
 
-server.on('close', () => {
+app.on('close', () => {
     redis.redis.disconnect()
     logger.info('Buzz-Service 关闭了。')
 })

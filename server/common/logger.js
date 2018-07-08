@@ -16,11 +16,22 @@ log4js.configure({
     },
 })
 const logger = log4js.getLogger()
-const oldErrorLogger = logger.error
-logger.error = function (err) {
-    fundebug.notifyError(err)
 
-    oldErrorLogger.apply(this, err)
+/* eslint-disable */
+Function.prototype.before = function (func) {
+    const self = this
+    return function () {
+        if (func.apply(this, arguments) === false) {
+            return false;
+        }
+
+        return self.apply(this, arguments)
+    }
 }
+/* eslint-enable */
+
+logger.error = logger.error.before(function (err) {
+    fundebug.notifyError.call(this, err)
+})
 
 export default logger
