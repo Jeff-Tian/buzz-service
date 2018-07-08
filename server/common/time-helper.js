@@ -46,8 +46,8 @@ const uniformTimes = function (data) {
 const checkTimeRangeOverlapWithDBTime = async function (table, user_id, time, start_time, end_time) {
     const selected = await knex(table)
         .where('user_id', '=', user_id)
-        .andWhere(time, '>=', start_time)
-        .andWhere(time, '<', end_time)
+        .andWhere(time, time === 'start_time' ? '>=' : '>', start_time)
+        .andWhere(time, time === 'start_time' ? '<' : '<=', end_time)
         .andWhere('status', '!=', 'cancelled')
         .select('user_id')
 
