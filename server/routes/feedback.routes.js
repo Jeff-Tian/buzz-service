@@ -5,8 +5,6 @@ const BASE_URL = '/api/v1/class-feedback'
 router.get(`${BASE_URL}/admin-list/:class_id`, classFeedbackController.getAdminFeedbackList)
 router.get(`${BASE_URL}/evaluate/:class_id`, classFeedbackController.getEvaluateStatus)
 router.get(`${BASE_URL}/:class_id/:from_user_id/evaluate/:to_user_id`, classFeedbackController.getFeedbackList)
-router.get(`${BASE_URL}/:class_id/feedbacks-to/:user_id`, classFeedbackController.getFeedBacksTo)
-router.get(`${BASE_URL}/:class_id/feedbacks-from/:user_id`, classFeedbackController.getFeedBacksFrom)
 router.post(`${BASE_URL}/:class_id/:from_user_id/evaluate/:to_user_id`, classFeedbackController.setFeedbackInfo)
 
 module.exports = router

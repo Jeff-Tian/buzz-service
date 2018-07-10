@@ -16,7 +16,7 @@ const selectFeedback = function () {
         .leftJoin('users as users_to', 'class_feedback.to_user_id', 'users_to.user_id')
         .leftJoin('user_profiles as user_profiles_from', 'class_feedback.from_user_id', 'user_profiles_from.user_id')
         .leftJoin('user_profiles as user_profiles_to', 'class_feedback.to_user_id', 'user_profiles_to.user_id')
-        .select('classes.class_id as class_id', 'class_feedback.from_user_id as from_user_id', 'class_feedback.to_user_id as to_user_id', 'class_feedback.score as score', 'class_feedback.comment as comment', 'class_feedback.feedback_time as feedback_time', 'users_from.name as from_name', 'users_to.name as to_name', 'user_profiles_from.avatar as from_avatar', 'user_profiles_to.avatar as to_avatar')
+        .select('classes.class_id as class_id', 'class_feedback.from_user_id as from_user_id', 'class_feedback.to_user_id as to_user_id', 'class_feedback.score as score', 'class_feedback.comment as comment', 'class_feedback.feedback_time as feedback_time', 'users_from.name as from_name', 'users_to.name as to_name', 'user_profiles_from.avatar as from_avatar', 'user_profiles_to.avatar as to_avatar', 'class_feedback.type as type')
 }
 
 const selectFeedbackList = function () {
@@ -135,33 +135,9 @@ const getAdminFeedbackList = async ctx => {
     }
 }
 
-// TODO:
-const getFeedBacksTo = async ctx => {
-    try {
-        const classId = ctx.params.class_id
-        const feedbacksToUserId = ctx.params.user_id
-
-        ctx.body = []
-    } catch (ex) {
-        logger.error(ex)
-        ctx.throw(500, ex)
-    }
-}
-
-const getFeedBacksFrom = async ctx => {
-    try {
-        ctx.body = []
-    } catch (ex) {
-        logger.error(ex)
-        ctx.throw(500, ex)
-    }
-}
-
 module.exports = {
     getFeedbackList,
     getEvaluateStatus,
     setFeedbackInfo,
     getAdminFeedbackList,
-    getFeedBacksTo,
-    getFeedBacksFrom,
 }
