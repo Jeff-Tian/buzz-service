@@ -99,6 +99,7 @@ const setFeedbackInfo = async ctx => {
         class_id: ctx.params.class_id,
         from_user_id: ctx.params.from_user_id,
         to_user_id: ctx.params.to_user_id,
+        feedback_time: new Date(),
     }, b))
 
     try {
@@ -130,11 +131,13 @@ const feedback = async ctx => {
         class_id: ctx.params.class_id,
         from_user_id: ctx.params.from_user_id,
         to_user_id: ctx.params.to_user_id,
+        feedback_time: new Date(),
     })) : {
         ...body,
         class_id: ctx.params.class_id,
         from_user_id: ctx.params.from_user_id,
         to_user_id: ctx.params.to_user_id,
+        feedback_time: new Date(),
     }
 
     try {
