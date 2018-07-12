@@ -131,9 +131,7 @@ const feedback = async ctx => {
     }, body)
 
     try {
-        const inserted = await knex('class_feedback')
-            .returning('class_id')
-            .insert(data)
+        await knex('class_feedback').insert(data)
 
         const msg = await msgDal.upsert({
             type: 'class_feedback',
@@ -143,9 +141,10 @@ const feedback = async ctx => {
         }).catch(e => logger.error('upsert msg error', e))
 
         await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id, _.get(msg, 'msg_id'))
+
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
-        ctx.body = inserted
+        ctx.body = data
     } catch (ex) {
         logger.error(ex)
         ctx.throw(409, ex)
