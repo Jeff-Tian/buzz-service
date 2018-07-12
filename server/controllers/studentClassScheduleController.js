@@ -73,7 +73,7 @@ const list = async ctx => {
         const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
         const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
-        const endTime = status === 'confirmed' ? moment().hour(20).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(20).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         result.push({
             CURRENT_TIMESTAMP: moment().utc().format(),
             class_end_time: endTime,
