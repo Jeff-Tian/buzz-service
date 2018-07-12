@@ -95,6 +95,7 @@ const sendFeedbackNotification = async (from_user_id, to_user_id, class_id, msg_
 
 const setFeedbackInfo = async ctx => {
     const { body } = ctx.request
+    // TODO: api 设计不合理，明明只接收一个用户对另一个用户的评价，却使用了数组结构
     const data = body.map(b => Object.assign({
         class_id: ctx.params.class_id,
         from_user_id: ctx.params.from_user_id,
@@ -111,6 +112,36 @@ const setFeedbackInfo = async ctx => {
             from_user_id: ctx.params.from_user_id,
             to_user_id: ctx.params.to_user_id,
         }).catch(e => logger.error('upsert msg error', e))
+        await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id, _.get(msg, 'msg_id'))
+        ctx.status = 201
+        ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
+        ctx.body = inserted
+    } catch (ex) {
+        logger.error(ex)
+        ctx.throw(409, ex)
+    }
+}
+
+const feedback = async ctx => {
+    const { body } = ctx.request
+    const data = Object.assign({
+        class_id: ctx.params.class_id,
+        from_user_id: ctx.params.from_user_id,
+        to_user_id: ctx.params.to_user_id,
+    }, body)
+
+    try {
+        const inserted = await knex('class_feedback')
+            .returning('class_id')
+            .insert(data)
+
+        const msg = await msgDal.upsert({
+            type: 'class_feedback',
+            class_id: ctx.params.class_id,
+            from_user_id: ctx.params.from_user_id,
+            to_user_id: ctx.params.to_user_id,
+        }).catch(e => logger.error('upsert msg error', e))
+
         await sendFeedbackNotification(ctx.params.from_user_id, ctx.params.to_user_id, ctx.params.class_id, _.get(msg, 'msg_id'))
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${ctx.params.user_id}/${ctx.params.from_user_id}/evaluate/${ctx.params.to_user_id}`)
@@ -140,4 +171,5 @@ module.exports = {
     getEvaluateStatus,
     setFeedbackInfo,
     getAdminFeedbackList,
+    feedback,
 }
