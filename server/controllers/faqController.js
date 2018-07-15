@@ -87,7 +87,7 @@ const getRelated = async data => {
         .map(i => _.toInteger(i))
         .value()
     if (_.isEmpty(related_ids)) return data
-    data.related_faqs = _.sortBy(await knex('faq').select('faq_id', 'title', 'sub_title').whereIn('faq_id', related_ids).whereNotIn('public', [0, false]), i => _.findIndex(related_ids, j => j === i.faq_id))
+    data.related_faqs = _.sortBy(await knex('faq').select('faq_id', 'title', 'sub_title', 'link').whereIn('faq_id', related_ids).whereNotIn('public', [0, false]), i => _.findIndex(related_ids, j => j === i.faq_id))
     return data
 }
 
