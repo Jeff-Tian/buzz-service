@@ -9,7 +9,6 @@ const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
-const timeHelper = require('../common/time-helper')
 const wechat = require('../common/wechat')
 const mail = require('../common/mail')
 const env = process.env.NODE_ENV || 'test'
@@ -315,6 +314,12 @@ const upsert = async ctx => {
         exercises: body.exercises,
         topic_level: body.topic_level,
         module: body.module,
+    }
+
+    try {
+        classSchedules.validateClass(data)
+    } catch (ex) {
+        return ctx.throw(400, ex)
     }
 
     let studentSchedules = body.students ? body.students.map(studentId => ({

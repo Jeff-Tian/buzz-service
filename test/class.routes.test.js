@@ -37,8 +37,8 @@ describe('routes: class schedules', () => {
                 adviser_id: 1,
                 companions: [4, 5, 6],
                 level: 'aa',
-                start_time: '2018-03-02T10:00:00Z',
-                end_time: '2018-03-02T11:00:00Z',
+                start_time: '2029-03-02T10:00:00Z',
+                end_time: '2029-03-02T11:00:00Z',
                 status: 'opened',
                 name: 'Test class',
                 remark: 'xxx',
@@ -51,9 +51,9 @@ describe('routes: class schedules', () => {
             createClassResponse.status.should.eql(201)
             createClassResponse.type.should.eql('application/json')
             createClassResponse.body.adviser_id.should.eql(1)
-            createClassResponse.body.end_time.should.eql('2018-03-02T11:00:00Z')
+            createClassResponse.body.end_time.should.eql('2029-03-02T11:00:00Z')
             createClassResponse.body.name.should.eql('Test class')
-            createClassResponse.body.start_time.should.eql('2018-03-02T10:00:00Z')
+            createClassResponse.body.start_time.should.eql('2029-03-02T10:00:00Z')
             createClassResponse.body.status.should.eql('opened')
             createClassResponse.body.topic.should.eql('animal')
             createClassResponse.body.class_id.should.gt(0)
@@ -77,13 +77,12 @@ describe('routes: class schedules', () => {
             const companionClassSchedules = searchCompanionClassScheduleResponse.body.length
 
             try {
-                console.log('try to updating xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-------------------------------------- ', classId)
                 const updateClassResponse = await common.makeRequest('post', `${PATH}`, {
                     class_id: classId,
                     adviser_id: 1,
                     companions: [],
-                    start_time: '2018-03-02T10:00:00Z',
-                    end_time: '2018-03-02T11:00:00Z',
+                    start_time: '2029-03-02T10:00:00Z',
+                    end_time: '2029-03-02T11:00:00Z',
                     status: 'opened',
                     name: 'Test class',
                     remark: 'xxx',
@@ -93,9 +92,7 @@ describe('routes: class schedules', () => {
                     room_url: 'http://www.baidu.com',
                 })
 
-                console.log('update result !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!= ', updateClassResponse)
                 updateClassResponse.status.should.eql(200)
-                console.log('update result !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11xxxxxxxxxx= ', updateClassResponse.body)
             } catch (ex) {
                 should.not.exist(ex)
             }
@@ -113,8 +110,8 @@ describe('routes: class schedules', () => {
                 adviser_id: 1,
                 companions: [4, 5, 6],
                 level: 'aa',
-                start_time: '2018-03-02T10:00:00Z',
-                end_time: '2018-03-02T11:00:00Z',
+                start_time: '2029-03-02T10:00:00Z',
+                end_time: '2029-03-02T11:00:00Z',
                 status: 'opened',
                 name: 'Test class',
                 remark: 'xxx',
@@ -130,7 +127,7 @@ describe('routes: class schedules', () => {
 
             const res = await common.makeRequest('post', `${PATH}`, {
                 class_id: classId,
-                end_time: '2018-03-02T11:00:00Z',
+                end_time: '2029-03-02T11:00:00Z',
                 students: [],
             })
 
@@ -145,8 +142,8 @@ describe('routes: class schedules', () => {
                 adviser_id: 1,
                 companions: [4, 5, 6],
                 level: 'aa',
-                start_time: '2018-03-02T10:00:00Z',
-                end_time: '2018-03-30T16:53:00Z',
+                start_time: '2029-03-02T10:00:00Z',
+                end_time: '2029-03-30T16:53:00Z',
                 status: 'opened',
                 name: 'Test class',
                 remark: 'xxx',
@@ -162,7 +159,7 @@ describe('routes: class schedules', () => {
 
             const updateGroupResponse = await common.makeRequest('post', `${PATH}`, {
                 class_id: classId,
-                end_time: '2018-03-30T16:53:00Z',
+                end_time: '2029-03-30T16:53:00Z',
                 students: [3, 8, 9],
             })
 
@@ -181,6 +178,31 @@ describe('routes: class schedules', () => {
             res = await common.makeRequest('get', `${PATH}?statuses=ended`)
             res.status.should.eql(200)
             res.body.length.should.eql(1)
+        })
+    })
+
+    describe('创建开始时间在之前的班级应该报错', () => {
+        it('创建开始时间在之前的班级应该报错', async () => {
+            try {
+                const createClassResponse = await common.makeRequest('post', `${PATH}`, {
+                    adviser_id: 1,
+                    companions: [4, 5, 6],
+                    level: 'aa',
+                    start_time: '2018-03-02T10:00:00Z',
+                    end_time: '2018-03-02T11:00:00Z',
+                    status: 'opened',
+                    name: 'Test class',
+                    remark: 'xxx',
+                    topic: 'animal',
+                    students: [1, 2, 3],
+                    exercises: '["yyy","zzz"]',
+                    room_url: 'http://www.baidu.com',
+                })
+
+                createClassResponse.status.should.eql(400)
+            } catch (ex) {
+                should.exist(ex)
+            }
         })
     })
 })

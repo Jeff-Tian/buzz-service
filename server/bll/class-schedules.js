@@ -23,4 +23,13 @@ module.exports = {
 
         await Promise.all(studentSchedules.map(s => classHours.consume(trx, s.user_id, 1, `booked a class id = ${classId}`)))
     },
+
+    validateClass(classData) {
+        const classStartTime = new Date(classData.start_time)
+        const now = new Date()
+
+        if (now > classStartTime) {
+            throw new Error('课程开始时间不应该在过去')
+        }
+    },
 }
