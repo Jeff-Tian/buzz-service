@@ -26,7 +26,13 @@ const verifyByCode = async ctx => {
     }
 }
 
+const countryList = ctx => {
+    ctx.status = 200
+    ctx.body = { list: mobileCommon.countryList() }
+}
+
 module.exports = {
     sendVerificationSms,
     verifyByCode,
+    countryList,
 }
