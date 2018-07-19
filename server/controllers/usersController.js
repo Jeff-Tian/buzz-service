@@ -78,8 +78,11 @@ const search = async ctx => {
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
         }
-
-        ctx.body = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
+        const result = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
+        ctx.body = _.map(result, i => ({
+            ...i,
+            mobile_country: mobileCommon.split(_.get(i, 'mobile')),
+        }))
     } catch (error) {
         logger.error(error)
 
