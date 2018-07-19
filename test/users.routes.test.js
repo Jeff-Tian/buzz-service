@@ -494,7 +494,7 @@ describe('routes: users', () => {
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
-                ex.response.text.startsWith(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`).should.eql(true)
+                ex.response.text.substr(0, 64).should.eql(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`)
 
                 try {
                     await common.makeRequest('put', `${PATH}/4`, {
