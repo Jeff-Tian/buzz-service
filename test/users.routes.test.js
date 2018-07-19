@@ -494,7 +494,7 @@ describe('routes: users', () => {
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
-                ex.response.text.should.eql(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`)
+                ex.response.text.startsWith(`The user 4 has confirmed groups so can't change role to ${userBll.MemberType.Student} from ${userBll.MemberType.Companion}`).should.eql(true)
 
                 try {
                     await common.makeRequest('put', `${PATH}/4`, {
@@ -602,6 +602,27 @@ describe('routes: users', () => {
             } catch (ex) {
                 should.not.exist(ex)
             }
+        })
+    })
+
+    describe('更新账号', () => {
+        it('可以将周上课频率修改为0', async () => {
+            const userId = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'user1',
+            })).body
+
+            let res = await common.makeRequest('put', `/api/v1/users/${userId}`, { weekly_schedule_requirements: 1 })
+
+            res.status.should.eql(200)
+
+            let newInfo = (await common.makeRequest('get', `/api/v1/users/${userId}`)).body
+            newInfo.weekly_schedule_requirements.should.eql(1)
+
+            res = await common.makeRequest('put', `/api/v1/users/${userId}`, { weekly_schedule_requirements: 0 })
+            res.status.should.eql(200)
+
+            newInfo = (await common.makeRequest('get', `/api/v1/users/${userId}`)).body
+            newInfo.weekly_schedule_requirements.should.eql(0)
         })
     })
 })
