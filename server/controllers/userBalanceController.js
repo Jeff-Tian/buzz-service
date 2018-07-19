@@ -55,6 +55,7 @@ const consume = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await knex('user_balance').select('class_hours').where({ user_id: userId }))[0]
     } catch (error) {
+        console.error('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
         console.error(error)
 
         await trx.rollback()
