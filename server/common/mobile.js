@@ -1,6 +1,6 @@
 const _ = require('lodash')
 const phone = require('phone')
-const countryList = require('../config/phone')
+const { iso3166_data } = require('phone')
 const { redis } = require('./redis')
 const sms = require('./sms')
 
@@ -39,6 +39,23 @@ const Mobile = {
         }
         return [_.replace(mobile, /^\+/, '00'), country]
     },
+    // 拆分
+    // +14169314667 -> 4169314667, {
+    //   "country_code": "1",
+    //   "country_full_name": "Canada",
+    //   "country_long_name": "CAN",
+    //   "country_short_name": "CA",
+    // }
+    split(inputMobile) {
+        const fullMobile = _.startsWith(inputMobile, '00') ? _.replace(inputMobile, /^00/, '+') : `+86${inputMobile}`
+        console.log(fullMobile)
+        const [mobile, country] = phone(fullMobile)
+        if (!country) {
+            return { mobile: _.trimStart(fullMobile, '+'), country: _.find(Mobile.countryList, ['country_long_name', 'CHN']) }
+        }
+        const country_full = _.find(Mobile.countryList, ['country_long_name', country])
+        return { mobile: _.trimStart(mobile, `+${_.get(country_full, 'country_code')}`), country: country_full }
+    },
     async normalizeMiddleware(ctx, next) {
         const mobile = _.get(ctx.request.body, 'mobile')
         const country_short_name = _.get(ctx.request.body, 'country_short_name')
@@ -48,9 +65,14 @@ const Mobile = {
         }
         await next()
     },
-    countryList() {
-        return countryList
-    },
+    countryList: _.map(iso3166_data, i => ({
+        mobile_length: i.phone_number_lengths,
+        mobile_begin_with: i.mobile_begin_with,
+        country_full_name: i.country_name,
+        country_long_name: i.alpha3,
+        country_short_name: i.alpha2,
+        country_code: i.country_code,
+    })),
 }
 
 module.exports = Mobile

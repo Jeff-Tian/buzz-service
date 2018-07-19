@@ -14,6 +14,7 @@ const knex = require('knex')(config)
 const wechat = require('../common/wechat')
 const qiniu = require('../common/qiniu')
 const mail = require('../common/mail')
+const mobileCommon = require('../common/mobile')
 const timeHelper = require('../common/time-helper')
 const { countBookedClasses } = require('../bll/class-hours')
 const { getUsersByWeekly } = require('../bll/user')
@@ -133,9 +134,10 @@ const show = async ctx => {
             if (!users.length) {
                 throw new Error('The requested user does not exists')
             }
-
+            const mobile_country = mobileCommon.split(_.get(users, '0.mobile'))
             result = {
                 ...users[0],
+                mobile_country,
                 booked_class_hours: await countBookedClasses(user_id),
                 isSystemUser: await userBll.isOfSystemUsers(user_id),
                 isSuper: await userBll.isSuper(user_id),
