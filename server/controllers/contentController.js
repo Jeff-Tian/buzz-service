@@ -102,7 +102,7 @@ const getByUserIDs = async ctx => {
     const { user_ids } = ctx.query
     ctx.body = await knex('classes')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .whereIn('student_class_schedule.user_id', user_ids)
+        .whereIn('student_class_schedule.user_id', _.isArray(user_ids) ? user_ids : [user_ids])
         .whereNot('classes.status', 'cancelled')
         .whereNotNull('student_class_schedule.class_id')
         .select('classes.topic', 'classes.module', 'classes.topic_level')
