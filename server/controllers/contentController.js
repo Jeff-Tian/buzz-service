@@ -98,4 +98,15 @@ const getByClassAndUser = async ctx => {
     ctx.body = await findOneByClassAndUser(ctx.query)
 }
 
-module.exports = { upsert, query, topic, moduleList, topic_level, getByClassAndUser }
+const getByUserIDs = async ctx => {
+    const { user_ids } = ctx.query
+    ctx.body = await knex('classes')
+        .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+        .whereIn('student_class_schedule.user_id', user_ids)
+        .whereNot('classes.status', 'cancelled')
+        .whereNotNull('student_class_schedule.class_id')
+        .select('classes.topic', 'classes.module', 'classes.topic_level')
+        .distinct('classes.topic', 'classes.module', 'classes.topic_level')
+}
+
+module.exports = { upsert, query, topic, moduleList, topic_level, getByClassAndUser, getByUserIDs }
