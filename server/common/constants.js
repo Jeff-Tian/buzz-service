@@ -16,7 +16,7 @@ export const ClassStatusCode = {
     End: 'ended',
 }
 
-export const NeedChargeThreshold = 2
+export const NeedChargeThreshold = 0
 
 export default class Constants {
 }

@@ -29,7 +29,8 @@ describe('routes: users', () => {
             let userDetail = await userBll.get(userId)
             userDetail.tags.should.eql(UserTags.Leads)
 
-            await classHours.charge(null, userId, 1)
+            await classHours.charge(null, userId, 10)
+            await classHours.consume(null, userId, 10 - NeedChargeThreshold)
             userDetail = await userBll.get(userId)
             userDetail.tags.indexOf(UserTags.Leads).should.lt(0)
             userDetail.tags.should.eql(UserTags.NeedCharge)
@@ -48,7 +49,7 @@ describe('routes: users', () => {
             should.equal(userDetail.tags, null)
         })
 
-        it('当用户课时数发生变化，如果余额小于等于 2，自动添加上 "需续费" 标签。当余额大于 2 时，自动移除 "需续费" 标签。', async () => {
+        it(`当用户课时数发生变化，如果余额小于等于 ${NeedChargeThreshold}，自动添加上 "需续费" 标签。当余额大于 ${NeedChargeThreshold} 时，自动移除 "需续费" 标签。`, async () => {
             const userId = (await userHelper.createUserRequest({
                 name: 'new User',
                 role: userBll.MemberType.Student,
@@ -58,7 +59,7 @@ describe('routes: users', () => {
             let userDetail = await userBll.get(userId)
             should.equal(userDetail.tags, null)
 
-            await classHours.consume(null, userId, 9)
+            await classHours.consume(null, userId, 10 - NeedChargeThreshold)
             userDetail = await userBll.get(userId)
             should.equal(userDetail.tags, UserTags.NeedCharge)
 

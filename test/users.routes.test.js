@@ -6,6 +6,25 @@ const PATH = '/api/v1/users'
 const userBll = require('../server/bll/user')
 
 describe('routes: users', () => {
+    async function createUserWithNameAndRole(username, userType) {
+        const createUserResponse = await common.makeRequest('post', '/api/v1/users', {
+            name: username,
+            role: userType,
+        }, null, 'user_id=1')
+
+        createUserResponse.status.should.eql(201)
+        return createUserResponse.body
+    }
+
+    async function createUserWithProfileIncomplete(username, userType) {
+        const userId = await createUserWithNameAndRole(username, userType)
+
+        userId.should.gt(0)
+
+        const result = await common.makeRequest('get', `${PATH}/is-profile-ok/${userId}`)
+        result.status.should.eql(200)
+        result.body.should.eql(false)
+    }
     before(async () => {
         await knex.migrate.rollback()
         await knex.migrate.latest()
@@ -194,6 +213,12 @@ describe('routes: users', () => {
                     res.body.error.should.eql('The user already exists')
                     done()
                 })
+        })
+        it('外籍注册成功自动添加一课时', async () => {
+            const userId = await createUserWithNameAndRole('new tutor with 1 class hour', userBll.MemberType.Companion)
+
+            const newUser = await userBll.get(userId)
+            newUser.class_hours.should.eql(1)
         })
     })
 
@@ -454,26 +479,6 @@ describe('routes: users', () => {
                 })
         })
     })
-
-    async function createUserWithNameAndRole(username, userType) {
-        const createUserResponse = await common.makeRequest('post', '/api/v1/users', {
-            name: username,
-            role: userType,
-        }, null, 'user_id=1')
-
-        createUserResponse.status.should.eql(201)
-        return createUserResponse.body
-    }
-
-    async function createUserWithProfileIncomplete(username, userType) {
-        const userId = await createUserWithNameAndRole(username, userType)
-
-        userId.should.gt(0)
-
-        const result = await common.makeRequest('get', `${PATH}/is-profile-ok/${userId}`)
-        result.status.should.eql(200)
-        result.body.should.eql(false)
-    }
 
     describe(`GET ${PATH}/is-profile-ok/:user_id`, () => {
         it('如果外籍学生的邮箱没填，那么资料是不完整的', async () => {
