@@ -6,11 +6,12 @@ const sms = require('./sms')
 
 const Mobile = {
     // 发送验证短信
-    async sendVerificationSms(mobile, digit = 4, expire = 30 * 60) {
+    async sendVerificationSms(mobile, mobile_country, digit = 4, expire = 30 * 60) {
         let error
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
         if (process.env.NODE_ENV !== 'test') {
-            await sms.send({ mobile, param: { code } }).catch(e => {
+            const isCN = mobile_country === 'CHN'
+            await sms.send(mobile, isCN ? 'BuzzBuzz英语角' : 'BuzzBuzz', isCN ? 'SMS_127154352' : 'SMS_137670378', { code, expire: '30' }).catch(e => {
                 error = e
             })
         }
@@ -28,8 +29,17 @@ const Mobile = {
     },
     // 中方: 18657198908 -> 18657198908
     // 外籍: 18657198908, CHN or CN -> 008618657198908
-    normalize(inputMobile, inputCountry = 'CN') {
-        const [mobile, country] = phone(inputMobile, inputCountry)
+    normalize(inputMobile, inputCountry) {
+        let normalInputMobile = inputMobile
+        let normalInputCountry = inputCountry
+        if (!inputCountry) {
+            if (_.startsWith(inputMobile, '00')) {
+                normalInputMobile = _.replace(inputMobile, /^00/, '+')
+            } else {
+                normalInputCountry = 'CHN'
+            }
+        }
+        const [mobile, country] = phone(normalInputMobile, normalInputCountry)
         if (!country) {
             const e = new Error('invalid mobile')
             e.statusCode = 400
@@ -40,7 +50,7 @@ const Mobile = {
         return [_.replace(mobile, /^\+/, '00'), country]
     },
     // 拆分
-    // +14169314667 -> 4169314667, {
+    // 0014169314667 -> 4169314667, {
     //   "country_code": "1",
     //   "country_full_name": "Canada",
     //   "country_long_name": "CAN",
@@ -48,7 +58,6 @@ const Mobile = {
     // }
     split(inputMobile) {
         const fullMobile = _.startsWith(inputMobile, '00') ? _.replace(inputMobile, /^00/, '+') : `+86${inputMobile}`
-        console.log(fullMobile)
         const [mobile, country] = phone(fullMobile)
         if (!country) {
             return { mobile: _.trimStart(fullMobile, '+'), country: _.find(Mobile.countryList, ['country_long_name', 'CHN']) }
@@ -61,7 +70,9 @@ const Mobile = {
         const country_short_name = _.get(ctx.request.body, 'country_short_name')
         const country_full_name = _.get(ctx.request.body, 'country_full_name')
         if (_.size(_.trim(mobile)) > 0) {
-            _.set(ctx.request.body, 'mobile', _.head(Mobile.normalize(mobile, country_short_name || country_full_name)))
+            const [normalizedMobile, country] = Mobile.normalize(mobile, country_short_name || country_full_name)
+            _.set(ctx.request.body, 'mobile', normalizedMobile)
+            _.set(ctx.request.body, 'mobile_country', country)
         }
         await next()
     },
