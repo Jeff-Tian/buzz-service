@@ -21,11 +21,21 @@ const msgRoutes = require('./routes/msg.routes')
 const bannerRoutes = require('./routes/banner.routes')
 const faqRoutes = require('./routes/faq.routes')
 const redis = require('./common/redis')
+const mobileCommon = require('./common/mobile')
 const bodyParser = require('koa-bodyparser')
 require('./common/knex')
 
 const app = new Koa()
 const PORT = process.env.PORT || 16888
+
+app.use(async (ctx, next) => {
+    try {
+        await next()
+    } catch (err) {
+        ctx.status = err.statusCode || err.status || 500
+        ctx.body = err.message
+    }
+})
 
 app.use(async (ctx, next) => {
     if (ctx.cookies) {
@@ -38,6 +48,7 @@ app.use(async (ctx, next) => {
 })
 
 app.use(bodyParser())
+app.use(mobileCommon.normalizeMiddleware)
 app.use(usersRoutes.routes())
 app.use(studentClassSchedule.routes())
 app.use(companionClassSchedule.routes())

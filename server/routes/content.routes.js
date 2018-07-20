@@ -8,5 +8,6 @@ router.get(`${BASE_URL}/topic`, contentController.topic)
 router.get(`${BASE_URL}/module`, contentController.moduleList)
 router.get(`${BASE_URL}/topic_level`, contentController.topic_level)
 router.get(`${BASE_URL}/getByClassAndUser`, contentController.getByClassAndUser)
+router.get(`${BASE_URL}/getByUserIDs`, contentController.getByUserIDs)
 
 module.exports = router
