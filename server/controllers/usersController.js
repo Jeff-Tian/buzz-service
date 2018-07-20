@@ -21,6 +21,7 @@ const { getUsersByWeekly } = require('../bll/user')
 const userBll = require('../bll/user')
 const userDal = require('../dal/user')
 const basicAuth = require('../security/basic-auth')
+const classHoursBll = require('../bll/class-hours')
 
 function selectUsers(isContextSecure) {
     return userDal.selectFields(userDal.joinTables(), isContextSecure)
@@ -274,6 +275,9 @@ const create = async ctx => {
 
         if (body.role === userBll.MemberType.Student) {
             await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
+        }
+        if (body.role === userBll.MemberType.Companion) {
+            await classHoursBll.charge(trx, users[0], 1)
         }
 
         await trx.commit()
