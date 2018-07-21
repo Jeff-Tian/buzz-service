@@ -143,11 +143,11 @@ const getClassByClassId = async ctx => {
         const user_id = ctx.query.user_id
         const result = user_id ? await getClassesByUserId(user_id) : []
         const minClass = _.chain(result)
-            .minBy('class_end_time')
+            .minBy('end_time')
             .value()
-        const status = moment().isSameOrAfter(moment(_.get(minClass, 'class_end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
-        const startTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
-        const endTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
+        const status = moment().isSameOrAfter(moment(_.get(minClass, 'end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
+        const startTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
         const CURRENT_TIMESTAMP = moment().utc().format()
         body = [{
             CURRENT_TIMESTAMP: moment().utc().format(),
