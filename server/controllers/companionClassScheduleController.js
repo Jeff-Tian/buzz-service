@@ -4,6 +4,8 @@ const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
+const moment = require('moment-timezone')
+const _ = require('lodash')
 
 const selectSchedules = function () {
     return knex('companion_class_schedule')
@@ -57,7 +59,39 @@ const list = async ctx => {
             .andWhere('companion_class_schedule.start_time', '>=', start_time)
             .andWhere('companion_class_schedule.end_time', '<=', end_time)
 
-        ctx.body = await search
+        let result = await search
+        if (!_.isArray(result)) result = []
+        const minClass = _.chain(result)
+            .minBy('class_end_time')
+            .value()
+        const status = moment().isSameOrAfter(moment(_.get(minClass, 'class_end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
+        const startTime = minClass ? moment(_.get(minClass, 'class_end_time')).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        result.push({
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
+            classes_status: status,
+            status,
+            class_id: 'observation',
+            comment: null,
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_country: 'china',
+            companion_id: 'BuzzBuzz',
+            companion_name: 'BuzzBuzz',
+            from_user_id: null,
+            score: null,
+            title: 'Observation',
+            to_user_id: null,
+            topic_level: 'Basic',
+            topic: 'Observation',
+            module: 'School',
+            user_id: ctx.params.user_id,
+        })
+        ctx.body = result
     } catch (error) {
         logger.error(error)
         ctx.throw(500, error)

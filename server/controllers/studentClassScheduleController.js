@@ -70,7 +70,7 @@ const list = async ctx => {
             .andWhere('classes.status', 'not in', ['cancelled'])
         let result = await search
         if (!_.isArray(result)) result = []
-        const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
+        const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
         const minClass = _.chain(result)
             .minBy('class_start_time')
             .value()
