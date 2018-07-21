@@ -167,7 +167,7 @@ const getClassByClassId = async ctx => {
             module: 'School',
             name: 'Observation',
             remark: null,
-            students: user_id,
+            students: `${user_id}`,
         }]
     } else {
         body = [await getClassById(class_id)]
