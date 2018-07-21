@@ -113,7 +113,7 @@ const getClassByClassId = async ctx => {
     if (class_id === 'rookie') {
         const user_id = ctx.query.user_id
         const result = user_id ? await getClassesByUserId(user_id) : []
-        const status = _.find(result, i => (i.classes_status === 'ended') || (i.status === 'ended')) ? 'ended' : 'confirmed'
+        const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
         const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
@@ -138,6 +138,36 @@ const getClassByClassId = async ctx => {
             students: `rookie_01,rookie_02,${user_id}`,
             room_url: 'https://zoom.us/j/2019579072',
             zc: 0,
+        }]
+    } else if (class_id === 'observation') {
+        const user_id = ctx.query.user_id
+        const result = user_id ? await getClassesByUserId(user_id) : []
+        const minClass = _.chain(result)
+            .minBy('class_end_time')
+            .value()
+        const status = moment().isSameOrAfter(moment(_.get(minClass, 'class_end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
+        const startTime = minClass ? moment(_.get(minClass, 'class_end_time')).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        body = [{
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
+            classes_status: status,
+            status,
+            adviser_id: 0,
+            class_id: 'observation',
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_name: 'BuzzBuzz',
+            companions: 'BuzzBuzz',
+            topic_level: 'Basic',
+            topic: 'Observation',
+            module: 'School',
+            name: 'Observation',
+            remark: null,
+            students: user_id,
         }]
     } else {
         body = [await getClassById(class_id)]
