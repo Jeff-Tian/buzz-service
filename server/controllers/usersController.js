@@ -32,6 +32,11 @@ function filterByTime(search, start_time = new Date(1900, 1, 1), end_time = new 
         .andWhereRaw('users.user_id in (select distinct user_id from student_class_schedule where student_class_schedule.start_time >= ? and student_class_schedule.end_time < ? union all select distinct user_id from companion_class_schedule where companion_class_schedule.start_time >= ? and companion_class_schedule.end_time < ?)', [start_time, end_time, start_time, end_time])
 }
 
+function filterByCreateTime(search, start_time = new Date(1900, 1, 1), end_time = new Date(2100, 1, 1)) {
+    return search
+        .andWhereRaw('users.created_at between ? and ?', [start_time, end_time])
+}
+
 const search = async ctx => {
     try {
         const filters = {}
@@ -78,6 +83,9 @@ const search = async ctx => {
 
         if (ctx.query.start_time || ctx.query.end_time) {
             search = filterByTime(search, ctx.query.start_time, ctx.query.end_time)
+        }
+        if (ctx.query.create_start_time || ctx.query.create_end_time) {
+            search = filterByCreateTime(search, ctx.query.create_start_time, ctx.query.create_end_time)
         }
         const result = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
         result.data = _.map(result.data, i => ({
@@ -498,7 +506,10 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
             .where('user_interests.user_id', ctx.params.user_id)
             .del()
 
-        const values = body.interests.map(i => ({ user_id: ctx.params.user_id, interest: i }))
+        const values = body.interests.map(i => ({
+            user_id: ctx.params.user_id,
+            interest: i,
+        }))
 
         const inserted = await trx('user_interests')
             .insert(values)
@@ -657,7 +668,11 @@ const sendScheduleMsg = async ctx => {
         const start_time = timeHelper.convertToDBFormat(moment().toISOString())
         const classInfo = await knex(schedule)
             .leftJoin('classes', 'classes.class_id', `${schedule}.class_id`)
-            .where({ [`${schedule}.user_id`]: user_id, [`${schedule}.status`]: 'confirmed', 'classes.status': 'opened' })
+            .where({
+                [`${schedule}.user_id`]: user_id,
+                [`${schedule}.status`]: 'confirmed',
+                'classes.status': 'opened',
+            })
             .where(`${schedule}.start_time`, '>', start_time)
         if (_.isEmpty(classInfo)) return
         if (user.wechat_openid) {
