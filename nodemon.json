@@ -8,9 +8,14 @@
     "coverage",
     ".idea"
   ],
+  "env": {
+    "NODE_ENV": "test",
+    "BASIC_NAME": "buzzbuzz",
+    "BASIC_PASS": "isCool666"
+  },
   "legacyWatch": true,
   "execMap": {
-     "js": "node --harmony"
+     "js": "babel-node server"
   },
   "ext": "js, json"
 }
