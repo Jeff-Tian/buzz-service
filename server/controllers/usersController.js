@@ -659,7 +659,7 @@ const getWithAvailability = async ctx => {
     const confirmedUsers = (hasSchedule && _.map(await selectConfirmed('student').union(selectConfirmed('companion')), 'user_id')) || []
     // 该时段有时间的用户
     const bookingUsers = (hasSchedule && _.map(await selectBooking('student').union(selectBooking('companion')), 'user_id')) || []
-    const userIds = _.difference(bookingUsers, confirmedUsers)
+    const userIds = (hasSchedule && _.difference(bookingUsers, confirmedUsers)) || []
     const query = knex('users')
         .joinRaw('INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0')
         .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
