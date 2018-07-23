@@ -677,6 +677,7 @@ const getWithAvailability = async ctx => {
             'user_profiles.mobile as mobile',
             'user_profiles.grade as grade',
             'user_profiles.gender as gender',
+            'user_profiles.avatar as avatar',
             'user_placement_tests.level as level',
             'user_balance.class_hours as class_hours',
             knex.raw('group_concat(user_interests.interest) as interests'),
