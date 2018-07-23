@@ -639,6 +639,8 @@ const getAvailableUsers = async ctx => {
 
 // 获取所有有课时的人, 时间不符的人标记不可用
 const getWithAvailability = async ctx => {
+    // role: ['c', 's']
+    const { role } = ctx.query
     let { start_time, end_time } = ctx.query
     const hasSchedule = start_time && end_time
     if (hasSchedule) {
@@ -660,7 +662,7 @@ const getWithAvailability = async ctx => {
     // 该时段有时间的用户
     const bookingUsers = (hasSchedule && _.map(await selectBooking('student').union(selectBooking('companion')), 'user_id')) || []
     const userIds = (hasSchedule && _.difference(bookingUsers, confirmedUsers)) || []
-    const query = knex('users')
+    let query = knex('users')
         .joinRaw('INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0')
         .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
         .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
@@ -682,6 +684,9 @@ const getWithAvailability = async ctx => {
             'user_balance.class_hours as class_hours',
             knex.raw('group_concat(user_interests.interest) as interests'),
         )
+    if (!_.isEmpty(role)) {
+        query = query.whereIn('users.role', role)
+    }
     const result = await query
     ctx.body = result
 }
