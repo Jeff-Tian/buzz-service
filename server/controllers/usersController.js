@@ -637,6 +637,45 @@ const getAvailableUsers = async ctx => {
     ctx.body = result
 }
 
+// 获取所有有课时的人, 时间不符的人标记不可用
+const getWithAvailability = async ctx => {
+    let { start_time, end_time } = ctx.query
+    const hasSchedule = start_time && end_time
+    if (hasSchedule) {
+        start_time = timeHelper.convertToDBFormat(start_time)
+        end_time = timeHelper.convertToDBFormat(end_time)
+    }
+    function selectConfirmed(role) {
+        return knex(`${role}_class_schedule`)
+            .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
+            .select('user_id')
+    }
+    function selectBooking(role) {
+        return knex(`${role}_class_schedule`)
+            .whereRaw(`status = 'booking' AND start_time <= '${start_time}' AND end_time >= '${end_time}'`)
+            .select('user_id')
+    }
+    // 该时段已排班的用户
+    const confirmedUsers = (hasSchedule && _.map(await selectConfirmed('student').union(selectConfirmed('companion')), 'user_id')) || []
+    // 该时段有时间的用户
+    const bookingUsers = (hasSchedule && _.map(await selectBooking('student').union(selectBooking('companion')), 'user_id')) || []
+    const userIds = _.difference(bookingUsers, confirmedUsers)
+    const query = knex('users')
+        .joinRaw('INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0')
+        .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+        .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+        .select(
+            knex.raw(`(CASE WHEN users.user_id IN ${userIds} THEN 0 ELSE 1 END) as disabled`),
+            'users.user_id as user_id',
+            'users.role as role',
+            'users.name as name',
+            'user_social_accounts.wechat_name as wechat_name',
+            'user_profiles.display_name as display_name',
+        )
+    const result = await query
+    ctx.body = result
+}
+
 const appendOrderRemark = async ctx => {
     try {
         await knex('user_profiles')
@@ -705,6 +744,7 @@ module.exports = {
     getByUserIdList,
     delete: deleteByUserID,
     getAvailableUsers,
+    getWithAvailability,
     appendOrderRemark,
     isProfileOK,
     sendScheduleMsg,

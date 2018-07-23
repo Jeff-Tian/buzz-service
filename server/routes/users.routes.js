@@ -3,6 +3,7 @@ const router = new Router()
 const usersController = require('../controllers/usersController')
 const BASE_URL = '/api/v1/users'
 router.get(`${BASE_URL}/available`, usersController.getAvailableUsers)
+router.get(`${BASE_URL}/withAvailability`, usersController.getWithAvailability)
 router.get(`${BASE_URL}`, usersController.search)
 router.get(`${BASE_URL}/by-facebook/:facebook_id`, usersController.getByFacebookId)
 router.get(`${BASE_URL}/by-wechat`, usersController.getByWechat)
