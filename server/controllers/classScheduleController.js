@@ -799,7 +799,74 @@ const listByUserId = async ctx => {
     let result = await companionSearch.union(studentSearch)
     if (!_.isArray(result)) result = []
 
-    const user_id = ctx.params.user_id
+    const role = _.get(await knex('users')
+        .select('role')
+        .where({ user_id: ctx.params.user_id }), '0.role')
+    if (role === 's') {
+        const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
+        const minClass = _.chain(result)
+            .minBy('class_start_time')
+            .value()
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_end_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
+        result.push({
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
+            classes_status: status,
+            status,
+            class_id: 'rookie',
+            comment: null,
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_country: 'china',
+            companion_id: 'BuzzBuzz',
+            companion_name: 'BuzzBuzz',
+            from_user_id: null,
+            score: null,
+            title: '入门指导课',
+            to_user_id: null,
+            topic_level: 'Basic',
+            topic: '入门指导课',
+            module: 'School',
+            user_id: ctx.params.user_id,
+            room_url: 'https://zoom.us/j/2019579072',
+            zc: 0,
+        })
+    } else if (role === 'c') {
+        const minClass = _.chain(result)
+            .minBy('class_end_time')
+            .value()
+        const status = moment().isSameOrAfter(moment(_.get(minClass, 'class_end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
+        const startTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
+        const endTime = minClass ? moment(_.get(minClass, 'class_end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
+        const CURRENT_TIMESTAMP = moment().utc().format()
+        result.push({
+            CURRENT_TIMESTAMP: moment().utc().format(),
+            class_end_time: endTime,
+            end_time: endTime,
+            start_time: startTime,
+            class_start_time: startTime,
+            classes_status: status,
+            status,
+            class_id: 'observation',
+            comment: null,
+            companion_avatar: 'https://buzz-corner.user.resource.buzzbuzzenglish.com/rookie_buzzbuzz.png',
+            companion_country: 'china',
+            companion_id: 'BuzzBuzz',
+            companion_name: 'BuzzBuzz',
+            from_user_id: null,
+            score: null,
+            title: 'Observation',
+            to_user_id: null,
+            topic_level: 'Basic',
+            topic: 'Observation',
+            module: 'School',
+            user_id: ctx.params.user_id,
+        })
+    }
 
     ctx.body = result
 }
