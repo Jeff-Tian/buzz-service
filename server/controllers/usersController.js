@@ -665,7 +665,7 @@ const getWithAvailability = async ctx => {
         .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
         .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
         .select(
-            knex.raw(`(CASE WHEN users.user_id IN ${userIds} THEN 0 ELSE 1 END) as disabled`),
+            _.isEmpty(userIds) ? knex.raw('0 as disabled') : knex.raw('(CASE WHEN users.user_id IN (?) THEN 0 ELSE 1 END) as disabled', [userIds]),
             'users.user_id as user_id',
             'users.role as role',
             'users.name as name',
