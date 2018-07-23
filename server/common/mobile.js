@@ -41,9 +41,10 @@ const Mobile = {
         }
         const [mobile, country] = phone(normalInputMobile, normalInputCountry)
         if (!country) {
-            const e = new Error('invalid mobile')
-            e.statusCode = 400
-            throw e
+            // const e = new Error('invalid mobile')
+            // e.statusCode = 400
+            // throw e
+            return [inputMobile, 'CHN']
         } else if (country === 'CHN') {
             return [_.trimStart(mobile, '+86'), country]
         }
