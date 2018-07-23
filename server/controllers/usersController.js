@@ -664,6 +664,9 @@ const getWithAvailability = async ctx => {
         .joinRaw('INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0')
         .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
         .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+        .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
+        .leftJoin('user_placement_tests', 'users.user_id', 'user_placement_tests.user_id')
+        .groupBy('users.user_id')
         .select(
             _.isEmpty(userIds) ? knex.raw('0 as disabled') : knex.raw('(CASE WHEN users.user_id IN (?) THEN 0 ELSE 1 END) as disabled', [userIds]),
             'users.user_id as user_id',
@@ -672,6 +675,11 @@ const getWithAvailability = async ctx => {
             'user_social_accounts.wechat_name as wechat_name',
             'user_profiles.display_name as display_name',
             'user_profiles.mobile as mobile',
+            'user_profiles.grade as grade',
+            'user_profiles.gender as gender',
+            'user_placement_tests.level as level',
+            'user_balance.class_hours as class_hours',
+            knex.raw('group_concat(user_interests.interest) as interests'),
         )
     const result = await query
     ctx.body = result
