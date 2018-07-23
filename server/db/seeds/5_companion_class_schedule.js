@@ -1,4 +1,4 @@
-import * as timeHelper from '../../common/time-helper'
+const timeHelper = require('../../common/time-helper')
 
 exports.seed = function (knex, Promise) {
     // Deletes ALL existing entries

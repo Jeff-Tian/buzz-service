@@ -11,6 +11,7 @@ const Scheduling = require('../bll/scheduling')
 const promisify = require('../common/promisify')
 const wechat = require('../common/wechat')
 const mail = require('../common/mail')
+const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
@@ -719,11 +720,111 @@ const sendEvaluationMsg = async ctx => {
         ctx.throw(500, e)
     }
 }
+const listByUserId = async ctx => {
+    let { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
+    start_time = timeHelper.convertToDBFormat(start_time)
+    end_time = timeHelper.convertToDBFormat(end_time)
+    let companionSearch = knex('companion_class_schedule')
+        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .select(
+            knex.raw('null as comment'),
+            knex.raw('null as from_user_id'),
+            knex.raw('null as score'),
+            knex.raw('null as title'),
+            knex.raw('null as to_user_id'),
+            'companion_class_schedule.class_id as class_id',
+            'classes.status AS classes_status',
+            'classes.end_time AS class_end_time',
+            'classes.start_time AS class_start_time',
+            'classes.topic AS topic',
+            'companion_class_schedule.user_id AS companion_id',
+            'companion_class_schedule.status AS status',
+            'companion_class_schedule.start_time AS start_time',
+            'companion_class_schedule.end_time AS end_time',
+            'users.name AS companion_name',
+            'user_profiles.avatar AS companion_avatar',
+            'companion_class_schedule.user_id AS user_id',
+            'companion_class_schedule.batch_id as batch_id',
+            'user_profiles.country as companion_country'
+        )
+    if (process.env.NODE_ENV !== 'test') {
+        companionSearch = companionSearch
+            .select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+    } else {
+        companionSearch = companionSearch
+            .select(knex.fn.now())
+    }
+
+    companionSearch = companionSearch
+        .whereNotIn('classes.status', ['cancelled'])
+        .andWhere('companion_class_schedule.user_id', ctx.params.user_id)
+        .andWhere('companion_class_schedule.start_time', '>=', start_time)
+        .andWhere('companion_class_schedule.end_time', '<=', end_time)
+
+    let studentSearch = knex('student_class_schedule')
+        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+
+        .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+
+        .leftJoin('class_feedback', function () {
+            this.on(function () {
+                this.on('class_feedback.class_id', 'student_class_schedule.class_id')
+                this.andOn('class_feedback.to_user_id', 'user_profiles.user_id')
+                this.andOn('class_feedback.from_user_id', 'student_class_schedule.user_id')
+            })
+        })
+        .groupBy('classes.class_id')
+        .select(
+            'class_feedback.comment as comment',
+            'class_feedback.from_user_id as from_user_id',
+            'class_feedback.score as score',
+            'classes.name as title',
+            'class_feedback.to_user_id as to_user_id',
+            'student_class_schedule.class_id as class_id',
+            'classes.status as classes_status',
+            'classes.end_time as class_end_time',
+            'classes.start_time as class_start_time',
+            'classes.topic as topic',
+            knex.raw('group_concat(user_profiles.user_id) as companion_id'),
+            'student_class_schedule.status as status',
+            'student_class_schedule.start_time as start_time',
+            'student_class_schedule.end_time as end_time',
+            knex.raw('group_concat(users.name) as companion_name'),
+            knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
+            'student_class_schedule.user_id as user_id',
+            knex.raw('null as batch_id'),
+            knex.raw('group_concat(user_profiles.country) as companion_country'),
+        )
+
+    if (process.env.NODE_ENV !== 'test') {
+        studentSearch = studentSearch.select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+    } else {
+        studentSearch = studentSearch.select(knex.fn.now())
+    }
+
+    studentSearch = studentSearch
+        .where('student_class_schedule.user_id', ctx.params.user_id)
+        .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
+        .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
+        .andWhere('classes.status', 'not in', ['cancelled'])
+
+    let result = await companionSearch.union(studentSearch)
+    if (!_.isArray(result)) result = []
+
+    const user_id = ctx.params.user_id
+
+    ctx.body = result
+}
 
 module.exports = {
     listSuggested,
     list,
     getByUserId,
+    listByUserId,
     upsert,
     change,
     getClassByClassId,
