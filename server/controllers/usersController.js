@@ -671,6 +671,7 @@ const getWithAvailability = async ctx => {
             'users.name as name',
             'user_social_accounts.wechat_name as wechat_name',
             'user_profiles.display_name as display_name',
+            'user_profiles.mobile as mobile',
         )
     const result = await query
     ctx.body = result
