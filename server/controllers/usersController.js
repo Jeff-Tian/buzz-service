@@ -462,11 +462,12 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     })
 
     if (basicAuth.validate(ctx)) {
-        console.log('authed!!!!')
         if (typeof body.mobile !== 'undefined' && body.mobile.indexOf('*') < 0) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
             }))
+            console.log('will change mobile to ', body.mobile, '!!!')
+            logger.info(`will change mobile to (${body.mobile}) `, body.mobile, '!!!')
         }
 
         if (typeof body.email !== 'undefined' && body.email.indexOf('*') < 0) {

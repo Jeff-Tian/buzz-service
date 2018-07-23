@@ -32,6 +32,8 @@ app.use(async (ctx, next) => {
     try {
         await next()
     } catch (err) {
+        console.error(err)
+        logger.error(err)
         ctx.status = err.statusCode || err.status || 500
         ctx.body = err.message
     }
