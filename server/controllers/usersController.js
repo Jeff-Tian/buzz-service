@@ -2,6 +2,7 @@ import logger from '../common/logger'
 import Password from '../security/password'
 import { UserTags } from '../common/constants'
 import * as systemLogsDal from '../bll/system-logs'
+import { countryCodeMap } from '../common/country-code-map'
 /* eslint-disable no-template-curly-in-string */
 const _ = require('lodash')
 const moment = require('moment-timezone')
@@ -323,7 +324,7 @@ const updateWechatInfo = async user_id => {
 }
 
 const accountSignIn = async ctx => {
-    const { account, password, user_id } = ctx.request.body
+    const { account, password, user_id, mobile_country } = ctx.request.body
 
     // 判断用户输入的手机号、邮箱、密码是否为空
     if (!account) {
@@ -336,11 +337,16 @@ const accountSignIn = async ctx => {
 
     const filterMobile = { 'user_profiles.mobile': account }
     const filterEmail = { 'user_profiles.email': account }
+    const filterMobileWithCountryCode = { 'user_profiles.mobile': `00${countryCodeMap[mobile_country]}${account}` }
 
     let users = await selectUsers(true).where(filterMobile)
 
     if (!users.length) {
         users = await selectUsers(true).where(filterEmail)
+    }
+
+    if (!users.length) {
+        users = await selectUsers(true).where(filterMobileWithCountryCode)
     }
 
     if (!users.length) {
@@ -648,16 +654,19 @@ const getWithAvailability = async ctx => {
         start_time = timeHelper.convertToDBFormat(start_time)
         end_time = timeHelper.convertToDBFormat(end_time)
     }
+
     function selectConfirmed(role) {
         return knex(`${role}_class_schedule`)
             .whereRaw(`status = 'confirmed' AND ((start_time >= '${start_time}' AND start_time < '${end_time}') OR (end_time > '${start_time}' AND end_time <= '${end_time}'))`)
             .select('user_id')
     }
+
     function selectBooking(role) {
         return knex(`${role}_class_schedule`)
             .whereRaw(`status = 'booking' AND start_time <= '${start_time}' AND end_time >= '${end_time}'`)
             .select('user_id')
     }
+
     // 该时段已排班的用户
     const confirmedUsers = (hasSchedule && _.map(await selectConfirmed('student').union(selectConfirmed('companion')), 'user_id')) || []
     // 该时段有时间的用户
