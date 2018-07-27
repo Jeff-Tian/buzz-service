@@ -510,7 +510,6 @@ const change = async ctx => {
 
         const endedClassIds = (await sql).map(c => c.class_id)
 
-
         logger.info(`尝试批量结束班级：${endedClassIds.join(', ')}`)
 
         if (endedClassIds.length) {
