@@ -769,6 +769,7 @@ const listByUserId = async ctx => {
             .select(knex.fn.now())
     }
 
+    
     companionSearch = companionSearch
         .whereNotIn('classes.status', ['cancelled'])
         .andWhere('companion_class_schedule.user_id', ctx.params.user_id)
