@@ -114,7 +114,7 @@ const getClassByClassId = async ctx => {
     if (class_id === 'rookie') {
         const user_id = ctx.query.user_id
         const result = user_id ? await getClassesByUserId(user_id) : []
-        const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
+        const status = _.find(result, i => i.status === 'ended') ? 'ended' : 'confirmed'
         const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment().subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
@@ -837,7 +837,7 @@ const listByUserId = async ctx => {
         .select('role')
         .where({user_id: ctx.params.user_id}), '0.role')
     if (role === 's') {
-        const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
+        const status = _.find(result, i => i.status === 'ended') ? 'ended' : 'confirmed'
         const minClass = _.chain(result)
             .minBy('class_start_time')
             .value()
