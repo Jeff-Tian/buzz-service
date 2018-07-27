@@ -784,6 +784,7 @@ const listByUserId = async ctx => {
         .andWhere('companion_class_schedule.start_time', '>=', start_time)
         .andWhere('companion_class_schedule.end_time', '<=', end_time)
 
+    
     let studentSearch = knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
 
