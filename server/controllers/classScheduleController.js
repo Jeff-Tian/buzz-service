@@ -1,6 +1,6 @@
 import logger from '../common/logger'
 import * as userBll from '../bll/user'
-import { NeedChargeThreshold, UserTags } from '../common/constants'
+import {NeedChargeThreshold, UserTags} from '../common/constants'
 
 const _ = require('lodash')
 const bluebird = require('bluebird')
@@ -16,8 +16,8 @@ const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
-const { getUsersByClassId, getClassesByUserId } = require('../bll/user')
-const { getAllClassHours } = require('../bll/class-hours')
+const {getUsersByClassId, getClassesByUserId} = require('../bll/user')
+const {getAllClassHours} = require('../bll/class-hours')
 const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
@@ -51,7 +51,7 @@ const uniformTime = function (theStartTime, theEndTime) {
     } else {
         end_time = undefined
     }
-    return { start_time, end_time }
+    return {start_time, end_time}
 }
 
 function filterByTime(search, start_time, end_time) {
@@ -219,9 +219,9 @@ function sortSearch(selecting, ctx) {
 
 const list = async ctx => {
     try {
-        const { start_time, end_time } = uniformTime(ctx.query.start_time, ctx.query.end_time)
+        const {start_time, end_time} = uniformTime(ctx.query.start_time, ctx.query.end_time)
         const statuses = ctx.query.statuses
-        let { user_ids } = ctx.query
+        let {user_ids} = ctx.query
         if (user_ids && !_.isArray(user_ids)) {
             user_ids = [user_ids]
         }
@@ -268,8 +268,8 @@ const getByUserId = async ctx => {
     try {
         const user_id = ctx.params.user_id
         ctx.body = await knex('classes').orderBy('classes.start_time', 'DESC')
-            .whereIn('class_id', knex.select('class_id').from('student_class_schedule').where({ user_id }).union(function () {
-                this.select('class_id').from('companion_class_schedule').where({ user_id })
+            .whereIn('class_id', knex.select('class_id').from('student_class_schedule').where({user_id}).union(function () {
+                this.select('class_id').from('companion_class_schedule').where({user_id})
             }))
             .paginate(ctx.query.per_page, ctx.query.current_page)
     } catch (error) {
@@ -294,7 +294,7 @@ const addScheduleJob = async (oldClass, newClass) => {
         await request({
             uri: `${config.endPoints.bullService}/api/v1/task/schedule`,
             method: 'POST',
-            body: { user_ids: newUsers, start_time },
+            body: {user_ids: newUsers, start_time},
             json: true,
         })
     } catch (e) {
@@ -330,7 +330,7 @@ const sendRenewTpl = async classInfo => {
 }
 
 const upsert = async ctx => {
-    const { body } = ctx.request
+    const {body} = ctx.request
 
     let oldClassInfo = {}
     if (body.class_id) {
@@ -384,14 +384,14 @@ const upsert = async ctx => {
             if (JSON.stringify(data) !== '{}') {
                 await trx('classes')
                     .update(data)
-                    .where({ class_id: body.class_id })
+                    .where({class_id: body.class_id})
 
                 console.log('updated ', data)
             }
 
             let originalCompanions = await trx('companion_class_schedule')
                 .select('user_id')
-                .where({ class_id: body.class_id })
+                .where({class_id: body.class_id})
 
             console.log('original companions = ', originalCompanions)
 
@@ -402,7 +402,7 @@ const upsert = async ctx => {
             if (toBeDeletedCompanionSchedules.length) {
                 await trx('companion_class_schedule')
                     .where('user_id', 'in', toBeDeletedCompanionSchedules)
-                    .andWhere({ class_id: body.class_id })
+                    .andWhere({class_id: body.class_id})
                     .del()
 
                 console.log('deleted ', toBeDeletedCompanionSchedules)
@@ -426,7 +426,7 @@ const upsert = async ctx => {
             companionSchedules = companionSchedules.filter(s => originalCompanions.indexOf(s.user_id) < 0)
             let originalStudents = await trx('student_class_schedule')
                 .select('user_id')
-                .where({ class_id: body.class_id })
+                .where({class_id: body.class_id})
 
             console.log('original students = \', ', originalStudents)
 
@@ -535,7 +535,7 @@ const change = async ctx => {
             transactionExecuted = true
         }
 
-        ctx.body = { message: 'done' }
+        ctx.body = {message: 'done'}
         ctx.status = 200
     } catch (error) {
         logger.error(error)
@@ -544,7 +544,7 @@ const change = async ctx => {
         }
 
         ctx.status = 400
-        ctx.body = { message: 'error', error }
+        ctx.body = {message: 'error', error}
     }
 }
 
@@ -552,7 +552,7 @@ const endClass = async ctx => {
     const trx = await promisify(knex.transaction)
     try {
         const classId = ctx.params.class_id
-        const { endTime } = ctx.request.body
+        const {endTime} = ctx.request.body
         logger.info('需要修改班级状态的班级classID：', classId)
         logger.info('设置定时器的时间endTime：', endTime)
         const cronTime = new Date(endTime).getTime()
@@ -612,11 +612,13 @@ const endClass = async ctx => {
 
 const sendDayClassBeginMsg = async ctx => {
     try {
-        const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({
+        const {class_id} = ctx.request.body
+        const {classInfo, students, companions} = await getUsersByClassId({
             class_id,
-            class_status: ['opened'],
+            class_status: ['opened']
         })
+        // 不发送禁止通知的课的通知
+        if (classInfo.notification_disabled) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
@@ -631,7 +633,7 @@ const sendDayClassBeginMsg = async ctx => {
             }
         })
         ctx.status = 200
-        ctx.body = { done: true }
+        ctx.body = {done: true}
     } catch (e) {
         logger.error(e)
         ctx.throw(500, e)
@@ -640,11 +642,13 @@ const sendDayClassBeginMsg = async ctx => {
 
 const sendMinuteClassBeginMsg = async ctx => {
     try {
-        const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({
+        const {class_id} = ctx.request.body
+        const {classInfo, students, companions} = await getUsersByClassId({
             class_id,
-            class_status: ['opened'],
+            class_status: ['opened']
         })
+        // 不发送禁止通知的课的通知
+        if (classInfo.notification_disabled) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
@@ -659,7 +663,7 @@ const sendMinuteClassBeginMsg = async ctx => {
             }
         })
         ctx.status = 200
-        ctx.body = { done: true }
+        ctx.body = {done: true}
     } catch (e) {
         logger.error(e)
         ctx.throw(500, e)
@@ -668,11 +672,13 @@ const sendMinuteClassBeginMsg = async ctx => {
 
 const sendNowClassBeginMsg = async ctx => {
     try {
-        const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({
+        const {class_id} = ctx.request.body
+        const {classInfo, students, companions} = await getUsersByClassId({
             class_id,
-            class_status: ['opened'],
+            class_status: ['opened']
         })
+        // 不发送禁止通知的课的通知
+        if (classInfo.notification_disabled) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         let room_url = classInfo.room_url || ''
@@ -690,7 +696,7 @@ const sendNowClassBeginMsg = async ctx => {
             }
         })
         ctx.status = 200
-        ctx.body = { done: true }
+        ctx.body = {done: true}
     } catch (e) {
         logger.error(e)
         ctx.throw(500, e)
@@ -699,9 +705,11 @@ const sendNowClassBeginMsg = async ctx => {
 
 const sendEvaluationMsg = async ctx => {
     try {
-        const { class_id } = ctx.request.body
+        const {class_id} = ctx.request.body
         // 担心课程状态错误 先不限制取 class_status: ['ended']
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id })
+        const {classInfo, students, companions} = await getUsersByClassId({class_id})
+        // 不发送禁止通知或禁止评价的课的通知
+        if (classInfo.notification_disabled || classInfo.evaluate_disabled) return
         // 不发送未来的通知
         if (moment(classInfo.end_time).isAfter(moment())) return
         await bluebird.map(students, async i => {
@@ -720,14 +728,14 @@ const sendEvaluationMsg = async ctx => {
             }
         })
         ctx.status = 200
-        ctx.body = { done: true }
+        ctx.body = {done: true}
     } catch (e) {
         logger.error(e)
         ctx.throw(500, e)
     }
 }
 const listByUserId = async ctx => {
-    let { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
+    let {start_time, end_time} = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
     start_time = timeHelper.convertToDBFormat(start_time)
     end_time = timeHelper.convertToDBFormat(end_time)
     let companionSearch = knex('companion_class_schedule')
@@ -823,7 +831,7 @@ const listByUserId = async ctx => {
 
     const role = _.get(await knex('users')
         .select('role')
-        .where({ user_id: ctx.params.user_id }), '0.role')
+        .where({user_id: ctx.params.user_id}), '0.role')
     if (role === 's') {
         const status = _.find(result, i => i.classes_status === 'ended') ? 'ended' : 'confirmed'
         const minClass = _.chain(result)
