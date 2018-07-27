@@ -481,14 +481,14 @@ const change = async ctx => {
 
             await trx('companion_class_schedule')
                 .where('class_id', 'in', endedClassIds)
-            await trx('companion_class_schedule')
-                .where('class_id', 'in', endedClassIds)
+                .andWhere('status', 'in', ['confirmed'])
                 .update({
                     status: 'ended',
                 })
 
             await trx('student_class_schedule')
                 .where('class_id', 'in', endedClassIds)
+                .andWhere('status', 'in', ['confirmed'])
                 .update({
                     status: 'ended',
                 })
