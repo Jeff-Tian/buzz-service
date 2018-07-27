@@ -510,6 +510,7 @@ const change = async ctx => {
 
         const endedClassIds = (await sql).map(c => c.class_id)
 
+
         logger.info(`尝试批量结束班级：${endedClassIds.join(', ')}`)
 
         if (endedClassIds.length) {
@@ -538,7 +539,7 @@ const change = async ctx => {
             transactionExecuted = true
         }
 
-        ctx.body = {message: 'done'}
+        ctx.body = { message: 'done' }
         ctx.status = 200
     } catch (error) {
         logger.error(error)
