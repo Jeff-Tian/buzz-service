@@ -503,7 +503,7 @@ const change = async ctx => {
     try {
         const sql = knex('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
-            .andWhereRaw(' end_time <= NOW() ')
+            .andWhereRaw(' end_time <= UTC_TIMESTAMP() ')
             .select('class_id')
 
         logger.info(`sql = ${JSON.stringify(sql.toSQL())}`)
