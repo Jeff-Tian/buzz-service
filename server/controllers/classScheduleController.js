@@ -481,6 +481,8 @@ const change = async ctx => {
 
             await trx('companion_class_schedule')
                 .where('class_id', 'in', endedClassIds)
+            await trx('companion_class_schedule')
+                .where('class_id', 'in', endedClassIds)
                 .update({
                     status: 'ended',
                 })
@@ -503,6 +505,9 @@ const change = async ctx => {
         if (transactionExecuted) {
             await trx.rollback()
         }
+
+        ctx.status = 400
+        ctx.body = { message: 'error', error }
     }
 }
 
