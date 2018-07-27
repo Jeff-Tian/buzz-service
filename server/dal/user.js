@@ -150,7 +150,7 @@ module.exports = {
             .where('users.role', r)
             .groupBy('users.user_id')
             .select(
-                knex.raw('(CASE WHEN (user_profiles.weekly_schedule_requirements IS NULL OR user_profiles.weekly_schedule_requirements = \'\') THEN 1 ELSE user_profiles.weekly_schedule_requirements END) as req'),
+                knex.raw('(CASE WHEN (user_profiles.weekly_schedule_requirements IS NULL AND user_profiles.weekly_schedule_requirements != 0) THEN 1 ELSE user_profiles.weekly_schedule_requirements END) as req'),
                 knex.raw('(CASE WHEN (user_balance.class_hours IS NULL OR user_balance.class_hours  = \'\') THEN 0 ELSE user_balance.class_hours END) as hours'),
                 'users.user_id as user_id',
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
