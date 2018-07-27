@@ -7,7 +7,7 @@ export default class ClassScheduleDAL {
     static async hasClassSchedules(userId) {
         function searchClassSchedulesFrom(table) {
             return knex
-                .select('class_id', 'status', 'start_time', 'end_time')
+                .select('class_id', 'status', 'start_time', 'end_time', 'notification_disabled', 'evaluate_disabled')
                 .from(table)
                 .where('user_id', '=', userId)
         }
