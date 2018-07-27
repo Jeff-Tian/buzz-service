@@ -466,9 +466,9 @@ const change = async ctx => {
             .andWhereRaw(' end_time <= NOW() ')
             .select('class_id')
 
-        logger.info(`sql = ${sql.toSQL()}`)
+        logger.info(`sql = ${JSON.stringify(sql.toSQL())}`)
 
-        const endedClassIds = await sql
+        const endedClassIds = (await sql).map(c => c.class_id)
 
         logger.info(`尝试批量结束班级：${endedClassIds.join(', ')}`)
 
