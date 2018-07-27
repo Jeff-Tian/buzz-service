@@ -1,6 +1,6 @@
 exports.up = function (knex, Promise) {
     return knex.schema.table('companion_class_schedule', table => {
-        table.text('remark')
+        table.string('remark')
         if (process.env.NODE_ENV !== 'test') {
             table.dropForeign('user_id')
         }
