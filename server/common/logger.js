@@ -5,7 +5,12 @@ fundebug.apikey = '94756ccf446bb3095ab55793f767a5ba2c74b21d9e6f8b947eb4b1447e59e
 
 log4js.configure({
     appenders: {
-        file: { type: 'file', filename: 'buzz-corner-service.log', maxLogSize: 10485760, backups: 3 },
+        file: {
+            type: 'file',
+            filename: 'buzz-corner-service.log',
+            maxLogSize: 10485760,
+            backups: 3,
+        },
         console: { type: 'stdout' },
     },
     categories: {
@@ -32,6 +37,10 @@ Function.prototype.before = function (func) {
 
 logger.error = logger.error.before(function (err) {
     fundebug.notifyError.call(this, err)
+})
+
+logger.info = logger.info.before(message => {
+    fundebug.notify.call(this, '信息', message)
 })
 
 export default logger
