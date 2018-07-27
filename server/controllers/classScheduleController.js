@@ -547,7 +547,7 @@ const change = async ctx => {
         }
 
         ctx.status = 400
-        ctx.body = {message: 'error', error}
+        ctx.body = { message: 'error', error }
     }
 }
 
