@@ -618,7 +618,8 @@ const sendDayClassBeginMsg = async ctx => {
             class_status: ['opened']
         })
         // 不发送禁止通知的课的通知
-        if (classInfo.notification_disabled) return
+        const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
+        if (_.get(classDetail, 'notification_disabled')) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
@@ -648,7 +649,8 @@ const sendMinuteClassBeginMsg = async ctx => {
             class_status: ['opened']
         })
         // 不发送禁止通知的课的通知
-        if (classInfo.notification_disabled) return
+        const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
+        if (_.get(classDetail, 'notification_disabled')) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         await bluebird.map(students, async i => {
@@ -678,7 +680,8 @@ const sendNowClassBeginMsg = async ctx => {
             class_status: ['opened']
         })
         // 不发送禁止通知的课的通知
-        if (classInfo.notification_disabled) return
+        const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
+        if (_.get(classDetail, 'notification_disabled')) return
         // 不发送过去的通知
         if (moment(classInfo.start_time).isBefore(moment())) return
         let room_url = classInfo.room_url || ''
@@ -709,7 +712,8 @@ const sendEvaluationMsg = async ctx => {
         // 担心课程状态错误 先不限制取 class_status: ['ended']
         const {classInfo, students, companions} = await getUsersByClassId({class_id})
         // 不发送禁止通知或禁止评价的课的通知
-        if (classInfo.notification_disabled || classInfo.evaluate_disabled) return
+        const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
+        if (_.get(classDetail, 'notification_disabled') || _.get(classDetail, 'evaluate_disabled')) return
         // 不发送未来的通知
         if (moment(classInfo.end_time).isAfter(moment())) return
         await bluebird.map(students, async i => {
