@@ -318,7 +318,10 @@ const sendRenewTpl = async classInfo => {
         await bluebird.map(users, async user_id => {
             const all_class_hours = await getAllClassHours(user_id)
             if (all_class_hours <= NeedChargeThreshold) {
-                await userBll.tryAddTags(user_id, [{ name: UserTags.NeedCharge, remark: '计算总课时数时课时不足自动添加此标签' }])
+                await userBll.tryAddTags(user_id, [{
+                    name: UserTags.NeedCharge,
+                    remark: '计算总课时数时课时不足自动添加此标签',
+                }])
                 await wechat.sendRenewTpl(user_id, all_class_hours).catch(e => {
                     logger.error('sendRenewTplErr', e)
                 })
@@ -496,51 +499,44 @@ const upsert = async ctx => {
 
 const change = async ctx => {
     const trx = await promisify(knex.transaction)
+    let transactionExecuted = false
     try {
-        const listAll = await trx('classes')
+        const endedClassIds = await knex('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
-            .select()
-        const currentTime = new Date().getTime()
-        /* let filtrateList = new Set() */
-        const arr = []
+            .andWhereRaw(' end_time <= NOW() ')
+            .select('class_id')
 
-        for (let c = 0; c < listAll.length; c++) {
-            const searchTime = new Date(listAll[c].end_time).getTime()
-            if (searchTime < currentTime) {
-                /* filtrateList = filtrateList.add(listAll[c]) */
-                arr.push(listAll[c].class_id)
-            }
-        }
-        if (arr.length) {
+        if (endedClassIds.length) {
             await trx('classes')
-                .where('class_id', 'in', arr)
+                .where('class_id', 'in', endedClassIds)
                 .update({
                     status: 'ended',
                 })
 
             await trx('companion_class_schedule')
-                .where('class_id', 'in', arr)
+                .where('class_id', 'in', endedClassIds)
                 .update({
                     status: 'ended',
                 })
 
             await trx('student_class_schedule')
-                .where('class_id', 'in', arr)
+                .where('class_id', 'in', endedClassIds)
                 .update({
                     status: 'ended',
                 })
+
+            await trx.commit()
+
+            transactionExecuted = true
         }
 
-        await trx.commit()
-
-        const listEnd = await knex('classes')
-            .select()
-
-        ctx.body = listEnd
+        ctx.body = 'done'
         ctx.status = 200
     } catch (error) {
         logger.error(error)
-        await trx.rollback()
+        if (transactionExecuted) {
+            await trx.rollback()
+        }
     }
 }
 
