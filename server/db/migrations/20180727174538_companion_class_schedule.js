@@ -2,6 +2,7 @@ exports.up = function (knex, Promise) {
     return knex.schema.table('companion_class_schedule', table => {
         table.string('remark')
         table.dropUnique(['user_id', 'start_time', 'status'])
+
         table.unique(['user_id', 'start_time', 'status', 'remark'])
         if (process.env.NODE_ENV !== 'test') {
             table.foreign('user_id').references('users.user_id').onDelete('CASCADE').onUpdate('CASCADE')
