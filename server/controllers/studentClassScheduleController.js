@@ -101,6 +101,8 @@ const list = async ctx => {
             user_id: ctx.params.user_id,
             room_url: 'https://zoom.us/j/2019579072',
             zc: 0,
+            evaluate_disabled: true,
+            notification_disabled: true,
         })
         ctx.body = result
     } catch (error) {

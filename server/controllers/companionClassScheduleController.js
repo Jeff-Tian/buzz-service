@@ -90,6 +90,8 @@ const list = async ctx => {
             topic: 'Observation',
             module: 'School',
             user_id: ctx.params.user_id,
+            evaluate_disabled: true,
+            notification_disabled: true,
         })
         ctx.body = result
     } catch (error) {
