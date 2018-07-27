@@ -461,10 +461,16 @@ const change = async ctx => {
     const trx = await promisify(knex.transaction)
     let transactionExecuted = false
     try {
-        const endedClassIds = await knex('classes')
+        const sql = knex('classes')
             .where('status', 'not in', ['ended', 'cancelled'])
             .andWhereRaw(' end_time <= NOW() ')
             .select('class_id')
+
+        logger.info(`sql = ${sql.toSQL()}`)
+
+        const endedClassIds = await sql
+
+        logger.info(`尝试批量结束班级：${endedClassIds.join(', ')}`)
 
         if (endedClassIds.length) {
             await trx('classes')
@@ -490,7 +496,7 @@ const change = async ctx => {
             transactionExecuted = true
         }
 
-        ctx.body = 'done'
+        ctx.body = { message: 'done' }
         ctx.status = 200
     } catch (error) {
         logger.error(error)
