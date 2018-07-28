@@ -3,7 +3,7 @@ exports.up = function (knex, Promise) {
         table.string('remark')
 
         table.unique(['user_id', 'start_time', 'status', 'remark'])
-        if (process.env.NODE_ENV !== 'test') {
+        if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'qa') {
             table.foreign('user_id').references('users.user_id').onDelete('CASCADE').onUpdate('CASCADE')
         }
     })
