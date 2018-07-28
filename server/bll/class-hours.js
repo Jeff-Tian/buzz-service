@@ -19,7 +19,7 @@ const countFrozenClassHours = async (user_id, trx = knex) => {
 const getAllClassHours = async (user_id, trx = knex) => {
     const balance = _.get(await trx('user_balance').select('class_hours').where({ user_id }), '0.class_hours')
     const frozenClassHours = await countFrozenClassHours(user_id, trx)
-    return _.toInteger(balance) + _.toInteger(frozenClassHours)
+    return _.toNumber(balance) + _.toNumber(frozenClassHours)
 }
 
 async function getCurrentClassHours(trx, user_id) {
