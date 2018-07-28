@@ -353,9 +353,7 @@ const accountSignIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
-    console.log('before filter:', users)
     users = users.filter(u => Password.compare(password, u.password))
-    console.log('after filter:', users)
 
     if (Number(user_id) > 0) {
         users = users.filter(u => Number(u.user_id) === Number(user_id))
@@ -648,7 +646,14 @@ const getAvailableUsers = async ctx => {
 const getWithAvailability = async ctx => {
     // role: ['c', 's']
     const { role } = ctx.query
-    let { start_time, end_time } = ctx.query
+    let { start_time, end_time, currentUserIds } = ctx.query
+    if (!_.isArray(currentUserIds)) {
+        if (_.size(currentUserIds) > 0) {
+            currentUserIds = [currentUserIds]
+        } else {
+            currentUserIds = []
+        }
+    }
     const hasSchedule = start_time && end_time
     if (hasSchedule) {
         start_time = timeHelper.convertToDBFormat(start_time)
@@ -673,7 +678,7 @@ const getWithAvailability = async ctx => {
     const bookingUsers = (hasSchedule && _.map(await selectBooking('student').union(selectBooking('companion')), 'user_id')) || []
     const userIds = (hasSchedule && _.difference(bookingUsers, confirmedUsers)) || []
     let query = knex('users')
-        .joinRaw('INNER JOIN user_balance ON user_balance.user_id = users.user_id AND user_balance.class_hours > 0')
+        .leftJoin('user_balance', 'users.user_id', 'user_balance.user_id')
         .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
         .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
         .leftJoin('user_interests', 'users.user_id', 'user_interests.user_id')
@@ -696,6 +701,11 @@ const getWithAvailability = async ctx => {
         )
     if (!_.isEmpty(role)) {
         query = query.whereIn('users.role', role)
+    }
+    if (_.isEmpty(currentUserIds)) {
+        query = query.whereRaw('user_balance.class_hours > 0')
+    } else {
+        query = query.whereRaw(`user_balance.class_hours > 0 OR users.user_id IN (${currentUserIds})`)
     }
     const result = await query
     ctx.body = result
