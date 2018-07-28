@@ -353,9 +353,7 @@ const accountSignIn = async ctx => {
         return ctx.throw(404, 'The requested user does not exists')
     }
 
-    console.log('before filter:', users)
     users = users.filter(u => Password.compare(password, u.password))
-    console.log('after filter:', users)
 
     if (Number(user_id) > 0) {
         users = users.filter(u => Number(u.user_id) === Number(user_id))
