@@ -1,16 +1,17 @@
-import * as userBookings from './test-data-generators/user-bookings'
 import * as classHours from '../server/bll/class-hours'
-import { UserTags, NeedChargeThreshold, ClassStatusCode } from '../server/common/constants'
+import {
+    UserTags,
+    NeedChargeThreshold,
+    ClassStatusCode,
+} from '../server/common/constants'
 
 const common = require('./test-helpers/common')
-const { server, should, chai, knex } = require('./test-helpers/prepare')
-const PATH = '/api/v1/users'
+const { should, knex } = require('./test-helpers/prepare')
 const userBll = require('../server/bll/user')
 const userHelper = require('./test-helpers/user')
 
 describe('routes: users', () => {
     before(async () => {
-        await knex.migrate.rollback()
         await knex.migrate.latest()
         await knex.seed.run()
     })

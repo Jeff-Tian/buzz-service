@@ -1,7 +1,7 @@
 const Scheduling = require('../../server/bll/scheduling')
 const chai = require('chai')
 const should = chai.should()
-describe('scheduling tests', () => {
+describe.skip('scheduling tests', () => {
     it('should make groups', () => {
         const studentBookings = [{
             user_id: 1,
