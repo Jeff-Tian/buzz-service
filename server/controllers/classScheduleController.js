@@ -917,9 +917,19 @@ const getOptionalList = async ctx => {
         .whereIn('student_class_schedule.status', ['confirmed', 'ended'])
         .select(
             'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key',
-            'classes.start_time',
-            'classes.end_time'
-        )
+            'student_class_schedule.class_id',
+            'student_class_schedule.status',
+            'student_class_schedule.start_time',
+            'student_class_schedule.end_time'
+        ).orderBy('student_class_schedule.status', 'desc')
+        .orderBy('student_class_schedule.start_time', 'desc')
+    const recommend_class_id = _.chain(user_classes)
+        .find(i => i.status === 'ended')
+        .get('class_id')
+        .value()
+    const recommend_companion_id = recommend_class_id && await knex('companion_class_schedule')
+        .where('class_id', recommend_class_id)
+        .select('user_id')
     const user_contents = _.map(user_classes, 'content_key')
     const user_time_query = _.chain(user_classes)
         .map(i => `(student_class_schedule.start_time >= ${i.end_time} OR student_class_schedule.end_time >= ${i.start_time})`)
@@ -927,8 +937,10 @@ const getOptionalList = async ctx => {
         .value()
     let query = knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('classes', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
         .groupBy('classes.class_id')
+        .whereNotNull('student_class_schedule.class_id')
         .whereIn('classes.allow_sign_up', [true, 1, '1'])
         .whereIn('student_class_schedule.status', ['confirmed'])
         .whereNotIn('student_class_schedule.user_id', [user_id])
@@ -939,7 +951,10 @@ const getOptionalList = async ctx => {
             'COUNT(DISTINCT student_class_schedule.user_id) AS student_count',
             'MAX(user_profiles.grade) AS max_grade',
             'MIN(user_profiles.grade) AS min_grade',
-            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key'
+            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key',
+            knex.raw('group_concat(user_profiles.grade) as grades'),
+            knex.raw('group_concat(companion_class_schedule.user_id) as companion_ids'),
+            knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_ids) > 0) THEN 1 ELSE NULL END) as recommend`),
         )
         .having('student_count', '<', 3)
         .havingRaw(`${user_grade + 2} <= max_grade AND ${user_grade - 2} >= min_grade`)
