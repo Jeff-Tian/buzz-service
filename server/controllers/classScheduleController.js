@@ -905,6 +905,51 @@ const listByUserId = async ctx => {
     ctx.body = result
 }
 
+const getOptionalList = async ctx => {
+    const { user_id, date } = ctx.query
+    const user = _.get(await knex('user_profiles')
+        .select('grade')
+        .where('user_profiles.user_id', user_id), 0)
+    const user_grade = _.get(user, '0.grade')
+    const user_classes = await knex('student_class_schedule')
+        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+        .where('student_class_schedule.user_id', user_id)
+        .whereIn('student_class_schedule.status', ['confirmed', 'ended'])
+        .select(
+            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key',
+            'classes.start_time',
+            'classes.end_time'
+        )
+    const user_contents = _.map(user_classes, 'content_key')
+    const user_time_query = _.chain(user_classes)
+        .map(i => `(student_class_schedule.start_time >= ${i.end_time} OR student_class_schedule.end_time >= ${i.start_time})`)
+        .join(' OR ')
+        .value()
+    let query = knex('student_class_schedule')
+        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+        .groupBy('classes.class_id')
+        .whereIn('classes.allow_sign_up', [true, 1, '1'])
+        .whereIn('student_class_schedule.status', ['confirmed'])
+        .whereNotIn('student_class_schedule.user_id', [user_id])
+        .where('student_class_schedule.start_time', '>', timeHelper.convertToDBFormat(moment(date).add(1, 'h').toISOString()))
+        .where('student_class_schedule.start_time', '<', timeHelper.convertToDBFormat(moment(date).add(1, 'd').hour(0).minute(0).second(0).millisecond(0).toISOString()))
+        .whereIn('classes.topic', ['confirmed'])
+        .select(
+            'COUNT(DISTINCT student_class_schedule.user_id) AS student_count',
+            'MAX(user_profiles.grade) AS max_grade',
+            'MIN(user_profiles.grade) AS min_grade',
+            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key'
+        )
+        .having('student_count', '<', 3)
+        .havingRaw(`${user_grade + 2} <= max_grade AND ${user_grade - 2} >= min_grade`)
+        .havingRaw(`content_key NOT IN (${user_contents})`)
+    if (_.size(user_time_query) > 0) {
+        query = query.whereRaw(user_time_query)
+    }
+    ctx.body = await query
+}
+
 module.exports = {
     listSuggested,
     list,
@@ -919,4 +964,5 @@ module.exports = {
     sendMinuteClassBeginMsg,
     sendNowClassBeginMsg,
     sendEvaluationMsg,
+    getOptionalList,
 }
