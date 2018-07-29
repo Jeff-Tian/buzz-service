@@ -1,12 +1,10 @@
 import moment from 'moment'
 import * as common from '../test-helpers/common'
 
-const { server, should, chai, knex } = require('../test-helpers/prepare')
-
 export default class Groups {
-    static async createClass(companions, students) {
+    static async createClass(companions, students, subscribers) {
         const startTime = moment().add('h', 10).set('minute', 0).set('second', 0)
-        const res = await common.makeRequest('post', '/api/v1/class-schedule', {
+        return (await common.makeRequest('post', '/api/v1/class-schedule', {
             advisor_id: null,
             name: 'A test class group',
             level: 'level test',
@@ -19,6 +17,7 @@ export default class Groups {
             exercises: ['empty'],
             students,
             companions,
-        })
+            subscribers,
+        })).body
     }
 }

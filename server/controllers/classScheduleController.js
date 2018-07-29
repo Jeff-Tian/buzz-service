@@ -118,7 +118,6 @@ const getClassByClassId = async ctx => {
         const minClass = _.chain(result)
             .minBy('start_time')
             .value()
-        const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         body = [{
@@ -154,7 +153,6 @@ const getClassByClassId = async ctx => {
         const status = moment().isSameOrAfter(moment(_.get(minClass, 'end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
         const startTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
         const endTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
-        const CURRENT_TIMESTAMP = moment().utc().format()
         body = [{
             CURRENT_TIMESTAMP: moment().utc().format(),
             class_end_time: endTime,
@@ -477,6 +475,8 @@ const upsert = async ctx => {
                 }))
         }
 
+        await classSchedules.saveSubscribers(trx, body.subscribers, classIds[0])
+
         await trx.commit()
 
         ctx.status = body.class_id ? 200 : 201
@@ -618,7 +618,10 @@ const endClass = async ctx => {
 const sendDayClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return
@@ -646,7 +649,10 @@ const sendDayClassBeginMsg = async ctx => {
 const sendMinuteClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return
@@ -674,7 +680,10 @@ const sendMinuteClassBeginMsg = async ctx => {
 const sendNowClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return
