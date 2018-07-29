@@ -2,6 +2,23 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 
+export function getSubscribersByClassIdSubQuery(classId = undefined) {
+    let q = knex('class_subscribers')
+    if (classId) {
+        q = q
+            .select(knex.raw('group_concat(user_id) as subscribers'))
+            .where('class_id', '=', classId)
+    } else {
+        q = q.select(knex.raw('group_concat(user_id) as subscribers'), 'class_id')
+    }
+
+    q = q
+        .groupBy('class_subscribers.class_id')
+        .as('subscribers')
+
+    return q
+}
+
 export default class ClassScheduleDAL {
     static async hasClassSchedules(userId) {
         function searchClassSchedulesFrom(table) {

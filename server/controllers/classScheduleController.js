@@ -1,6 +1,7 @@
 import logger from '../common/logger'
 import * as userBll from '../bll/user'
 import { NeedChargeThreshold, UserTags } from '../common/constants'
+import { getSubscribersByClassIdSubQuery } from '../dal/class-schedules'
 
 const _ = require('lodash')
 const bluebird = require('bluebird')
@@ -81,10 +82,7 @@ const getClassById = async function (classId) {
     const companionsSubQuery = knex('companion_class_schedule')
         .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
         .as('companions')
-    const subscribersSubQuery = knex('class_subscribers')
-        .select(knex.raw('group_concat(user_id) as subscribers'))
-        .where('class_id', '=', classId).groupBy('class_subscribers.class_id')
-        .as('subscribers')
+    const subscribersSubQuery = getSubscribersByClassIdSubQuery(classId)
     const companionsNamesSubQuery = knex('companion_class_schedule')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(knex.raw('group_concat(users.name) as companion_name'))
@@ -243,11 +241,13 @@ const list = async ctx => {
 
         const selecting =
             knex('classes')
-                .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'classes.notification_disabled as notification_disabled', 'classes.allow_sign_up as allow_sign_up', 'classes.class_hours as class_hours', 'classes.evaluate_disabled as evaluate_disabled', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
+                .select('classes.class_id as class_id', 'classes.adviser_id' +
+                    ' as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'classes.notification_disabled as notification_disabled', 'classes.allow_sign_up as allow_sign_up', 'classes.class_hours as class_hours', 'classes.evaluate_disabled as evaluate_disabled', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar', 'subscribers.subscribers as subscribers')
                 .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
                 .select(process.env.NODE_ENV !== 'test' ? knex.raw('abs(timestampdiff(MICROSECOND, classes.start_time, UTC_TIMESTAMP)) as diff') : knex.raw('abs(julianday("now") - julianday("classes.start_time")) as diff'))
                 .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
                 .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+                .leftJoin(getSubscribersByClassIdSubQuery(), 'classes.class_id', 'subscribers.class_id')
 
         let search = sortSearch(selecting, ctx)
 
