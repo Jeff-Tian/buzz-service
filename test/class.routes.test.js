@@ -5,7 +5,6 @@ const { server, should, chai, knex } = require('./test-helpers/prepare')
 // Rollback, commit and populate the test database before each test
 describe('routes: class schedules', () => {
     beforeEach(async () => {
-        await knex.migrate.rollback()
         await knex.migrate.latest()
         await knex.seed.run()
     })

@@ -37,8 +37,10 @@ module.exports = {
     },
 
     async saveSubscribers(trx, subscribers, classId) {
-        await ClassScheduleDAL.removeAllSubscribers(trx, classId)
-        await ClassScheduleDAL.addSubscribers(trx, subscribers, classId)
+        if (subscribers.length) {
+            await ClassScheduleDAL.removeAllSubscribers(trx, classId)
+            await ClassScheduleDAL.addSubscribers(trx, subscribers, classId)
+        }
     },
 
     async getSubscribers(classId) {

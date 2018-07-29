@@ -81,6 +81,10 @@ const getClassById = async function (classId) {
     const companionsSubQuery = knex('companion_class_schedule')
         .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
         .as('companions')
+    const subscribersSubQuery = knex('class_subscribers')
+        .select(knex.raw('group_concat(user_id) as subscribers'))
+        .where('class_id', '=', classId).groupBy('class_subscribers.class_id')
+        .as('subscribers')
     const companionsNamesSubQuery = knex('companion_class_schedule')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(knex.raw('group_concat(users.name) as companion_name'))
@@ -102,6 +106,7 @@ const getClassById = async function (classId) {
         .select(companionsSubQuery)
         .select(companionsNamesSubQuery)
         .select(companionsAvatarsSubQuery)
+        .select(subscribersSubQuery)
 
     return (await selecting)[0]
 }
@@ -475,7 +480,7 @@ const upsert = async ctx => {
                 }))
         }
 
-        await classSchedules.saveSubscribers(trx, body.subscribers, classIds[0])
+        await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
 
         await trx.commit()
 
@@ -492,7 +497,7 @@ const upsert = async ctx => {
         logger.error(error)
 
         await trx.rollback()
-        ctx.status = 500
+        ctx.status = 400
         ctx.body = {
             error: `Save class failed! ${error.message}`,
         }
