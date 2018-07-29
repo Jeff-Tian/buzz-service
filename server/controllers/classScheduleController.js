@@ -907,16 +907,22 @@ const listByUserId = async ctx => {
 
 const getOptionalList = async ctx => {
     const { user_id, date } = ctx.query
+    if (!date) {
+        throw new Error('invalid date')
+    }
     const user = _.get(await knex('user_profiles')
         .select('grade')
         .where('user_profiles.user_id', user_id), 0)
-    const user_grade = _.get(user, '0.grade')
+    const user_grade = _.get(user, 'grade')
+    if (!user_grade) {
+        throw new Error('invalid grade')
+    }
     const user_classes = await knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
         .where('student_class_schedule.user_id', user_id)
         .whereIn('student_class_schedule.status', ['confirmed', 'ended'])
         .select(
-            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key',
+            process.env.NODE_ENV !== 'test' ? knex.raw('CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key') : knex.raw('(classes.module || \',\' || classes.topic || \',\' || classes.topic_level) AS content_key'),
             'student_class_schedule.class_id',
             'student_class_schedule.status',
             'student_class_schedule.start_time',
@@ -927,18 +933,30 @@ const getOptionalList = async ctx => {
         .find(i => i.status === 'ended')
         .get('class_id')
         .value()
-    const recommend_companion_id = recommend_class_id && await knex('companion_class_schedule')
+    const recommend_companion_id = recommend_class_id && _.get(await knex('companion_class_schedule')
         .where('class_id', recommend_class_id)
-        .select('user_id')
+        .whereNotNull('user_id')
+        .select('user_id'), '0.user_id')
     const user_contents = _.map(user_classes, 'content_key')
     const user_time_query = _.chain(user_classes)
-        .map(i => `(student_class_schedule.start_time >= ${i.end_time} OR student_class_schedule.end_time >= ${i.start_time})`)
+        .map(i => `(student_class_schedule.start_time >= '${i.end_time}' OR student_class_schedule.end_time >= '${i.start_time}')`)
         .join(' OR ')
         .value()
     let query = knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
-        .leftJoin('classes', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
-        .leftJoin('user_profiles', 'student_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
+        .leftJoin('user_profiles as student_user_profiles', 'student_class_schedule.user_id', 'student_user_profiles.user_id')
+
+        .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
+        .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
+        .leftJoin('class_feedback', function () {
+            this.on(function () {
+                this.on('class_feedback.class_id', 'student_class_schedule.class_id')
+                this.andOn('class_feedback.to_user_id', 'user_profiles.user_id')
+                this.andOn('class_feedback.from_user_id', 'student_class_schedule.user_id')
+            })
+        })
+
         .groupBy('classes.class_id')
         .whereNotNull('student_class_schedule.class_id')
         .whereIn('classes.allow_sign_up', [true, 1, '1'])
@@ -946,22 +964,47 @@ const getOptionalList = async ctx => {
         .whereNotIn('student_class_schedule.user_id', [user_id])
         .where('student_class_schedule.start_time', '>', timeHelper.convertToDBFormat(moment(date).add(1, 'h').toISOString()))
         .where('student_class_schedule.start_time', '<', timeHelper.convertToDBFormat(moment(date).add(1, 'd').hour(0).minute(0).second(0).millisecond(0).toISOString()))
-        .whereIn('classes.topic', ['confirmed'])
+        .orderBy('student_class_schedule.start_time', 'asc')
         .select(
-            'COUNT(DISTINCT student_class_schedule.user_id) AS student_count',
-            'MAX(user_profiles.grade) AS max_grade',
-            'MIN(user_profiles.grade) AS min_grade',
-            'CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key',
-            knex.raw('group_concat(user_profiles.grade) as grades'),
-            knex.raw('group_concat(companion_class_schedule.user_id) as companion_ids'),
-            knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_ids) > 0) THEN 1 ELSE NULL END) as recommend`),
+            'class_feedback.comment as comment',
+            'class_feedback.from_user_id as from_user_id',
+            'class_feedback.score as score',
+            'classes.name as title',
+            'class_feedback.to_user_id as to_user_id',
+            'student_class_schedule.class_id as class_id',
+            'classes.status as classes_status',
+            'classes.end_time as class_end_time',
+            'classes.start_time as class_start_time',
+            'classes.topic as topic',
+            knex.raw('group_concat(user_profiles.user_id) as companion_id'),
+            'student_class_schedule.status as status',
+            'student_class_schedule.start_time as start_time',
+            'student_class_schedule.end_time as end_time',
+            knex.raw('group_concat(users.name) as companion_name'),
+            knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
+            'student_class_schedule.user_id as user_id',
+            knex.raw('null as batch_id'),
+            knex.raw('group_concat(user_profiles.country) as companion_country'),
+
+            knex.raw('COUNT(DISTINCT student_class_schedule.user_id) AS student_count'),
+            knex.raw('MAX(student_user_profiles.grade) AS max_grade'),
+            knex.raw('MIN(student_user_profiles.grade) AS min_grade'),
+            process.env.NODE_ENV !== 'test' ? knex.raw('CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key') : knex.raw('(classes.module || \',\' || classes.topic || \',\' || classes.topic_level) AS content_key'),
+            knex.raw('group_concat(student_user_profiles.grade) as grades'),
+            process.env.NODE_ENV !== 'test' ? knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_id) > 0) THEN 1 ELSE NULL END) as recommend`) : knex.raw('NULL AS recommend'),
         )
         .having('student_count', '<', 3)
-        .havingRaw(`${user_grade + 2} <= max_grade AND ${user_grade - 2} >= min_grade`)
-        .havingRaw(`content_key NOT IN (${user_contents})`)
+        .havingRaw(`ABS(max_grade - ${user_grade}) <= 2 AND ABS(${user_grade} - min_grade) <= 2`)
+        .havingNotIn('content_key', user_contents)
     if (_.size(user_time_query) > 0) {
         query = query.whereRaw(user_time_query)
     }
+    if (process.env.NODE_ENV !== 'test') {
+        query = query.select(knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"'))
+    } else {
+        query = query.select(knex.fn.now())
+    }
+    knex.on('query', query => { logger.info('optional', query.sql, query.bindings) })
     ctx.body = await query
 }
 
