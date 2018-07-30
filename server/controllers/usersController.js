@@ -271,6 +271,7 @@ const create = async ctx => {
             user_id: users[0],
             avatar: body.avatar || '',
             mobile: body.mobile,
+            grade: body.grade,
         })
 
         const userSocialAccounts = await trx('user_social_accounts').insert({

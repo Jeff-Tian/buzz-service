@@ -919,6 +919,7 @@ const getOptionalList = async ctx => {
     }
     const user_classes = await knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+        .whereNotIn('classes.status', ['cancelled'])
         .where('student_class_schedule.user_id', user_id)
         .whereIn('student_class_schedule.status', ['confirmed', 'ended'])
         .select(
@@ -940,7 +941,7 @@ const getOptionalList = async ctx => {
     const user_contents = _.map(user_classes, 'content_key')
     const user_time_query = _.chain(user_classes)
         .map(i => `(student_class_schedule.start_time >= '${i.end_time}' OR student_class_schedule.end_time >= '${i.start_time}')`)
-        .join(' OR ')
+        .join(' AND ')
         .value()
     let query = knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
@@ -959,9 +960,10 @@ const getOptionalList = async ctx => {
 
         .groupBy('classes.class_id')
         .whereNotNull('student_class_schedule.class_id')
+        .whereNotIn('classes.status', ['cancelled'])
         .whereIn('classes.allow_sign_up', [true, 1, '1'])
         .whereIn('student_class_schedule.status', ['confirmed'])
-        .whereNotIn('student_class_schedule.user_id', [user_id])
+        .whereNot('student_class_schedule.user_id', user_id)
         .where('student_class_schedule.start_time', '>', timeHelper.convertToDBFormat(moment(date).add(1, 'h').toISOString()))
         .where('student_class_schedule.start_time', '<', timeHelper.convertToDBFormat(moment(date).add(1, 'd').hour(0).minute(0).second(0).millisecond(0).toISOString()))
         .orderBy('student_class_schedule.start_time', 'asc')
@@ -976,21 +978,21 @@ const getOptionalList = async ctx => {
             'classes.end_time as class_end_time',
             'classes.start_time as class_start_time',
             'classes.topic as topic',
-            knex.raw('group_concat(user_profiles.user_id) as companion_id'),
+            knex.raw('group_concat(DISTINCT user_profiles.user_id) as companion_id'),
             'student_class_schedule.status as status',
             'student_class_schedule.start_time as start_time',
             'student_class_schedule.end_time as end_time',
-            knex.raw('group_concat(users.name) as companion_name'),
-            knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
+            knex.raw('group_concat(DISTINCT users.name) as companion_name'),
+            knex.raw('group_concat(DISTINCT user_profiles.avatar) as companion_avatar'),
             'student_class_schedule.user_id as user_id',
             knex.raw('null as batch_id'),
-            knex.raw('group_concat(user_profiles.country) as companion_country'),
+            knex.raw('group_concat(DISTINCT user_profiles.country) as companion_country'),
 
             knex.raw('COUNT(DISTINCT student_class_schedule.user_id) AS student_count'),
             knex.raw('MAX(student_user_profiles.grade) AS max_grade'),
             knex.raw('MIN(student_user_profiles.grade) AS min_grade'),
             process.env.NODE_ENV !== 'test' ? knex.raw('CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key') : knex.raw('(classes.module || \',\' || classes.topic || \',\' || classes.topic_level) AS content_key'),
-            knex.raw('group_concat(student_user_profiles.grade) as grades'),
+            knex.raw('group_concat(DISTINCT student_user_profiles.grade) as grades'),
             process.env.NODE_ENV !== 'test' ? knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_id) > 0) THEN 1 ELSE NULL END) as recommend`) : knex.raw('NULL AS recommend'),
         )
         .having('student_count', '<', 3)
@@ -1004,7 +1006,7 @@ const getOptionalList = async ctx => {
     } else {
         query = query.select(knex.fn.now())
     }
-    knex.on('query', query => { logger.info('optional', query.sql, query.bindings) })
+    // knex.on('query', query => { logger.info('optional', query.sql, query.bindings) })
     ctx.body = await query
 }
 
