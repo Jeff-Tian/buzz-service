@@ -249,6 +249,7 @@ describe('routes: class schedules', () => {
                 students: classmateIds,
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })).body.class_id
         })
@@ -282,6 +283,7 @@ describe('routes: class schedules', () => {
                 topic_level: '主题级别1',
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -299,6 +301,7 @@ describe('routes: class schedules', () => {
                 students: [...classmateIds, currentUserId],
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -316,6 +319,7 @@ describe('routes: class schedules', () => {
                 students: [currentUserId],
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -334,6 +338,7 @@ describe('routes: class schedules', () => {
                 topic_level: '主题级别1',
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -352,6 +357,7 @@ describe('routes: class schedules', () => {
                 topic_level: '主题级别1',
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: false,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -370,6 +376,7 @@ describe('routes: class schedules', () => {
                 topic_level: '主题级别1',
                 level: '等级1',
                 name: '名称1',
+                class_hours: 1,
                 allow_sign_up: true,
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
@@ -407,8 +414,26 @@ describe('routes: class schedules', () => {
                     user_id: currentUserId,
                 })}`)
             } catch (err) {
+                console.error(err)
                 should.exist(err)
             }
+        })
+        it('选修课详情: 强制检查课时', async () => {
+            try {
+                await common.makeRequest('put', `/api/v1/user-balance/${currentUserId}`, {
+                    class_hours: 0.5,
+                })
+                await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId, check_class_hours: true })}`)
+            } catch (err) {
+                console.error(err)
+                should.exist(err)
+            }
+            await common.makeRequest('put', `/api/v1/user-balance/${currentUserId}`, {
+                class_hours: 1,
+            })
+            const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId, check_class_hours: true })}`)
+            listRes.body.length.should.eql(1)
+            listRes.body[0].class_id.should.eql(classIds[0])
         })
         it('选修课详情: 正常', async () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)

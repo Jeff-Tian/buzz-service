@@ -919,14 +919,19 @@ const listByUserId = async ctx => {
     ctx.body = result
 }
 
-const getOptionalList = async ({ user_id, date, class_id }) => {
+const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) => {
+    if (!user_id) {
+        throw new Error('invalid user_id')
+    }
     if (!class_id && !date) {
         throw new Error('invalid date')
     }
     const user = _.get(await knex('user_profiles')
-        .select('grade')
+        .leftJoin('user_balance', 'user_balance.user_id', 'user_profiles.user_id')
+        .select('user_balance.class_hours', 'user_profiles.grade')
         .where('user_profiles.user_id', user_id), 0)
     const user_grade = _.get(user, 'grade')
+    const user_class_hours = _.get(user, 'class_hours')
     if (!user_grade) {
         throw new Error('invalid grade')
     }
@@ -998,6 +1003,7 @@ const getOptionalList = async ({ user_id, date, class_id }) => {
             knex.raw('null as batch_id'),
             knex.raw('group_concat(DISTINCT user_profiles.country) as companion_country'),
 
+            'classes.class_hours as class_hours',
             knex.raw('COUNT(DISTINCT student_class_schedule.user_id) AS student_count'),
             knex.raw('MAX(student_user_profiles.grade) AS max_grade'),
             knex.raw('MIN(student_user_profiles.grade) AS min_grade'),
@@ -1042,6 +1048,11 @@ const getOptionalList = async ({ user_id, date, class_id }) => {
             throw e
         }
         result = [await getClassById(_.get(result, '0.class_id'))]
+        if (check_class_hours && _.get(result, '0.class_hours') > user_class_hours) {
+            const e = new Error('当前的课时数不足')
+            e.status = 400
+            throw e
+        }
     }
     return result
 }
