@@ -25,8 +25,9 @@ describe('routes: users', () => {
         result.status.should.eql(200)
         result.body.should.eql(false)
     }
+
     before(async () => {
-        await knex.migrate.rollback()
+        // await knex.migrate.rollback()
         await knex.migrate.latest()
         await knex.seed.run()
     })

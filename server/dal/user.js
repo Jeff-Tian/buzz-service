@@ -8,6 +8,21 @@ const moment = require('moment-timezone')
 const _ = require('lodash')
 const timeHelper = require('../common/time-helper')
 
+function countClassHoursSubQuery(classStatusCodes, asTableName) {
+    return knex
+        .from(function () {
+            this.select('user_id').count({ class_hours: 'user_id' }).from('student_class_schedule')
+                .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+                .whereIn('classes.status', classStatusCodes).groupBy('user_id').as('t1')
+        }, false)
+        .unionAll(function () {
+            this.select('user_id').count({ class_hours: 'user_id' }).from('companion_class_schedule')
+                .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+                .whereIn('classes.status', classStatusCodes).groupBy('user_id')
+        }, false)
+        .as(asTableName)
+}
+
 module.exports = {
     joinTables(filters = {}) {
         const interestsSubQuery = knex('user_interests').select('user_id', knex.raw('group_concat(interest) as interests')).groupBy('user_id').as('user_interests')
@@ -18,19 +33,8 @@ module.exports = {
         }
         userTagsSubQuery = userTagsSubQuery.groupBy('user_id').as('user_tags')
 
-        const lockedClassHoursSubQuery =
-            knex
-                .from(function () {
-                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('student_class_schedule')
-                        .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
-                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id').as('t1')
-                }, false)
-                .unionAll(function () {
-                    this.select('user_id').count({ locked_class_hours: 'user_id' }).from('companion_class_schedule')
-                        .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
-                        .whereIn('classes.status', [ClassStatusCode.Open]).groupBy('user_id')
-                }, false)
-                .as('user_locked_class_hours')
+        const lockedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.Open], 'user_locked_class_hours')
+        const bookedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.Open, ClassStatusCode.Cancelled], 'user_booked_class_hours')
 
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
@@ -40,6 +44,7 @@ module.exports = {
             .leftJoin(userTagsSubQuery, 'users.user_id', 'user_tags.user_id')
             .leftJoin(interestsSubQuery, 'users.user_id', 'user_interests.user_id')
             .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
+            .leftJoin(bookedClassHoursSubQuery, 'users.user_id', 'user_booked_class_hours.user_id')
             .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
@@ -63,7 +68,8 @@ module.exports = {
                 isContextSecure ? 'user_profiles.password as password' : knex.raw('(CASE WHEN user_profiles.password IS NOT NULL THEN "******" ELSE null END) as password'),
                 'user_interests.interests',
                 'user_tags.tags',
-                'user_locked_class_hours.locked_class_hours'
+                'user_locked_class_hours.class_hours as locked_class_hours',
+                'user_booked_class_hours.class_hours as booked_class_hours'
             )
     },
     async get(userId, isContextSecure = false) {
