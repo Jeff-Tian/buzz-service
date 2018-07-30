@@ -402,6 +402,22 @@ describe('routes: class schedules', () => {
             listRes.body[0].class_id.should.eql(classIds[0])
             listRes.body[0].recommend.should.equal(true)
         })
+        it('参加选修课: 不可参加', async () => {
+            try {
+                const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
+                console.log(listRes.body)
+            } catch (err) {
+                console.error(err)
+                should.exist(err)
+            }
+        })
+        it('参加选修课: 可参加', async () => {
+            await common.makeRequest('put', `/api/v1/user-balance/${currentUserId}`, {
+                class_hours: 1,
+            })
+            const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
+            listRes.body.students.split(',').map(_.toNumber).should.include(currentUserId)
+        })
         it('选修课详情: 无法参加', async () => {
             try {
                 let listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)

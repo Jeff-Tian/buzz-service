@@ -1063,6 +1063,23 @@ const getOptionalListCtrl = async ctx => {
 const getOptionalByClassId = async ctx => {
     ctx.body = await getOptionalList({ ...ctx.query, ...ctx.params })
 }
+const joinOptionalByClassId = async ctx => {
+    const class_id = ctx.params.class_id
+    const { user_id } = ctx.query
+    await getOptionalList({ user_id, class_id, check_class_hours: true })
+    const class_info = await getClassById(class_id)
+    class_info.students = _.chain(class_info.students)
+        .split(',')
+        .concat(user_id)
+        .map(_.toNumber)
+        .value()
+    class_info.companions = _.chain(class_info.companions)
+        .split(',')
+        .map(_.toNumber)
+        .value()
+    ctx.request.body = class_info
+    await upsert(ctx)
+}
 
 module.exports = {
     listSuggested,
@@ -1080,4 +1097,5 @@ module.exports = {
     sendEvaluationMsg,
     getOptionalList: getOptionalListCtrl,
     getOptionalByClassId,
+    joinOptionalByClassId,
 }
