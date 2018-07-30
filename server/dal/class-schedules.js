@@ -47,4 +47,10 @@ export default class ClassScheduleDAL {
             .select('class_id', 'user_id')
             .where('class_id', classId)
     }
+
+    static async getClassHours(classId) {
+        return (await knex('classes')
+            .select('class_hours')
+            .where('class_id', classId))[0]
+    }
 }

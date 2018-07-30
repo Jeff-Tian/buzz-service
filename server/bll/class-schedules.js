@@ -9,9 +9,9 @@ module.exports = {
             .andWhere({ class_id: classId })
             .del()
 
-        console.log('deleted: ', userIds)
+        const classHoursOfClass = await ClassScheduleDAL.getClassHours(classId)
 
-        await Promise.all(userIds.map(userId => classHours.charge(trx, userId, 1, `cancelled booking for class id = ${classId}`)))
+        await Promise.all(userIds.map(userId => classHours.charge(trx, userId, classHoursOfClass, `cancelled booking for class id = ${classId}`)))
     },
 
     async addStudents(trx, studentSchedules, classId) {
@@ -19,12 +19,13 @@ module.exports = {
             s.class_id = classId
             return s
         })
-        console.log('inserting ', data)
-        const startTime = await trx('student_class_schedule')
-            .returning('start_time')
+
+        await trx('student_class_schedule')
             .insert(data)
 
-        await Promise.all(studentSchedules.map(s => classHours.consume(trx, s.user_id, 1, `booked a class id = ${classId}`)))
+        const classHoursOfClass = await ClassScheduleDAL.getClassHours(classId)
+
+        await Promise.all(studentSchedules.map(s => classHours.consume(trx, s.user_id, classHoursOfClass, `booked a class id = ${classId}`)))
     },
 
     validateClass(classData) {

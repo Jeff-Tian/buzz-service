@@ -49,6 +49,7 @@ const search = async ctx => {
 
         let search = userDal.joinTables(filters)
             .orderBy('users.created_at', 'desc')
+
         if (role) {
             filters['users.role'] = role
             const wsr = ctx.query.weekly_schedule_requirements
