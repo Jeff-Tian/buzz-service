@@ -1,7 +1,5 @@
-const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
-const userBll = require('../server/bll/user')
 
 describe('routes: users', () => {
     before(async () => {
@@ -15,7 +13,8 @@ describe('routes: users', () => {
     })
 
     describe(`GET ${PATH}?role=s`, () => {
-        it('列表返回 booked_class_hours 和 locked_class_hours', done => {
+        it('列表返回 consumed_class_hours, booked_class_hours 和' +
+            ' locked_class_hours', done => {
             chai
                 .request(server)
                 .get(`${PATH}?role=s`)
@@ -24,7 +23,7 @@ describe('routes: users', () => {
                     res.status.should.eql(200)
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(2)
-                    res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'country', 'city', 'booked_class_hours', 'locked_class_hours')
+                    res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'country', 'city', 'booked_class_hours', 'locked_class_hours', 'consumed_class_hours')
                     done()
                 })
         })

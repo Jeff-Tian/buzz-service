@@ -36,6 +36,8 @@ module.exports = {
         const lockedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.Open], 'user_locked_class_hours')
         const bookedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.Open, ClassStatusCode.Cancelled], 'user_booked_class_hours')
 
+        const consumedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.End], 'user_consumed_class_hours')
+
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
@@ -45,6 +47,7 @@ module.exports = {
             .leftJoin(interestsSubQuery, 'users.user_id', 'user_interests.user_id')
             .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
             .leftJoin(bookedClassHoursSubQuery, 'users.user_id', 'user_booked_class_hours.user_id')
+            .leftJoin(consumedClassHoursSubQuery, 'users.user_id', 'user_consumed_class_hours.user_id')
             .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
@@ -69,7 +72,8 @@ module.exports = {
                 'user_interests.interests',
                 'user_tags.tags',
                 'user_locked_class_hours.class_hours as locked_class_hours',
-                'user_booked_class_hours.class_hours as booked_class_hours'
+                'user_booked_class_hours.class_hours as booked_class_hours',
+                'user_consumed_class_hours.class_hours as consumed_class_hours'
             )
     },
     async get(userId, isContextSecure = false) {
