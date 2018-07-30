@@ -261,6 +261,13 @@ describe('routes: class schedules', () => {
                 grade: 7,
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)).body.length.should.eql(0)
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
+                grade: null,
+            })
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[1]}`, {
+                grade: null,
+            });
+            (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)).body.length.should.eql(0)
         })
         it('选修课列表: 班级人数不符合', async () => {
             await common.makeRequest('post', '/api/v1/class-schedule', {
@@ -387,6 +394,26 @@ describe('routes: class schedules', () => {
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
             listRes.body[0].recommend.should.equal(true)
+        })
+        it('选修课详情: 无法参加', async () => {
+            try {
+                let listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
+                listRes = await common.makeRequest('get', `${PATH}/optional/${_.chain(listRes)
+                    .get('body')
+                    .map('class_id')
+                    .max()
+                    .add(1)
+                    .value()}?${queryString.stringify({
+                    user_id: currentUserId,
+                })}`)
+            } catch (err) {
+                should.exist(err)
+            }
+        })
+        it('选修课详情: 正常', async () => {
+            const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
+            listRes.body.length.should.eql(1)
+            listRes.body[0].class_id.should.eql(classIds[0])
         })
     })
 })

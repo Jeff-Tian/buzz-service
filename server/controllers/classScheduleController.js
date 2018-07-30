@@ -919,9 +919,8 @@ const listByUserId = async ctx => {
     ctx.body = result
 }
 
-const getOptionalList = async ctx => {
-    const { user_id, date } = ctx.query
-    if (!date) {
+const getOptionalList = async ({ user_id, date, class_id }) => {
+    if (!class_id && !date) {
         throw new Error('invalid date')
     }
     const user = _.get(await knex('user_profiles')
@@ -971,15 +970,12 @@ const getOptionalList = async ctx => {
                 this.andOn('class_feedback.from_user_id', 'student_class_schedule.user_id')
             })
         })
-
         .groupBy('classes.class_id')
         .whereNotNull('student_class_schedule.class_id')
         .whereNotIn('classes.status', ['cancelled'])
         .whereIn('classes.allow_sign_up', [true, 1, '1'])
         .whereIn('student_class_schedule.status', ['confirmed'])
         .whereNot('student_class_schedule.user_id', user_id)
-        .where('student_class_schedule.start_time', '>', timeHelper.convertToDBFormat(moment(date).add(1, 'h').toISOString()))
-        .where('student_class_schedule.start_time', '<', timeHelper.convertToDBFormat(moment(date).add(1, 'd').hour(0).minute(0).second(0).millisecond(0).toISOString()))
         .orderBy('student_class_schedule.start_time', 'asc')
         .select(
             'class_feedback.comment as comment',
@@ -1020,9 +1016,14 @@ const getOptionalList = async ctx => {
     } else {
         query = query.select(knex.fn.now())
     }
-    // knex.on('query', query => { logger.info('optional', query.sql, query.bindings) })
-    const result = await query
-    ctx.body = _.map(result, i => ({
+    if (date) {
+        query = query.where('student_class_schedule.start_time', '>', timeHelper.convertToDBFormat(moment(date).add(1, 'h').toISOString()))
+            .where('student_class_schedule.start_time', '<', timeHelper.convertToDBFormat(moment(date).add(1, 'd').hour(0).minute(0).second(0).millisecond(0).toISOString()))
+    }
+    if (class_id) {
+        query = query.where('classes.class_id', class_id)
+    }
+    let result = _.map(await query, i => ({
         ...i,
         recommend: _.chain(i)
             .get('grades')
@@ -1034,6 +1035,22 @@ const getOptionalList = async ctx => {
             .includes(recommend_companion_id)
             .value(),
     }))
+    if (class_id) {
+        if (_.isEmpty(result)) {
+            const e = new Error('该班级已无法报名参加')
+            e.status = 400
+            throw e
+        }
+        result = [await getClassById(_.get(result, '0.class_id'))]
+    }
+    return result
+}
+
+const getOptionalListCtrl = async ctx => {
+    ctx.body = await getOptionalList(ctx.query)
+}
+const getOptionalByClassId = async ctx => {
+    ctx.body = await getOptionalList({ ...ctx.query, ...ctx.params })
 }
 
 module.exports = {
@@ -1050,5 +1067,6 @@ module.exports = {
     sendMinuteClassBeginMsg,
     sendNowClassBeginMsg,
     sendEvaluationMsg,
-    getOptionalList,
+    getOptionalList: getOptionalListCtrl,
+    getOptionalByClassId,
 }
