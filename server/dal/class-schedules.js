@@ -1,7 +1,23 @@
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
-const _ = require('lodash')
+
+export function getSubscribersByClassIdSubQuery(classId = undefined) {
+    let q = knex('class_subscribers')
+    if (classId) {
+        q = q
+            .select(knex.raw('group_concat(user_id) as subscribers'))
+            .where('class_id', '=', classId)
+    } else {
+        q = q.select(knex.raw('group_concat(user_id) as subscribers'), 'class_id')
+    }
+
+    q = q
+        .groupBy('class_subscribers.class_id')
+        .as('subscribers')
+
+    return q
+}
 
 export default class ClassScheduleDAL {
     static async hasClassSchedules(userId) {
@@ -13,5 +29,22 @@ export default class ClassScheduleDAL {
         }
 
         return await searchClassSchedulesFrom('student_class_schedule').unionAll(searchClassSchedulesFrom('companion_class_schedule'))
+    }
+
+    static async removeAllSubscribers(trx, classId) {
+        await trx('class_subscribers').where('class_id', classId).del()
+    }
+
+    static async addSubscribers(trx, subscribers, classId) {
+        await trx('class_subscribers').insert(subscribers.map(userId => ({
+            class_id: classId,
+            user_id: userId,
+        })))
+    }
+
+    static async getSubscribers(classId) {
+        return await knex('class_subscribers')
+            .select('class_id', 'user_id')
+            .where('class_id', classId)
     }
 }

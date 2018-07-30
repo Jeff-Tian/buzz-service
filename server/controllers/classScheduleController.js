@@ -1,6 +1,7 @@
 import logger from '../common/logger'
 import * as userBll from '../bll/user'
 import { NeedChargeThreshold, UserTags } from '../common/constants'
+import { getSubscribersByClassIdSubQuery } from '../dal/class-schedules'
 
 const _ = require('lodash')
 const bluebird = require('bluebird')
@@ -81,6 +82,7 @@ const getClassById = async function (classId) {
     const companionsSubQuery = knex('companion_class_schedule')
         .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
         .as('companions')
+    const subscribersSubQuery = getSubscribersByClassIdSubQuery(classId)
     const companionsNamesSubQuery = knex('companion_class_schedule')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(knex.raw('group_concat(users.name) as companion_name'))
@@ -102,6 +104,7 @@ const getClassById = async function (classId) {
         .select(companionsSubQuery)
         .select(companionsNamesSubQuery)
         .select(companionsAvatarsSubQuery)
+        .select(subscribersSubQuery)
 
     return (await selecting)[0]
 }
@@ -118,7 +121,6 @@ const getClassByClassId = async ctx => {
         const minClass = _.chain(result)
             .minBy('start_time')
             .value()
-        const CURRENT_TIMESTAMP = moment().utc().format()
         const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         body = [{
@@ -154,7 +156,6 @@ const getClassByClassId = async ctx => {
         const status = moment().isSameOrAfter(moment(_.get(minClass, 'end_time')).add(48, 'h')) ? 'ended' : 'confirmed'
         const startTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').hour(0).minute(0).second(0).millisecond(0).utc().format() : moment().hour(0).minute(0).second(0).millisecond(0).utc().format()
         const endTime = minClass ? moment(_.get(minClass, 'end_time')).add(48, 'h').utc().format() : moment().hour(23).minute(59).second(0).millisecond(0).utc().format()
-        const CURRENT_TIMESTAMP = moment().utc().format()
         body = [{
             CURRENT_TIMESTAMP: moment().utc().format(),
             class_end_time: endTime,
@@ -240,11 +241,13 @@ const list = async ctx => {
 
         const selecting =
             knex('classes')
-                .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'classes.notification_disabled as notification_disabled', 'classes.allow_sign_up as allow_sign_up', 'classes.class_hours as class_hours', 'classes.evaluate_disabled as evaluate_disabled', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar')
+                .select('classes.class_id as class_id', 'classes.adviser_id' +
+                    ' as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'classes.notification_disabled as notification_disabled', 'classes.allow_sign_up as allow_sign_up', 'classes.class_hours as class_hours', 'classes.evaluate_disabled as evaluate_disabled', 'students.students as students', 'classes.topic_level as topic_level', 'classes.module as module', 'companions.companions as companions', 'companions.companion_name as companion_name', 'companions.companion_avatar as companion_avatar', 'subscribers.subscribers as subscribers')
                 .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
                 .select(process.env.NODE_ENV !== 'test' ? knex.raw('abs(timestampdiff(MICROSECOND, classes.start_time, UTC_TIMESTAMP)) as diff') : knex.raw('abs(julianday("now") - julianday("classes.start_time")) as diff'))
                 .leftJoin(studentsSubQuery, 'classes.class_id', 'students.class_id')
                 .leftJoin(companionsSubQuery, 'classes.class_id', 'companions.class_id')
+                .leftJoin(getSubscribersByClassIdSubQuery(), 'classes.class_id', 'subscribers.class_id')
 
         let search = sortSearch(selecting, ctx)
 
@@ -477,6 +480,8 @@ const upsert = async ctx => {
                 }))
         }
 
+        await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
+
         await trx.commit()
 
         ctx.status = body.class_id ? 200 : 201
@@ -492,7 +497,7 @@ const upsert = async ctx => {
         logger.error(error)
 
         await trx.rollback()
-        ctx.status = 500
+        ctx.status = 400
         ctx.body = {
             error: `Save class failed! ${error.message}`,
         }
@@ -618,7 +623,10 @@ const endClass = async ctx => {
 const sendDayClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return
@@ -646,7 +654,10 @@ const sendDayClassBeginMsg = async ctx => {
 const sendMinuteClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return
@@ -674,7 +685,10 @@ const sendMinuteClassBeginMsg = async ctx => {
 const sendNowClassBeginMsg = async ctx => {
     try {
         const { class_id } = ctx.request.body
-        const { classInfo, students, companions } = await getUsersByClassId({ class_id, class_status: ['opened'] })
+        const { classInfo, students, companions } = await getUsersByClassId({
+            class_id,
+            class_status: ['opened'],
+        })
         // 不发送禁止通知的课的通知
         const classDetail = _.get(await knex('classes').where('class_id', class_id), 0)
         if (_.get(classDetail, 'notification_disabled')) return

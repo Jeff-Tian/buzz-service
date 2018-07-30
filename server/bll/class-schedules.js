@@ -1,4 +1,7 @@
+import ClassScheduleDAL from '../dal/class-schedules'
+
 const classHours = require('./class-hours')
+
 module.exports = {
     async removeStudents(trx, userIds, classId) {
         await trx('student_class_schedule')
@@ -31,5 +34,16 @@ module.exports = {
         if (now > classStartTime) {
             throw new Error('课程开始时间不应该在过去')
         }
+    },
+
+    async saveSubscribers(trx, subscribers, classId) {
+        if (subscribers.length) {
+            await ClassScheduleDAL.removeAllSubscribers(trx, classId)
+            await ClassScheduleDAL.addSubscribers(trx, subscribers, classId)
+        }
+    },
+
+    async getSubscribers(classId) {
+        return await ClassScheduleDAL.getSubscribers(classId)
     },
 }
