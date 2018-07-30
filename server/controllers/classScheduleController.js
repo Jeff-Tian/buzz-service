@@ -1007,7 +1007,7 @@ const getOptionalList = async ctx => {
             knex.raw('MIN(student_user_profiles.grade) AS min_grade'),
             process.env.NODE_ENV !== 'test' ? knex.raw('CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key') : knex.raw('(classes.module || \',\' || classes.topic || \',\' || classes.topic_level) AS content_key'),
             knex.raw('group_concat(DISTINCT student_user_profiles.grade) as grades'),
-            process.env.NODE_ENV !== 'test' ? knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_id) > 0) THEN 1 ELSE NULL END) as recommend`) : knex.raw('NULL AS recommend'),
+            // process.env.NODE_ENV !== 'test' ? knex.raw(`(CASE WHEN (FIND_IN_SET(${user_grade}, grades) > 0 OR FIND_IN_SET(${recommend_companion_id}, companion_id) > 0) THEN 1 ELSE NULL END) as recommend`) : knex.raw('NULL AS recommend'),
         )
         .having('student_count', '<', 3)
         .havingRaw(`ABS(max_grade - ${user_grade}) <= 2 AND ABS(${user_grade} - min_grade) <= 2`)
@@ -1021,7 +1021,19 @@ const getOptionalList = async ctx => {
         query = query.select(knex.fn.now())
     }
     // knex.on('query', query => { logger.info('optional', query.sql, query.bindings) })
-    ctx.body = await query
+    const result = await query
+    ctx.body = _.map(result, i => ({
+        ...i,
+        recommend: _.chain(i)
+            .get('grades')
+            .split(',')
+            .includes(user_grade)
+            .value() || _.chain(i)
+            .get('companion_id')
+            .split(',')
+            .includes(recommend_companion_id)
+            .value(),
+    }))
 }
 
 module.exports = {

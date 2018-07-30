@@ -224,6 +224,10 @@ describe('routes: class schedules', () => {
                 name: '老师1',
                 role: 'c',
             })).body
+            companionIds[1] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '老师2',
+                role: 'c',
+            })).body
             classmateIds[0] = (await common.makeRequest('post', '/api/v1/users', {
                 name: '同学1',
                 role: 's',
@@ -295,14 +299,14 @@ describe('routes: class schedules', () => {
         })
         it('选修课列表: 课程时间重叠', async () => {
             await common.makeRequest('post', '/api/v1/class-schedule', {
-                companions: [companionIds[0]],
+                companions: [companionIds[1]],
                 start_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').toISOString()),
                 end_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(25, 'm').toISOString()),
                 status: 'ended',
                 module: '模块1',
                 topic: '主题1',
                 topic_level: '主题级别1',
-                students: [...classmateIds, currentUserId],
+                students: [currentUserId],
                 level: '等级1',
                 name: '名称1',
                 allow_sign_up: true,
@@ -368,10 +372,21 @@ describe('routes: class schedules', () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').add(1, 'h').toISOString() })}`)
             listRes.body.length.should.eql(0)
         })
-        it('选修课列表', async () => {
+        it('选修课列表: 水平不一致不推荐', async () => {
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
+                grade: 2,
+            });
+            (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)).body[0].recommend.should.equal(true)
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[1]}`, {
+                grade: 6,
+            });
+            (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)).body[0].recommend.should.equal(false)
+        })
+        it('选修课列表: 正常', async () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
+            listRes.body[0].recommend.should.equal(true)
         })
     })
 })
