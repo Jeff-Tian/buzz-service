@@ -10,7 +10,7 @@ const countFrozenClassHours = async (user_id, trx = knex) => {
     const result = await trx('classes')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
         .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
-        .countDistinct('classes.class_id as count')
+        .sum('classes.class_hours as count')
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
         .whereIn('classes.status', ['opened', 'cancelled'])
     return _.get(result, '0.count')
@@ -61,7 +61,10 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
     const frozenClassHours = await countFrozenClassHours(userId, trx)
 
     if (balance + frozenClassHours <= NeedChargeThreshold) {
-        await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '扣课时后课时不足自动添加此标签' }], trx)
+        await userBll.tryAddTags(userId, [{
+            name: UserTags.NeedCharge,
+            remark: '扣课时后课时不足自动添加此标签',
+        }], trx)
     }
 }
 
@@ -98,7 +101,10 @@ async function chargeClassHours(trx, userId, classHours, remark = '') {
 
     const allClassHours = await getAllClassHours(userId, trx)
     if (allClassHours <= NeedChargeThreshold) {
-        await userBll.tryAddTags(userId, [{ name: UserTags.NeedCharge, remark: '充值后课时仍然不足自动添加此标签' }], trx)
+        await userBll.tryAddTags(userId, [{
+            name: UserTags.NeedCharge,
+            remark: '充值后课时仍然不足自动添加此标签',
+        }], trx)
     } else {
         await userBll.tryDeleteTags(userId, [UserTags.NeedCharge], trx)
     }

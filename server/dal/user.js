@@ -11,12 +11,12 @@ const timeHelper = require('../common/time-helper')
 function countClassHoursSubQuery(classStatusCodes, asTableName) {
     return knex
         .from(function () {
-            this.select('user_id').count({ class_hours: 'user_id' }).from('student_class_schedule')
+            this.select('user_id').sum({ class_hours: 'classes.class_hours' }).from('student_class_schedule')
                 .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
                 .whereIn('classes.status', classStatusCodes).groupBy('user_id').as('t1')
         }, false)
         .unionAll(function () {
-            this.select('user_id').count({ class_hours: 'user_id' }).from('companion_class_schedule')
+            this.select('user_id').count({ class_hours: 'classes.class_hours' }).from('companion_class_schedule')
                 .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
                 .whereIn('classes.status', classStatusCodes).groupBy('user_id')
         }, false)
@@ -71,9 +71,12 @@ module.exports = {
                 isContextSecure ? 'user_profiles.password as password' : knex.raw('(CASE WHEN user_profiles.password IS NOT NULL THEN "******" ELSE null END) as password'),
                 'user_interests.interests',
                 'user_tags.tags',
-                'user_locked_class_hours.class_hours as locked_class_hours',
-                'user_booked_class_hours.class_hours as booked_class_hours',
-                'user_consumed_class_hours.class_hours as consumed_class_hours'
+                knex.raw('sum(user_locked_class_hours.class_hours) as' +
+                    ' locked_class_hours'),
+                knex.raw('sum(user_booked_class_hours.class_hours) as' +
+                    ' booked_class_hours'),
+                knex.raw('sum(user_consumed_class_hours.class_hours) as' +
+                    ' consumed_class_hours')
             )
     },
     async get(userId, isContextSecure = false) {
@@ -166,11 +169,6 @@ module.exports = {
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\') THEN 1 ELSE 0 END) AS done_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'cancelled\') THEN 1 ELSE 0 END) AS cancelled_count'),
                 knex.raw('SUM(CASE WHEN classes.status IN (\'opened\', \'ended\', \'cancelled\') THEN 1 ELSE 0 END) AS total_count'),
-                // knex.raw('group_concat(classes.class_id) as class_ids'),
-                // knex.raw('group_concat(classes.status) as class_statuses'),
-                // knex.raw(`group_concat(${schedule}.start_time) as start_times`),
-                // knex.raw(`group_concat(${schedule}.end_time) as end_times`),
-                // knex.raw(`MIN(${schedule}.start_time) as min_start_time`),
                 knex.raw(`MIN(CASE WHEN classes.status IN ('opened') THEN ${schedule}.start_time END) as min_opened_start_time`),
             )
 
