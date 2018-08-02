@@ -943,7 +943,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
         .select(
             process.env.NODE_ENV !== 'test' ? knex.raw('CONCAT_WS(\',\', classes.module, classes.topic, classes.topic_level) AS content_key') : knex.raw('(classes.module || \',\' || classes.topic || \',\' || classes.topic_level) AS content_key'),
             'student_class_schedule.class_id',
-            'student_class_schedule.status',
+            'classes.status',
             'student_class_schedule.start_time',
             'student_class_schedule.end_time'
         ).orderBy('student_class_schedule.status', 'desc')
@@ -958,7 +958,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
         .select('user_id'), '0.user_id')
     const user_contents = _.map(user_classes, 'content_key')
     const user_time_query = _.chain(user_classes)
-        .map(i => `(student_class_schedule.start_time >= '${i.end_time}' OR student_class_schedule.end_time >= '${i.start_time}')`)
+        .map(i => `(student_class_schedule.start_time >= '${i.end_time}' OR student_class_schedule.end_time <= '${i.start_time}')`)
         .join(' AND ')
         .value()
     let query = knex('student_class_schedule')
@@ -1034,11 +1034,13 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
         recommend: _.chain(i)
             .get('grades')
             .split(',')
-            .includes(user_grade)
+            .map(_.toNumber)
+            .includes(_.toNumber(user_grade))
             .value() || _.chain(i)
             .get('companion_id')
             .split(',')
-            .includes(recommend_companion_id)
+            .map(_.toNumber)
+            .includes(_.toNumber(recommend_companion_id))
             .value(),
     }))
     if (class_id) {

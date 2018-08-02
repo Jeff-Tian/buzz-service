@@ -396,6 +396,66 @@ describe('routes: class schedules', () => {
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)).body[0].recommend.should.equal(false)
         })
+        it('选修课列表: 年级不符且无老教学方时不推荐', async () => {
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
+                grade: 2,
+            })
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[1]}`, {
+                grade: 6,
+            })
+            const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
+            listRes.body.length.should.eql(1)
+            listRes.body[0].class_id.should.eql(classIds[0])
+            listRes.body[0].recommend.should.equal(false)
+        })
+        it('选修课列表: 年级不符且有老教学方时有推荐', async () => {
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
+                grade: 2,
+            })
+            await common.makeRequest('put', `/api/v1/users/${classmateIds[1]}`, {
+                grade: 6,
+            })
+            await common.makeRequest('put', `/api/v1/user-balance/${currentUserId}`, {
+                class_hours: 1,
+            })
+            await common.makeRequest('post', '/api/v1/class-schedule', {
+                companions: [companionIds[0]],
+                start_time: timeHelper.convertToDBFormat(moment().add(10, 'd').add(2, 'h').toISOString()),
+                end_time: timeHelper.convertToDBFormat(moment().add(10, 'd').add(2, 'h').add(25, 'm').toISOString()),
+                status: 'ended',
+                module: '模块2',
+                topic: '主题2',
+                topic_level: '主题级别2',
+                students: [...classmateIds, currentUserId],
+                level: '等级2',
+                name: '名称2',
+                class_hours: 1,
+                allow_sign_up: true,
+            })
+            const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
+            listRes.body.length.should.eql(1)
+            listRes.body[0].class_id.should.eql(classIds[0])
+            listRes.body[0].recommend.should.equal(true)
+        })
+        // it('选修课列表: 推荐', async () => {
+        //     await common.makeRequest('post', '/api/v1/class-schedule', {
+        //         class_id: classIds[0],
+        //         students: classmateIds,
+        //         companions: [companionIds[0]],
+        //         start_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').toISOString()),
+        //         end_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(25, 'm').toISOString()),
+        //         status: 'cancelled',
+        //         module: '模块1',
+        //         topic: '主题1',
+        //         topic_level: '主题级别1',
+        //         level: '等级1',
+        //         name: '名称1',
+        //         class_hours: 1,
+        //         allow_sign_up: false,
+        //     })
+        //     const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
+        //     listRes.body.length.should.eql(0)
+        // })
         it('选修课列表: 正常', async () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
             listRes.body.length.should.eql(1)
