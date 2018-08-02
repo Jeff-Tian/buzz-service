@@ -73,7 +73,7 @@ describe('routes: bookings', () => {
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
-                ex.response.text.should.eql('User with id 100 not found')
+                ex.response.text.should.include('User with id 100 not found')
             }
         })
 
@@ -97,7 +97,7 @@ describe('routes: bookings', () => {
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
-                ex.response.text.should.eql(`balance class hours of ${userId} is only null`)
+                ex.response.text.should.include(`balance class hours of ${userId} is only null`)
             }
         })
 
