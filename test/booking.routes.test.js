@@ -121,7 +121,7 @@ describe('routes: bookings', () => {
             } catch (ex) {
                 should.exist(ex)
                 ex.status.should.eql(400)
-                ex.response.text.should.eql(`balance class hours of ${userId} is only 4, trying to create 100 bookings.`)
+                ex.response.text.should.include(`balance class hours of ${userId} is only 4, trying to create 100 bookings.`)
             }
         })
 
