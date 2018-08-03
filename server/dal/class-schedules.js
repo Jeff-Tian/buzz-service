@@ -2,8 +2,8 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 
-export function getSubscribersByClassIdSubQuery(classId = undefined) {
-    let q = knex('class_subscribers')
+export function getSubscribersByClassIdSubQuery(classId = undefined, trx = knex) {
+    let q = trx('class_subscribers')
     if (classId) {
         q = q
             .select(knex.raw('group_concat(user_id) as subscribers'))

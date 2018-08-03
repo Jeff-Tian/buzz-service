@@ -75,28 +75,28 @@ function filterByStatus(search, statuses) {
     return search.andWhere('classes.status', 'in', statuses)
 }
 
-const getClassById = async function (classId) {
-    const studentsSubQuery = knex('student_class_schedule')
+const getClassById = async function (classId, trx = knex) {
+    const studentsSubQuery = trx('student_class_schedule')
         .select(knex.raw('group_concat(user_id) as students')).where('class_id', '=', classId).groupBy('student_class_schedule.class_id')
         .as('students')
-    const companionsSubQuery = knex('companion_class_schedule')
+    const companionsSubQuery = trx('companion_class_schedule')
         .select(knex.raw('group_concat(user_id) as companions')).where('class_id', '=', classId).groupBy('companion_class_schedule.class_id')
         .as('companions')
     const subscribersSubQuery = getSubscribersByClassIdSubQuery(classId)
-    const companionsNamesSubQuery = knex('companion_class_schedule')
+    const companionsNamesSubQuery = trx('companion_class_schedule')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(knex.raw('group_concat(users.name) as companion_name'))
         .where('companion_class_schedule.class_id', '=', classId)
         .groupBy('companion_class_schedule.class_id')
         .as('companion_name')
-    const companionsAvatarsSubQuery = knex('companion_class_schedule')
+    const companionsAvatarsSubQuery = trx('companion_class_schedule')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .select(knex.raw('group_concat(user_profiles.avatar) as companion_avatar'))
         .where('companion_class_schedule.class_id', '=', classId)
         .groupBy('companion_class_schedule.class_id')
         .as('companion_avatar')
 
-    const selecting = knex('classes')
+    const selecting = trx('classes')
         .where('classes.class_id', classId)
         .select('classes.class_id as class_id', 'classes.adviser_id as adviser_id', 'classes.start_time as start_time', 'classes.end_time as end_time', 'classes.status as status', 'classes.name as name', 'classes.remark as remark', 'classes.topic as topic', 'classes.room_url as room_url', 'classes.exercises as exercises', 'classes.level as level', 'classes.topic_level as topic_level', 'classes.module as module', 'classes.notification_disabled as notification_disabled', 'classes.allow_sign_up as allow_sign_up', 'classes.class_hours as class_hours', 'classes.evaluate_disabled as evaluate_disabled')
         .select(process.env.NODE_ENV !== 'test' ? knex.raw('UTC_TIMESTAMP as "CURRENT_TIMESTAMP"') : knex.fn.now())
@@ -368,11 +368,12 @@ const sendRenewTpl = async classInfo => {
 }
 
 const upsert = async ctx => {
+    const trx = ctx.trx || await promisify(knex.transaction)
     const { body } = ctx.request
 
     let oldClassInfo = {}
     if (body.class_id) {
-        oldClassInfo = await getClassById(body.class_id)
+        oldClassInfo = await getClassById(body.class_id, trx)
     }
 
     let classIds = [body.class_id]
@@ -418,7 +419,6 @@ const upsert = async ctx => {
         status: 'confirmed',
     })) : []
 
-    const trx = await promisify(knex.transaction)
     try {
         if (body.class_id) {
             if (JSON.stringify(data) !== '{}') {
@@ -513,15 +513,12 @@ const upsert = async ctx => {
         }
 
         await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
-
-        await trx.commit()
-
-        ctx.status = body.class_id ? 200 : 201
-        ctx.set('Location', `${ctx.request.URL}`)
-        const classInfo = await getClassById(classIds[0])
+        const classInfo = await getClassById(classIds[0], trx)
         await addClassJob(classInfo)
         await addScheduleJob(oldClassInfo, classInfo, ctx.request.body.optional)
-
+        await trx.commit()
+        ctx.status = body.class_id ? 200 : 201
+        ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = classInfo
 
         console.log('classInfo = , ', classInfo, body.class_id)
@@ -951,14 +948,14 @@ const listByUserId = async ctx => {
     ctx.body = result
 }
 
-const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) => {
+const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx = knex }) => {
     if (!user_id) {
         throw new Error('invalid user_id')
     }
     if (!class_id && !date) {
         throw new Error('invalid date')
     }
-    const user = _.get(await knex('user_profiles')
+    const user = _.get(await trx('user_profiles')
         .leftJoin('user_balance', 'user_balance.user_id', 'user_profiles.user_id')
         .select('user_balance.class_hours', 'user_profiles.grade')
         .where('user_profiles.user_id', user_id), 0)
@@ -967,7 +964,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
     if (!user_grade) {
         throw new Error('invalid grade')
     }
-    const user_classes = await knex('student_class_schedule')
+    const user_classes = await trx('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
         .whereNotIn('classes.status', ['cancelled'])
         .where('student_class_schedule.user_id', user_id)
@@ -984,7 +981,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
         .find(i => i.status === 'ended')
         .get('class_id')
         .value()
-    const recommend_companion_id = recommend_class_id && _.get(await knex('companion_class_schedule')
+    const recommend_companion_id = recommend_class_id && _.get(await trx('companion_class_schedule')
         .where('class_id', recommend_class_id)
         .whereNotNull('user_id')
         .select('user_id'), '0.user_id')
@@ -993,7 +990,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
         .map(i => `(student_class_schedule.start_time >= '${i.end_time}' OR student_class_schedule.end_time <= '${i.start_time}')`)
         .join(' AND ')
         .value()
-    let query = knex('student_class_schedule')
+    let query = trx('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
         .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles as student_user_profiles', 'student_class_schedule.user_id', 'student_user_profiles.user_id')
@@ -1081,7 +1078,7 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours }) =
             e.status = 400
             throw e
         }
-        result = [await getClassById(_.get(result, '0.class_id'))]
+        result = [await getClassById(_.get(result, '0.class_id'), trx)]
         if (check_class_hours && _.get(result, '0.class_hours') > user_class_hours) {
             const e = new Error('当前的课时数不足')
             e.status = 400
@@ -1100,19 +1097,30 @@ const getOptionalByClassId = async ctx => {
 const joinOptionalByClassId = async ctx => {
     const class_id = ctx.params.class_id
     const { user_id } = ctx.query
-    await getOptionalList({ user_id, class_id, check_class_hours: true })
-    const class_info = await getClassById(class_id)
-    class_info.students = _.chain(class_info.students)
-        .split(',')
-        .concat(user_id)
-        .map(_.toNumber)
-        .value()
-    class_info.companions = _.chain(class_info.companions)
-        .split(',')
-        .map(_.toNumber)
-        .value()
-    ctx.request.body = { ...class_info, optional: true }
-    await upsert(ctx)
+    const trx = await promisify(knex.transaction)
+
+    try {
+        await getOptionalList({ user_id, class_id, check_class_hours: true, trx })
+        const class_info = await getClassById(class_id, trx)
+        class_info.students = _.chain(class_info.students)
+            .split(',')
+            .concat(user_id)
+            .map(_.toNumber)
+            .value()
+        class_info.companions = _.chain(class_info.companions)
+            .split(',')
+            .map(_.toNumber)
+            .value()
+        ctx.trx = trx
+        ctx.request.body = { ...class_info, optional: true }
+        await upsert(ctx)
+    } catch (err) {
+        logger.error(err)
+        await trx.rollback()
+        const e = new Error(err)
+        e.status = 400
+        throw e
+    }
 }
 
 module.exports = {
