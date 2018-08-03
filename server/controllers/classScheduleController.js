@@ -292,7 +292,8 @@ const addScheduleJob = async (oldClass, newClass, optional) => {
 
     try {
         if (_.get(newClass, 'status') !== 'opened') return
-        const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), (_.get(oldClass, 'students') || '').split(','))
+        const oldStudents = (_.get(oldClass, 'students') || '').split(',')
+        const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), oldStudents)
         const newStudents = (_.get(newClass, 'students') || '').split(',')
         const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), newStudents)
         _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
@@ -321,7 +322,7 @@ const addScheduleJob = async (oldClass, newClass, optional) => {
             const students = await knex('users')
                 .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
                 .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
-                .whereIn('users.user_id', newStudents)
+                .whereIn('users.user_id', _.difference(newStudents, oldStudents))
                 .select('user_social_accounts.wechat_name', 'users.name', 'user_profiles.mobile')
                 //
             const names = _.chain(students)
