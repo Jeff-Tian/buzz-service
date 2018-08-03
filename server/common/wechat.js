@@ -108,6 +108,26 @@ module.exports = {
         }
         await this.sendTpl(data)
     },
+    // 运营方通知
+    async sendSubTpl(wechat_openid, tutor_name, names, start_time, class_topic, class_id) {
+        // “孩子英文名|微信昵称|手机号”
+        // 课程:“课程主题”
+        // 用户:Tutor “名字”
+        // 开课时间:“年/月/日 几点:几分”
+        // 该用户成功参加了“淘课报名”
+        const data = {
+            openid: wechat_openid,
+            id: 'EV-ymavqg5FwN-fQjZHJyj1386TsQcwB1H6KEHC8Cno',
+            url: `${config.endPoints.buzzCorner}/class/${class_id}`,
+            data: {
+                first: { value: `${names}\n` },
+                keyword1: { value: class_topic },
+                keyword2: { value: tutor_name || '' },
+                remark: { value: `\n开课时间: ${moment(start_time).format('YYYY-MM-DD HH:mm:ss')}\n\n该用户成功参加了“淘课报名”` },
+            },
+        }
+        await this.sendTpl(data)
+    },
     // 续费通知
     async  sendRenewTpl(user_id, class_hours) {
         const users = await getWechatByUserIds([user_id])

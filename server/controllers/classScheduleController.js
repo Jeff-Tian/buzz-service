@@ -285,7 +285,7 @@ const getByUserId = async ctx => {
 }
 
 // 新建/更新班级 如果有新人 给新人创建24小时后的任务
-const addScheduleJob = async (oldClass, newClass) => {
+const addScheduleJob = async (oldClass, newClass, optional) => {
     if (process.env.NODE_ENV === 'test') {
         return
     }
@@ -293,7 +293,8 @@ const addScheduleJob = async (oldClass, newClass) => {
     try {
         if (_.get(newClass, 'status') !== 'opened') return
         const oldUsers = _.concat([], (_.get(oldClass, 'companions') || '').split(','), (_.get(oldClass, 'students') || '').split(','))
-        const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), (_.get(newClass, 'students') || '').split(','))
+        const newStudents = (_.get(newClass, 'students') || '').split(',')
+        const newUsers = _.concat([], (_.get(newClass, 'companions') || '').split(','), newStudents)
         _.remove(_.pullAll(newUsers, oldUsers), i => _.isEmpty(i))
         if (_.isEmpty(newUsers)) return
         const start_time = newClass.start_time
@@ -303,6 +304,36 @@ const addScheduleJob = async (oldClass, newClass) => {
             body: { user_ids: newUsers, start_time },
             json: true,
         })
+        if (optional) {
+            let subscribers = _.chain(newClass)
+                .get('subscribers')
+                .split(',')
+                .value()
+            if (_.isEmpty(subscribers)) return
+            subscribers = await knex('users')
+                .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+                .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+                .whereIn('users.user_id', subscribers)
+                .whereNotNull('user_social_accounts.wechat_openid')
+                .whereNot('user_social_accounts.wechat_openid', '')
+                .select('user_social_accounts.wechat_openid', 'users.name')
+            if (_.isEmpty(subscribers)) return
+            const students = await knex('users')
+                .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+                .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+                .whereIn('users.user_id', newStudents)
+                .select('user_social_accounts.wechat_name', 'users.name', 'user_profiles.mobile')
+                //
+            const names = _.chain(students)
+                .map(i => `${i.name} | ${i.wechat_name} | ${i.mobile}`)
+                .join('\n')
+                .value()
+            await bluebird.map(subscribers, async subscriber => {
+                await wechat.sendSubTpl(subscriber.wechat_openid, subscriber.name, names, _.get(newClass, 'start_time'), _.get(newClass, 'topic'), _.get(newClass, 'class_id')).catch(e => {
+                    logger.error('sendSubTpl', e)
+                })
+            })
+        }
     } catch (e) {
         logger.error(e)
     }
@@ -488,7 +519,7 @@ const upsert = async ctx => {
         ctx.set('Location', `${ctx.request.URL}`)
         const classInfo = await getClassById(classIds[0])
         await addClassJob(classInfo)
-        await addScheduleJob(oldClassInfo, classInfo)
+        await addScheduleJob(oldClassInfo, classInfo, ctx.request.body.optional)
 
         ctx.body = classInfo
 
@@ -1079,7 +1110,7 @@ const joinOptionalByClassId = async ctx => {
         .split(',')
         .map(_.toNumber)
         .value()
-    ctx.request.body = class_info
+    ctx.request.body = { ...class_info, optional: true }
     await upsert(ctx)
 }
 
