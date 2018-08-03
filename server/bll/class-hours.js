@@ -28,9 +28,14 @@ async function getCurrentClassHours(trx, user_id) {
         .where({ user_id })
 }
 
-async function consumeClassHours(trx, userId, classHours, remark = '') {
+async function consumeClassHours(trx, userId, classHoursOrObj, remark = '') {
     if (!trx) {
         trx = knex
+    }
+
+    let classHours = _.get(classHoursOrObj, 'class_hours')
+    if (_.isNil(classHours)) {
+        classHours = classHoursOrObj
     }
 
     await trx('user_balance_history')
@@ -68,9 +73,14 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
     }
 }
 
-async function chargeClassHours(trx, userId, classHours, remark = '') {
+async function chargeClassHours(trx, userId, classHoursOrObj, remark = '') {
     if (trx === null) {
         trx = knex
+    }
+
+    let classHours = _.get(classHoursOrObj, 'class_hours')
+    if (_.isNil(classHours)) {
+        classHours = classHoursOrObj
     }
 
     await trx('user_balance_history')
