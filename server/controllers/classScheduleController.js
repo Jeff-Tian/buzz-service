@@ -1074,13 +1074,13 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx
     }))
     if (class_id) {
         if (_.isEmpty(result)) {
-            const e = new Error('该班级已无法报名参加')
+            const e = new Error('invalid class')
             e.status = 400
             throw e
         }
         result = [await getClassById(_.get(result, '0.class_id'), trx)]
         if (check_class_hours && _.get(result, '0.class_hours') > user_class_hours) {
-            const e = new Error('当前的课时数不足')
+            const e = new Error('invalid class hours')
             e.status = 400
             throw e
         }
