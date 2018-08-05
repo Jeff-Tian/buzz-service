@@ -41,8 +41,8 @@ describe('routes: student class schedule', () => {
             const companionId = createCompanionsResult.body
             companionId.should.gt(0)
 
-            const start = moment().add('h', 3).set('minutes', 30).set('seconds', 0)
-            const end = moment().add('h', 5).set('minutes', 0).set('seconds', 0)
+            const start = moment().add(3, 'h').set('minutes', 30).set('seconds', 0)
+            const end = moment().add(5, 'h').set('minutes', 0).set('seconds', 0)
             const createGroupResponse = await common.makeRequest('post', '/api/v1/class-schedule', {
                 students: [studentId],
                 companions: [companionId],

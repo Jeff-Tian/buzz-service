@@ -105,5 +105,8 @@ const student_index = async ctx => {
 const companion_index = async ctx => {
     ctx.body = await getOneByType({ query: { type: 'companion_index' } })
 }
+const purchase_class_hour = async ctx => {
+    ctx.body = await getOneByType({ query: { type: 'purchase_class_hour' } })
+}
 
-module.exports = { upsert, query, student_index, companion_index, getById }
+module.exports = { upsert, query, student_index, companion_index, purchase_class_hour, getById }
