@@ -790,7 +790,6 @@ const listByUserId = async ctx => {
             knex.raw('null as comment'),
             knex.raw('null as from_user_id'),
             knex.raw('null as score'),
-            knex.raw('null as title'),
             knex.raw('null as to_user_id'),
             'companion_class_schedule.class_id as class_id',
             'classes.status AS classes_status',
@@ -803,8 +802,6 @@ const listByUserId = async ctx => {
             'companion_class_schedule.end_time AS end_time',
             'users.name AS companion_name',
             'user_profiles.avatar AS companion_avatar',
-            'companion_class_schedule.user_id AS user_id',
-            'companion_class_schedule.batch_id as batch_id',
             'user_profiles.country as companion_country'
         )
     if (process.env.NODE_ENV !== 'test') {
@@ -843,7 +840,6 @@ const listByUserId = async ctx => {
             'class_feedback.comment as comment',
             'class_feedback.from_user_id as from_user_id',
             'class_feedback.score as score',
-            'classes.name as title',
             'class_feedback.to_user_id as to_user_id',
             'student_class_schedule.class_id as class_id',
             'classes.status as classes_status',
@@ -856,8 +852,6 @@ const listByUserId = async ctx => {
             'student_class_schedule.end_time as end_time',
             knex.raw('group_concat(users.name) as companion_name'),
             knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
-            'student_class_schedule.user_id as user_id',
-            knex.raw('null as batch_id'),
             knex.raw('group_concat(user_profiles.country) as companion_country'),
         )
 
