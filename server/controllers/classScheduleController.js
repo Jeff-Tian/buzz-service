@@ -783,6 +783,7 @@ const listByUserId = async ctx => {
     end_time = timeHelper.convertToDBFormat(end_time)
     let companionSearch = knex('companion_class_schedule')
         .leftJoin('classes', 'companion_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('class_subscribers', 'class_subscribers.class_id', 'classes.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
         .select(
@@ -816,13 +817,16 @@ const listByUserId = async ctx => {
 
     companionSearch = companionSearch
         .whereNotIn('classes.status', ['cancelled'])
-        .andWhere('companion_class_schedule.user_id', ctx.params.user_id)
+        .where(function () {
+            this.where('companion_class_schedule.user_id', ctx.params.user_id)
+                .orWhereIn('class_subscribers.user_id', ctx.params.user_id)
+        })
         .andWhere('companion_class_schedule.start_time', '>=', start_time)
         .andWhere('companion_class_schedule.end_time', '<=', end_time)
 
     let studentSearch = knex('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
-
+        .leftJoin('class_subscribers', 'class_subscribers.class_id', 'classes.class_id')
         .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles', 'companion_class_schedule.user_id', 'user_profiles.user_id')
         .leftJoin('users', 'companion_class_schedule.user_id', 'users.user_id')
@@ -864,7 +868,10 @@ const listByUserId = async ctx => {
     }
 
     studentSearch = studentSearch
-        .where('student_class_schedule.user_id', ctx.params.user_id)
+        .where(function () {
+            this.where('student_class_schedule.user_id', ctx.params.user_id)
+                .orWhereIn('class_subscribers.user_id', ctx.params.user_id)
+        })
         .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
         .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
         .andWhere('classes.status', 'not in', ['cancelled'])
