@@ -819,7 +819,7 @@ const listByUserId = async ctx => {
         .whereNotIn('classes.status', ['cancelled'])
         .where(function () {
             this.where('companion_class_schedule.user_id', ctx.params.user_id)
-                .orWhereIn('class_subscribers.user_id', ctx.params.user_id)
+                .orWhere('class_subscribers.user_id', ctx.params.user_id)
         })
         .andWhere('companion_class_schedule.start_time', '>=', start_time)
         .andWhere('companion_class_schedule.end_time', '<=', end_time)
@@ -870,7 +870,7 @@ const listByUserId = async ctx => {
     studentSearch = studentSearch
         .where(function () {
             this.where('student_class_schedule.user_id', ctx.params.user_id)
-                .orWhereIn('class_subscribers.user_id', ctx.params.user_id)
+                .orWhere('class_subscribers.user_id', ctx.params.user_id)
         })
         .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
         .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
