@@ -1,7 +1,7 @@
 exports.up = function (knex, Promise) {
     return knex.schema.createTable('faq', table => {
         table.bigIncrements('faq_id')
-        table.string('type') // null, 中方首页 student_index, 外籍首页 companion_index
+        table.string('type') // null, 中方首页 student_index, 外籍首页 companion_index, 购买课时 purchase_class_hour
         table.string('title') // 标题
         table.string('sub_title') // 副标题
         table.text('content') // html 内容
