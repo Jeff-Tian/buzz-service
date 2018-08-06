@@ -5,9 +5,12 @@ require('../common/knex')
 
 export default class ClassHourHistoryDal {
     static getHistoryByUserId(userId, pageSize = 100, currentPage = 1) {
-        return knex('user_balance_history').select('timestamp', 'event', 'amount', 'remark', 'by').where({
-            user_id: userId,
-            type: 'h',
-        }).paginate(pageSize, currentPage)
+        return knex('user_balance_history')
+            .select('timestamp', 'event', 'amount', 'remark', 'by').where({
+                user_id: userId,
+                type: 'h',
+            })
+            .orderBy('timestamp', 'desc')
+            .paginate(pageSize, currentPage)
     }
 }
