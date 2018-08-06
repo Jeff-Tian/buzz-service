@@ -22,7 +22,7 @@ describe('课时数历史变化详情', () => {
 
         const history = await ClassHourHistoryBll.getHistoryByUserId(1)
 
-        history.length.should.gt(0)
-        history[0].should.include.keys('timestamp', 'event', 'amount', 'remark')
+        history.data.length.should.gt(0)
+        history.data[0].should.include.keys('timestamp', 'event', 'amount', 'remark')
     })
 })

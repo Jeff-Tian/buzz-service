@@ -5,7 +5,7 @@ const timeHelper = require('../server/common/time-helper')
 const common = require('./test-helpers/common')
 const PATH = '/api/v1/class-schedule'
 
-const {server, should, chai, knex} = require('./test-helpers/prepare')
+const { server, should, chai, knex } = require('./test-helpers/prepare')
 // Rollback, commit and populate the test database before each test
 describe('选修课', () => {
     beforeEach(async () => {
@@ -68,14 +68,14 @@ describe('选修课', () => {
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)).body.length.should.eql(0)
             await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
                 grade: 7,
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)).body.length.should.eql(0)
             await common.makeRequest('put', `/api/v1/users/${classmateIds[0]}`, {
                 grade: null,
@@ -85,7 +85,7 @@ describe('选修课', () => {
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)).body.length.should.eql(0)
         })
         it('选修课列表: 班级人数不符合', async () => {
@@ -106,7 +106,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -127,7 +127,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -148,7 +148,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -170,7 +170,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -192,7 +192,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -214,14 +214,14 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
         it('选修课列表: 开始时间不符合', async () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').add(1, 'h').toISOString()
+                date: moment().add(1, 'd').add(1, 'h').toISOString(),
             })}`)
             listRes.body.length.should.eql(0)
         })
@@ -231,14 +231,14 @@ describe('选修课', () => {
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)).body[0].recommend.should.equal(true)
             await common.makeRequest('put', `/api/v1/users/${classmateIds[1]}`, {
                 grade: 6,
             });
             (await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)).body[0].recommend.should.equal(false)
         })
         it('选修课列表: 年级不符且无老教学方时不推荐', async () => {
@@ -250,7 +250,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
@@ -282,7 +282,7 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
@@ -310,7 +310,7 @@ describe('选修课', () => {
         it('选修课列表: 正常', async () => {
             const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                 user_id: currentUserId,
-                date: moment().add(1, 'd').toISOString()
+                date: moment().add(1, 'd').toISOString(),
             })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
@@ -318,7 +318,7 @@ describe('选修课', () => {
         })
         it('参加选修课: 不可参加', async () => {
             try {
-                const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({user_id: currentUserId})}`)
+                const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
                 console.log(listRes.body)
             } catch (err) {
                 console.error(err)
@@ -329,14 +329,14 @@ describe('选修课', () => {
             await common.makeRequest('put', `/api/v1/user-balance/${currentUserId}`, {
                 class_hours: 1,
             })
-            const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({user_id: currentUserId})}`)
+            const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
             listRes.body.students.split(',').map(_.toNumber).should.include(currentUserId)
         })
         it('选修课详情: 无法参加', async () => {
             try {
                 let listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
                     user_id: currentUserId,
-                    date: moment().add(1, 'd').toISOString()
+                    date: moment().add(1, 'd').toISOString(),
                 })}`)
                 listRes = await common.makeRequest('get', `${PATH}/optional/${_.chain(listRes)
                     .get('body')
@@ -358,7 +358,7 @@ describe('选修课', () => {
                 })
                 await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({
                     user_id: currentUserId,
-                    check_class_hours: true
+                    check_class_hours: true,
                 })}`)
             } catch (err) {
                 console.error(err)
@@ -369,13 +369,13 @@ describe('选修课', () => {
             })
             const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({
                 user_id: currentUserId,
-                check_class_hours: true
+                check_class_hours: true,
             })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
         })
         it('选修课详情: 正常', async () => {
-            const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({user_id: currentUserId})}`)
+            const listRes = await common.makeRequest('get', `${PATH}/optional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
             listRes.body.length.should.eql(1)
             listRes.body[0].class_id.should.eql(classIds[0])
         })
