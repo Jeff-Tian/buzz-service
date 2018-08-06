@@ -373,6 +373,7 @@ const upsert = async ctx => {
         start_time: body.start_time,
         end_time: body.end_time,
         status: 'confirmed',
+        remark: '',
     })) : []
 
     let companionSchedules = body.companions ? body.companions.map(companionId => ({
@@ -381,6 +382,7 @@ const upsert = async ctx => {
         start_time: body.start_time,
         end_time: body.end_time,
         status: 'confirmed',
+        remark: '',
     })) : []
 
     const trx = await promisify(knex.transaction)
