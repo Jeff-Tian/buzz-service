@@ -324,7 +324,7 @@ const addScheduleJob = async (oldClass, newClass, optional) => {
                 .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
                 .whereIn('users.user_id', _.difference(newStudents, oldStudents))
                 .select('user_social_accounts.wechat_name', 'users.name', 'user_profiles.mobile')
-                //
+            //
             const names = _.chain(students)
                 .map(i => `${i.name} | ${i.wechat_name} | ${i.mobile}`)
                 .join('\n')
@@ -425,15 +425,11 @@ const upsert = async ctx => {
                 await trx('classes')
                     .update(data)
                     .where({ class_id: body.class_id })
-
-                console.log('updated ', data)
             }
 
             let originalCompanions = await trx('companion_class_schedule')
                 .select('user_id')
                 .where({ class_id: body.class_id })
-
-            console.log('original companions = ', originalCompanions)
 
             originalCompanions = originalCompanions.map(oc => oc.user_id)
             const toBeDeletedCompanionSchedules = originalCompanions.filter(c => companionSchedules.map(cs => cs.user_id).indexOf(c) < 0)
@@ -444,8 +440,6 @@ const upsert = async ctx => {
                     .where('user_id', 'in', toBeDeletedCompanionSchedules)
                     .andWhere({ class_id: body.class_id })
                     .del()
-
-                console.log('deleted ', toBeDeletedCompanionSchedules)
             }
             if (tbBeUpdatedCompanionSchedules.length) {
                 const updateForCompanions = {
@@ -458,8 +452,6 @@ const upsert = async ctx => {
                         .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
                         .andWhere('class_id', '=', body.class_id)
                         .update(updateForCompanions)
-
-                    console.log('updated ', updateForCompanions)
                 }
             }
 
@@ -468,15 +460,12 @@ const upsert = async ctx => {
                 .select('user_id')
                 .where({ class_id: body.class_id })
 
-            console.log('original students = \', ', originalStudents)
-
             originalStudents = originalStudents.map(os => os.user_id)
 
             const toBeDeletedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) < 0)
             const toBeUpdatedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) >= 0)
 
             await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id)
-            console.log('removed students', toBeDeletedCompanionSchedules)
 
             if (toBeUpdatedStudentSchedules.length) {
                 const updateForStudent = {
@@ -520,8 +509,6 @@ const upsert = async ctx => {
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = classInfo
-
-        console.log('classInfo = , ', classInfo, body.class_id)
     } catch (error) {
         logger.error(error)
 
