@@ -472,7 +472,6 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
             }))
-            console.log('will change mobile to ', body.mobile, '!!!')
             logger.info(`will change mobile to (${body.mobile}) `, body.mobile, '!!!')
         }
 
