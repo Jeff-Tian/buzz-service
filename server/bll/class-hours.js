@@ -28,7 +28,7 @@ async function getCurrentClassHours(trx, user_id) {
         .where({ user_id })
 }
 
-async function consumeClassHours(trx, userId, classHours, remark = '') {
+async function consumeClassHours(trx, userId, classHours, remark = '', by = null) {
     if (!trx) {
         trx = knex
     }
@@ -40,6 +40,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
             event: 'consume',
             amount: -classHours,
             remark,
+            by,
         })
     const currentClassHours = await getCurrentClassHours(trx, userId)
 
@@ -68,7 +69,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '') {
     }
 }
 
-async function chargeClassHours(trx, userId, classHours, remark = '') {
+async function chargeClassHours(trx, userId, classHours, remark = '', by = null) {
     if (trx === null) {
         trx = knex
     }
@@ -80,6 +81,7 @@ async function chargeClassHours(trx, userId, classHours, remark = '') {
             event: 'charge',
             amount: classHours,
             remark,
+            by,
         })
 
     const currentClassHours = await getCurrentClassHours(trx, userId)

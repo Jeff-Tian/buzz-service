@@ -3,7 +3,7 @@ import ClassScheduleDAL from '../dal/class-schedules'
 const classHours = require('./class-hours')
 
 module.exports = {
-    async removeStudents(trx, userIds, classId) {
+    async removeStudents(trx, userIds, classId, byUserId) {
         await trx('student_class_schedule')
             .where('user_id', 'in', userIds)
             .andWhere({ class_id: classId })
@@ -11,10 +11,10 @@ module.exports = {
 
         const classHoursOfClass = await ClassScheduleDAL.getClassHours(classId)
 
-        await Promise.all(userIds.map(userId => classHours.charge(trx, userId, classHoursOfClass, `cancelled booking for class id = ${classId}`)))
+        await Promise.all(userIds.map(userId => classHours.charge(trx, userId, classHoursOfClass, `cancelled booking for class id = ${classId}`, byUserId)))
     },
 
-    async addStudents(trx, studentSchedules, classId) {
+    async addStudents(trx, studentSchedules, classId, byUserId) {
         const data = studentSchedules.map(s => {
             s.class_id = classId
             return s
@@ -25,7 +25,7 @@ module.exports = {
 
         const classHoursOfClass = await ClassScheduleDAL.getClassHours(classId)
 
-        await Promise.all(studentSchedules.map(s => classHours.consume(trx, s.user_id, classHoursOfClass, `booked a class id = ${classId}`)))
+        await Promise.all(studentSchedules.map(s => classHours.consume(trx, s.user_id, classHoursOfClass, `booked a class id = ${classId}`, byUserId)))
     },
 
     validateClass(classData) {

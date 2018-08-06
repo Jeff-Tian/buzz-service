@@ -467,7 +467,7 @@ const upsert = async ctx => {
             const toBeDeletedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) < 0)
             const toBeUpdatedStudentSchedules = originalStudents.filter(s => studentSchedules.map(ss => ss.user_id).indexOf(s) >= 0)
 
-            await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id)
+            await classSchedules.removeStudents(trx, toBeDeletedStudentSchedules, body.class_id, ctx.state.user_id)
 
             if (toBeUpdatedStudentSchedules.length) {
                 const updateForStudent = {
@@ -491,7 +491,7 @@ const upsert = async ctx => {
         }
 
         if (studentSchedules.length) {
-            await classSchedules.addStudents(trx, studentSchedules, classIds[0])
+            await classSchedules.addStudents(trx, studentSchedules, classIds[0], ctx.state.user_id)
         }
 
         if (companionSchedules.length) {

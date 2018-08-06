@@ -288,7 +288,7 @@ const create = async ctx => {
             await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
         }
         if (body.role === userBll.MemberType.Companion) {
-            await classHoursBll.charge(trx, users[0], 1)
+            await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
         }
 
         await trx.commit()
