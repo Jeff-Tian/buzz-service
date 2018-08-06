@@ -65,6 +65,9 @@ module.exports = {
         return await api.batchGetUsers(openids)
     },
     async sendTpl({ openid, id, url, color, data }) {
+        if (_.includes(['test', 'qa'], process.env.NODE_ENV)) {
+            _.set(data, 'remark', `${_.get(data, 'remark')}\n\n环境: ${process.env.NODE_ENV}`)
+        }
         await retry(async bail => {
             await api.sendTemplate(openid, id, url, color, data).catch(e => {
                 if (_.includes(e, 'RequestTimeoutError') || _.includes(e, 'socket hang up')) {

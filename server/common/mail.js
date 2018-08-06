@@ -19,6 +19,9 @@ module.exports = {
     // HtmlBody: ``,
     async send(opt) {
         // TODO: 处理错误
+        if (_.includes(['test', 'qa'], process.env.NODE_ENV)) {
+            _.set(opt, 'HtmlBody', `${_.get(opt, 'HtmlBody')}<br/><br/>环境: ${process.env.NODE_ENV}`)
+        }
         const res = await dm.singleSendMail({
             ReplyToAddress: true,
             AddressType: 1,
