@@ -24,9 +24,17 @@ app.use(async (ctx, next) => {
 
 app.use(async (ctx, next) => {
     if (ctx.cookies) {
-        ctx.state.user = {
-            user_id: ctx.cookies.get('user_id'),
+        const userId = ctx.cookies.get('user_id')
+
+        if (userId > 0) {
+            ctx.state.user = {
+                user_id: userId,
+            }
+        } else {
+            logger.info(`anonymous user accessing ${ctx.request.url}`)
         }
+    } else {
+        logger.info(`anonymous user accessing ${ctx.request.url}`)
     }
 
     await next()
