@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import BalanceHistoryBll from '../bll/balance-history'
 
 const promisify = require('../common/promisify')
 const env = process.env.NODE_ENV || 'test'
@@ -118,9 +119,14 @@ const chargeIntegral = async ctx => {
     }
 }
 
+const get = async ctx => {
+    ctx.body = await BalanceHistoryBll.getHistoryByTypeUserId(ctx.params.type, ctx.params.user_id, ctx.query.pageSize, ctx.query.currentPage)
+}
+
 module.exports = {
     chargeClassHour,
     consumeClassHour,
     chargeIntegral,
     consumeIntegral,
+    get,
 }
