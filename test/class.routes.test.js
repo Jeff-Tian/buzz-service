@@ -462,19 +462,10 @@ describe('routes: class schedules', () => {
             listRes.body[0].class_id.should.eql(classIds[0])
             listRes.body[0].recommend.should.equal(true)
         })
-        it('选修课列表: 课程内容禁用', async () => {
-            await common.makeRequest('post', '/api/v1/content', {
-                module: '模块1',
-                topic: '主题1',
-                topic_level: '主题级别1',
-                optional_hidden: 1,
-            })
-            const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({ user_id: currentUserId, date: moment().add(1, 'd').toISOString() })}`)
-            listRes.body.length.should.eql(0)
-        })
         it('参加选修课: 不可参加', async () => {
             try {
                 const listRes = await common.makeRequest('post', `${PATH}/joinOptional/${classIds[0]}?${queryString.stringify({ user_id: currentUserId })}`)
+                console.log(listRes.body)
             } catch (err) {
                 console.error(err)
                 should.exist(err)
