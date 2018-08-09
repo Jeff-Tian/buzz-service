@@ -6,7 +6,7 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const classHoursBll = require('../bll/class-hours')
 const integralBll = require('../bll/integral')
-const charge = async ctx => {
+const chargeClassHour = async ctx => {
     const { body } = ctx.request
 
     const classHours = Number(body.class_hours)
@@ -36,7 +36,7 @@ const charge = async ctx => {
     }
 }
 
-const consume = async ctx => {
+const consumeClassHour = async ctx => {
     const { body } = ctx.request
 
     const classHours = Number(body.class_hours)
@@ -118,4 +118,9 @@ const chargeIntegral = async ctx => {
     }
 }
 
-module.exports = { charge, consume, chargeIntegral, consumeIntegral }
+module.exports = {
+    chargeClassHour,
+    consumeClassHour,
+    chargeIntegral,
+    consumeIntegral,
+}

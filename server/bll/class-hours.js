@@ -28,7 +28,7 @@ async function getCurrentClassHours(trx, user_id) {
         .where({ user_id })
 }
 
-async function consumeClassHours(trx, userId, classHours, remark = '', by = null) {
+async function consume(trx, userId, classHours, remark = '', by = null) {
     if (!trx) {
         trx = knex
     }
@@ -69,7 +69,7 @@ async function consumeClassHours(trx, userId, classHours, remark = '', by = null
     }
 }
 
-async function chargeClassHours(trx, userId, classHours, remark = '', by = null) {
+async function charge(trx, userId, classHours, remark = '', by = null) {
     if (trx === null) {
         trx = knex
     }
@@ -113,8 +113,8 @@ async function chargeClassHours(trx, userId, classHours, remark = '', by = null)
 }
 
 module.exports = {
-    consume: consumeClassHours,
-    charge: chargeClassHours,
+    consume,
+    charge,
     countBookedClasses: countFrozenClassHours,
     getAllClassHours,
 }

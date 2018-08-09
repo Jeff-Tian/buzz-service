@@ -1,7 +1,3 @@
-const _ = require('lodash')
-const moment = require('moment-timezone')
-const queryString = require('query-string')
-const timeHelper = require('../server/common/time-helper')
 const common = require('./test-helpers/common')
 const PATH = '/api/v1/class-schedule'
 
@@ -15,7 +11,6 @@ describe('routes: class schedules', () => {
 
     afterEach(async () => {
         await knex.migrate.rollback()
-        // await server.close()
     })
 
     // Here comes the first test
