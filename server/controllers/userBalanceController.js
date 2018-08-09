@@ -18,7 +18,7 @@ const charge = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await classHoursBll.charge(trx, userId, classHours)
+        await classHoursBll.charge(trx, userId, classHours, ctx.state.user_id)
 
         await trx.commit()
 
@@ -48,7 +48,7 @@ const consume = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await classHoursBll.consume(trx, userId, classHours)
+        await classHoursBll.consume(trx, userId, classHours, ctx.state.user_id)
         await trx.commit()
 
         ctx.status = 201

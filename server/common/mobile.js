@@ -11,7 +11,10 @@ const Mobile = {
         const code = String(_.random(10 ** (digit - 1), (10 ** digit) - 1))
         if (process.env.NODE_ENV !== 'test') {
             const isCN = mobile_country === 'CHN'
-            await sms.send(mobile, isCN ? 'BuzzBuzz英语角' : 'BuzzBuzz', isCN ? 'SMS_127154352' : 'SMS_137670378', { code, expire: '30' }).catch(e => {
+            await sms.send(mobile, isCN ? 'BuzzBuzz英语角' : 'BuzzBuzz', isCN ? 'SMS_127154352' : 'SMS_137670378', {
+                code,
+                expire: '30',
+            }).catch(e => {
                 error = e
             })
         }
@@ -61,10 +64,16 @@ const Mobile = {
         const fullMobile = _.startsWith(inputMobile, '00') ? _.replace(inputMobile, /^00/, '+') : `+86${inputMobile}`
         const [mobile, country] = phone(fullMobile)
         if (!country) {
-            return { mobile: _.trimStart(fullMobile, '+'), country: _.find(Mobile.countryList, ['country_long_name', 'CHN']) }
+            return {
+                mobile: _.trimStart(fullMobile, '+').replace(/^86$/, ''),
+                country: _.find(Mobile.countryList, ['country_long_name', 'CHN']),
+            }
         }
         const country_full = _.find(Mobile.countryList, ['country_long_name', country])
-        return { mobile: _.trimStart(mobile, `+${_.get(country_full, 'country_code')}`), country: country_full }
+        return {
+            mobile: _.trimStart(mobile, `+${_.get(country_full, 'country_code')}`).replace(/^86$/, ''),
+            country: country_full,
+        }
     },
     async normalizeMiddleware(ctx, next) {
         const mobile = _.get(ctx.request.body, 'mobile')
