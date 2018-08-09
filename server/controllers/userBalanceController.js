@@ -19,7 +19,7 @@ const chargeClassHour = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await classHoursBll.charge(trx, userId, classHours, ctx.state.user_id)
+        await classHoursBll.charge(trx, userId, classHours, body.remark, ctx.state.user.user_id)
 
         await trx.commit()
 
@@ -49,7 +49,7 @@ const consumeClassHour = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await classHoursBll.consume(trx, userId, classHours, ctx.state.user_id)
+        await classHoursBll.consume(trx, userId, classHours, body.remark, ctx.state.user.user_id)
         await trx.commit()
 
         ctx.status = 201
@@ -74,7 +74,7 @@ const consumeIntegral = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await integralBll.consume(trx, userId, integral)
+        await integralBll.consume(trx, userId, integral, body.remark, ctx.state.user.user_id)
         await trx.commit()
 
         ctx.status = 201
@@ -101,7 +101,7 @@ const chargeIntegral = async ctx => {
 
     try {
         const userId = ctx.params.user_id
-        await integralBll.charge(trx, userId, integral)
+        await integralBll.charge(trx, userId, integral, body.remark, ctx.state.user.user_id)
 
         await trx.commit()
 

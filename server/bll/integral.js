@@ -29,7 +29,7 @@ async function consumeIntegral(trx, userId, integral, remark = '') {
     }
 }
 
-async function chargeIntegral(trx, userId, integral, remark = '') {
+async function chargeIntegral(trx, userId, integral, remark = '', by = null) {
     await trx('user_balance_history')
         .insert({
             user_id: userId,
@@ -37,6 +37,7 @@ async function chargeIntegral(trx, userId, integral, remark = '') {
             event: 'charge',
             amount: integral,
             remark,
+            by,
         })
 
     const currentIntegral = await getCurrentIntegral(trx, userId)
