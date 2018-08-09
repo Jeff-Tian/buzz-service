@@ -993,6 +993,9 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx
         .value()
     let query = trx('student_class_schedule')
         .leftJoin('classes', 'student_class_schedule.class_id', 'classes.class_id')
+        .leftJoin('content', function () {
+            this.on('content.module', '=', 'classes.module').andOn('content.topic', '=', 'classes.topic').andOn('content.topic_level', '=', 'classes.topic_level')
+        })
         .leftJoin('companion_class_schedule', 'student_class_schedule.class_id', 'companion_class_schedule.class_id')
         .leftJoin('user_profiles as student_user_profiles', 'student_class_schedule.user_id', 'student_user_profiles.user_id')
 
@@ -1011,6 +1014,9 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx
         .whereIn('classes.allow_sign_up', [true, 1, '1'])
         .whereIn('student_class_schedule.status', ['confirmed'])
         .whereNot('student_class_schedule.user_id', user_id)
+        .where(function () {
+            this.whereNotIn('content.optional_hidden', [true, 1, '1']).orWhereNull('content.optional_hidden')
+        })
         .orderBy('student_class_schedule.start_time', 'asc')
         .select(
             'class_feedback.comment as comment',
