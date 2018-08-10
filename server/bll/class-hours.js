@@ -35,6 +35,7 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
 
     await trx('user_balance_history')
         .insert({
+            timestamp: new Date(),
             user_id: userId,
             type: 'h',
             event: 'consume',
@@ -76,6 +77,7 @@ async function charge(trx, userId, classHours, remark = '', by = null) {
 
     await trx('user_balance_history')
         .insert({
+            timestamp: new Date(),
             user_id: userId,
             type: 'h',
             event: 'charge',

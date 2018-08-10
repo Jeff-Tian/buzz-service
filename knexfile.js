@@ -8,7 +8,7 @@ module.exports = {
         client: 'mysql',
         connection: {
             host: 'localhost',
-            database: 'buzz3',
+            database: 'buzz',
             user: 'root',
             password: '1050709',
             timezone: 'UTC',
@@ -38,17 +38,6 @@ module.exports = {
             directory: path.join(BASE_PATH, 'seeds'),
         },
         useNullAsDefault: true,
-    },
-
-    staging: {
-        client: 'mysql',
-        connection: process.env.CLEARDB_DATABASE_URL,
-        migrations: {
-            directory: path.join(BASE_PATH, 'migrations'),
-        },
-        seeds: {
-            directory: path.join(BASE_PATH, 'seeds'),
-        },
     },
 
     qa: {
