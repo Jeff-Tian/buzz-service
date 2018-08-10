@@ -767,6 +767,7 @@ const sendEvaluationMsg = async ctx => {
     }
 }
 const listByUserId = async ctx => {
+    const { per_page, current_page } = ctx.query
     let { start_time, end_time } = timeHelper.uniformTime(ctx.query.start_time, ctx.query.end_time)
     start_time = timeHelper.convertToDBFormat(start_time)
     end_time = timeHelper.convertToDBFormat(end_time)
@@ -858,8 +859,13 @@ const listByUserId = async ctx => {
         .andWhere('student_class_schedule.start_time', '>=', timeHelper.convertToDBFormat(start_time))
         .andWhere('student_class_schedule.end_time', '<=', timeHelper.convertToDBFormat(end_time))
         .andWhere('classes.status', 'not in', ['cancelled'])
-
-    let result = await companionSearch.union(studentSearch)
+    const query = companionSearch.union(studentSearch)
+    // if (per_page || current_page) {
+    //   if (Number(current_page) === 1) {
+    //     query = query.where('start_time', '>=', )
+    //   }
+    // }
+    let result = await query
     if (!_.isArray(result)) result = []
 
     const role = _.get(await knex('users')
@@ -938,7 +944,7 @@ const listByUserId = async ctx => {
     ctx.body = result
 }
 
-const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx = knex }) => {
+const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx = knex, per_page, current_page }) => {
     if (!user_id) {
         throw new Error('invalid user_id')
     }
@@ -1054,7 +1060,12 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx
     if (class_id) {
         query = query.where('classes.class_id', class_id)
     }
-    let result = _.map(await query, i => ({
+    const hasPagination = per_page || current_page
+    if (hasPagination) {
+        query = query.paginate(per_page, current_page)
+    }
+    let result = await query
+    const recommend = i => ({
         ...i,
         recommend: _.chain(i)
             .get('grades')
@@ -1067,7 +1078,12 @@ const getOptionalList = async ({ user_id, date, class_id, check_class_hours, trx
             .map(_.toNumber)
             .includes(_.toNumber(recommend_companion_id))
             .value(),
-    }))
+    })
+    if (hasPagination) {
+        result.data = _.map(result.data, recommend)
+    } else {
+        result = _.map(result, recommend)
+    }
     if (class_id) {
         if (_.isEmpty(result)) {
             const e = new Error('invalid class')

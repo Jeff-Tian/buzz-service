@@ -316,6 +316,22 @@ describe('选修课', () => {
             listRes.body[0].class_id.should.eql(classIds[0])
             listRes.body[0].recommend.should.equal(true)
         })
+        it('选修课列表: 分页', async () => {
+            const listRes = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
+                user_id: currentUserId,
+                date: moment().add(1, 'd').toISOString(),
+                per_page: 1,
+                current_page: 1,
+            })}`)
+            listRes.body.data.length.should.eql(1)
+            const listRes2 = await common.makeRequest('get', `${PATH}/optional?${queryString.stringify({
+                user_id: currentUserId,
+                date: moment().add(1, 'd').toISOString(),
+                per_page: 1,
+                current_page: 2,
+            })}`)
+            listRes2.body.data.length.should.eql(0)
+        })
         it('选修课列表: 课程内容禁用', async () => {
             await common.makeRequest('post', '/api/v1/content', {
                 module: '模块1',
