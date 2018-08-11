@@ -12,6 +12,7 @@ module.exports = {
             user: 'root',
             password: '1050709',
             timezone: 'UTC',
+            charset: 'utf8mb4',
         },
         pool: {
             min: 2,
@@ -48,6 +49,7 @@ module.exports = {
             password: process.env.RDS_BUZZ_PASSWORD,
             database: process.env.RDS_BUZZ_DB,
             timezone: 'UTC',
+            charset: 'utf8mb4',
         },
         migrations: {
             directory: path.join(BASE_PATH, 'migrations'),
@@ -63,6 +65,7 @@ module.exports = {
             password: process.env.RDS_BUZZ_PASSWORD,
             database: process.env.RDS_BUZZ_DB,
             timezone: 'UTC',
+            charset: 'utf8mb4',
         },
         migrations: {
             directory: path.join(BASE_PATH, 'migrations'),
