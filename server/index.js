@@ -23,18 +23,26 @@ app.use(async (ctx, next) => {
 })
 
 app.use(async (ctx, next) => {
-    if (ctx.cookies) {
-        const userId = ctx.cookies.get('user_id')
-
-        if (userId > 0) {
-            ctx.state.user = {
-                user_id: userId,
-            }
-        } else {
+    async function reportAnonymousAccess() {
+        if (ctx.request.url !== '/api/v1/monitors/health-check') {
             logger.info(`anonymous user accessing ${ctx.request.url}`)
         }
-    } else {
-        logger.info(`anonymous user accessing ${ctx.request.url}`)
+
+        await next()
+    }
+
+    if (!ctx.cookies) {
+        return await reportAnonymousAccess()
+    }
+
+    const userId = ctx.cookies.get('user_id')
+
+    if (Number(userId) <= 0) {
+        return await reportAnonymousAccess()
+    }
+
+    ctx.state.user = {
+        user_id: userId,
     }
 
     await next()
