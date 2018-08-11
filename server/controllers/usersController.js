@@ -71,7 +71,11 @@ const search = async ctx => {
         }
 
         if (ctx.query.wechat_name) {
-            search = search.andWhere('user_social_accounts.wechat_name', 'like', `%${ctx.query.wechat_name}%`)
+            if (process.env.NODE_ENV === 'qa' || process.env.NODE_ENV === 'production') {
+                search = search.andWhereRaw(` BINARY user_social_accounts.wechat_name like BINARY '%${ctx.query.wechat_name}%' `)
+            } else {
+                search = search.andWhere('user_social_accounts.wechat_name', 'like', `%${ctx.query.wechat_name}%`)
+            }
         }
 
         if (ctx.query.name) {
