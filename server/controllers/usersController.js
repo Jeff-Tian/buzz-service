@@ -496,12 +496,16 @@ const updateUserAccountsTable = async function (body, trx, ctx) {
     const accounts = makeUpdations({
         facebook_id: body.facebook_id,
         facebook_name: body.facebook_name,
+        wechat_name: body.wechat_name,
         wechat_openid: body.wechat_openid,
         wechat_unionid: body.wechat_unionid,
-        wechat_data: body.wechat_data,
+        wechat_data: typeof body.wechat_data === 'object' ? JSON.stringify(body.wechat_data) : body.wechat_data,
     })
+
+    logger.info(`Updating facebook or wechat data to ${JSON.stringify(accounts)}`)
+
     if (Object.keys(accounts).length > 0) {
-        const userSocialAccounts = await trx('user_social_accounts')
+        await trx('user_social_accounts')
             .where('user_social_accounts.user_id', ctx.params.user_id)
             .update(accounts)
     }

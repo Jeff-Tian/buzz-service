@@ -630,5 +630,46 @@ describe('routes: users', () => {
             newInfo = (await common.makeRequest('get', `/api/v1/users/${userId}`)).body
             newInfo.weekly_schedule_requirements.should.eql(0)
         })
+
+        it('可以修改微信资料并且兼容特殊字符', async () => {
+            const userId = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'user1',
+            })).body
+
+            let res = await common.makeRequest('put', `/api/v1/users/${userId}`, {
+                wechat_name: '🐾笑一个',
+            })
+
+            res.status.should.eql(200)
+
+            const newInfo = (await common.makeRequest('get', `/api/v1/users/${userId}`)).body
+            newInfo.wechat_name.should.eql('🐾笑一个')
+
+            const wechatData = {
+                subscribe: 1,
+                openid: 'oyjHGw8nZEiHlQsyTxGcjhCYOb0c',
+                nickname: '🐾笑一个',
+                sex: 2,
+                language: 'zh_CN',
+                city: '',
+                province: '',
+                country: '阿尔及利亚',
+                headimgurl: 'http://thirdwx.qlogo.cn/mmopen/Q3auHgzwzM5wW5KZJM6UHMOP2NE3NNzH07zEh2DWcJxphaNYwPaGTiamCVp78NDGTIe9Lz7nFOy5fC3ExHoKDs2ck6r32VcOepW5iatNp9xqc/132',
+                subscribe_time: 1533369736,
+                unionid: 'o0Kee0bccvxuwxQ6Kbp9Mg4ag-cs',
+                remark: '',
+                groupid: 0,
+                tagid_list: [],
+                subscribe_scene: 'ADD_SCENE_QR_CODE',
+                qr_scene: 0,
+                qr_scene_str: 'youzan_qr_87',
+            }
+            res = await common.makeRequest('put', `/api/v1/users/${userId}`, {
+                wechat_data: wechatData,
+            })
+
+            res.status.should.eql(200)
+            res.body.wechat_data.should.eql(JSON.stringify(wechatData))
+        })
     })
 })
