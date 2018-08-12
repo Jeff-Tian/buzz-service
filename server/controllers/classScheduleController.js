@@ -836,13 +836,13 @@ const listByUserId = async ctx => {
             'classes.end_time as class_end_time',
             'classes.start_time as class_start_time',
             'classes.topic as topic',
-            knex.raw('group_concat(user_profiles.user_id) as companion_id'),
+            knex.raw('group_concat(distinct user_profiles.user_id) as companion_id'),
             'student_class_schedule.status as status',
             'student_class_schedule.start_time as start_time',
             'student_class_schedule.end_time as end_time',
-            knex.raw('group_concat(users.name) as companion_name'),
-            knex.raw('group_concat(user_profiles.avatar) as companion_avatar'),
-            knex.raw('group_concat(user_profiles.country) as companion_country'),
+            knex.raw('group_concat(distinct users.name) as companion_name'),
+            knex.raw('group_concat(distinct user_profiles.avatar) as companion_avatar'),
+            knex.raw('group_concat(distinct user_profiles.country) as companion_country'),
         )
 
     if (process.env.NODE_ENV !== 'test') {
