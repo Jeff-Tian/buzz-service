@@ -163,6 +163,10 @@ module.exports = {
             return user.filterPurchases(search)
         }
 
+        if (state === 'waitingforplacementtest') {
+            return user.filterWaitingForPlacementTest(search)
+        }
+
         return search
     },
 }
