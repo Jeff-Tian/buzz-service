@@ -247,4 +247,8 @@ module.exports = {
         return await knex('user_tags')
             .where('tag', tag)
     },
+
+    filterPotentials(search) {
+        return search.whereNull('user_profiles.mobile')
+    },
 }

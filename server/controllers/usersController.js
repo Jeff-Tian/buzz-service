@@ -90,6 +90,9 @@ const search = async ctx => {
         if (ctx.query.create_start_time || ctx.query.create_end_time) {
             search = filterByCreateTime(search, ctx.query.create_start_time, ctx.query.create_end_time)
         }
+        if (ctx.query.state) {
+            search = userBll.filterUsersByState(search, ctx.query.state)
+        }
         const result = await userDal.selectFields(search, basicAuth.validate(ctx)).paginate(ctx.query.per_page, ctx.query.current_page)
         result.data = _.map(result.data, i => ({
             ...i,
@@ -99,7 +102,7 @@ const search = async ctx => {
     } catch (error) {
         logger.error(error)
 
-        ctx.status = 500
+        ctx.status = 400
         ctx.body = { error: error.message }
     }
 }

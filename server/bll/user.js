@@ -149,4 +149,12 @@ module.exports = {
     async isSuper(userId) {
         return Tags.containSystemUserTags((await user.getTags(userId)).map(t => t.tag))
     },
+
+    filterUsersByState(search, state) {
+        if (state === 'potential') {
+            return user.filterPotentials(search)
+        }
+
+        return search
+    },
 }
