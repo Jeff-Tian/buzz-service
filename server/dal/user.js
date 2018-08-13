@@ -263,8 +263,8 @@ module.exports = {
     },
 
     filterPurchases(search) {
-        return search.andWhere('user_balance.class_hours', '>', 0)
-            .andWhereRaw('user_booked_class_hours.class_hours = 0 and user_consumed_class_hours.class_hours = 0')
+        return search
+            .andWhereRaw('user_balance.class_hours > 0 and user_booked_class_hours.class_hours = 0 and user_consumed_class_hours.class_hours = 0')
     },
 
     filterWaitingForPlacementTest(search) {
