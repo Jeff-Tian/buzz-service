@@ -175,6 +175,10 @@ module.exports = {
             return user.filterRenewals(search)
         }
 
+        if (state === 'refunded') {
+            return user.filterRefunded(search)
+        }
+
         return search
     },
 }
