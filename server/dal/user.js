@@ -250,12 +250,16 @@ module.exports = {
 
     filterPotentials(search) {
         return search.andWhereRaw(`user_profiles.mobile is null or 
-        (user_profiles.city is null and user_profile.country is null and user_profiles.location is null)
+        (user_profiles.city is null and user_profiles.country is null and user_profiles.location is null)
         or user_profiles.date_of_birth is null || users.name is null
         `)
     },
 
     filterLeads(search) {
-        return search.where('user_tags.tags', 'like', `%${UserTags.Leads}%`)
+        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Leads}%`)
+    },
+
+    filterPurchases(search) {
+        return search.andWhere('user_balance.class_hours', '>', 0).andWhere({ 'user_booked_class_hours.class_hours': 0, user_consumed_class_hours: 0 })
     },
 }

@@ -159,6 +159,10 @@ module.exports = {
             return user.filterLeads(search)
         }
 
+        if (state === 'purchase') {
+            return user.filterPurchases(search)
+        }
+
         return search
     },
 }
