@@ -273,4 +273,8 @@ module.exports = {
     filterWaitingForFirstClass(search) {
         return this.filterPurchases(search).andWhereNotNull('user_placement_tests.level')
     },
+
+    filterRenewals(search) {
+        return search.andWhere('user_tags.tags', 'like', `%${UserTags.NeedCharge}%`)
+    },
 }

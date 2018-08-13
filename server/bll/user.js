@@ -171,6 +171,10 @@ module.exports = {
             return user.filterWaitingForFirstClass(search)
         }
 
+        if (state === 'renewals') {
+            return user.filterRenewals(search)
+        }
+
         return search
     },
 }
