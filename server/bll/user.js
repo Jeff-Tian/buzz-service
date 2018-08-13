@@ -159,7 +159,7 @@ module.exports = {
             return user.filterLeads(search)
         }
 
-        if (state === 'purchase') {
+        if (state === 'purchased') {
             return user.filterPurchases(search)
         }
 
