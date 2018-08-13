@@ -155,6 +155,10 @@ module.exports = {
             return user.filterPotentials(search)
         }
 
+        if (state === 'leads') {
+            return user.filterLeads(search)
+        }
+
         return search
     },
 }

@@ -1,5 +1,5 @@
 import logger from '../common/logger'
-import { ClassStatusCode } from '../common/constants'
+import { ClassStatusCode, UserTags } from '../common/constants'
 
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -250,5 +250,9 @@ module.exports = {
 
     filterPotentials(search) {
         return search.whereNull('user_profiles.mobile')
+    },
+
+    filterLeads(search) {
+        return search.where('user_tags.tags', 'like', `%${UserTags.Leads}%`)
     },
 }
