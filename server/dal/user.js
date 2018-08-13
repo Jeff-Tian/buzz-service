@@ -269,4 +269,8 @@ module.exports = {
     filterWaitingForPlacementTest(search) {
         return search.andWhereNull('user_placement_tests.detail')
     },
+
+    filterWaitingForFirstClass(search) {
+        return this.filterPurchases(search).andWhereNotNull('user_placement_tests.level')
+    },
 }

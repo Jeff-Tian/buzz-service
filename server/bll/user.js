@@ -167,6 +167,10 @@ module.exports = {
             return user.filterWaitingForPlacementTest(search)
         }
 
+        if (state === 'waitingforfirstclass') {
+            return user.filterWaitingForFirstClass(search)
+        }
+
         return search
     },
 }
