@@ -251,12 +251,15 @@ module.exports = {
     filterPotentials(search) {
         return search.andWhereRaw(`user_profiles.mobile is null or 
         (user_profiles.city is null and user_profiles.country is null and user_profiles.location is null)
-        or user_profiles.date_of_birth is null || users.name is null
+        or user_profiles.date_of_birth is null or users.name is null
         `)
     },
 
     filterLeads(search) {
         return search.andWhere('user_tags.tags', 'like', `%${UserTags.Leads}%`)
+            .andWhereRaw(`user_profiles.mobile is not null and (user_profiles.city is not null or user_profiles.country is not null or user_profiles.location is not null)
+        and user_profiles.date_of_birth is not null and users.name is not null
+        `)
     },
 
     filterPurchases(search) {
