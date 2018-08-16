@@ -1,4 +1,7 @@
 const common = require('./test-helpers/common')
+const queryString = require('query-string')
+const timeHelper = require('../server/common/time-helper')
+const moment = require('moment-timezone')
 const PATH = '/api/v1/class-schedule'
 
 const { server, should, chai, knex } = require('./test-helpers/prepare')
@@ -201,6 +204,281 @@ describe('routes: class schedules', () => {
             } catch (ex) {
                 should.exist(ex)
             }
+        })
+    })
+
+    describe('班级完成后的任务', () => {
+        let currentUserId
+        const companionIds = []
+        const classmateIds = []
+        const classIds = []
+        beforeEach(async () => {
+            currentUserId = (await common.makeRequest('post', '/api/v1/users', {
+                name: '当前学习方',
+                role: 's',
+                grade: 4,
+            })).body
+            companionIds[0] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '老师1',
+                role: 'c',
+            })).body
+            companionIds[1] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '老师2',
+                role: 'c',
+            })).body
+            classmateIds[0] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '同学1',
+                role: 's',
+                grade: 4,
+            })).body
+            classmateIds[1] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '同学2',
+                role: 's',
+                grade: 4,
+            })).body
+            classIds[0] = (await common.makeRequest('post', '/api/v1/class-schedule', {
+                companions: [companionIds[0]],
+                start_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').toISOString()),
+                end_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(25, 'm').toISOString()),
+                status: 'opened',
+                module: '模块1',
+                topic: '主题1',
+                topic_level: '主题级别1',
+                students: classmateIds,
+                level: '等级1',
+                name: '名称1',
+                class_hours: 1,
+                allow_sign_up: true,
+            })).body.class_id
+        })
+        it('完成过任务, 应该报错', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`)
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`).catch(err => {
+                console.error(err)
+                should.exist(err)
+            })
+        })
+        it('正常出席; 正常评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(300)
+            // console.log((await common.makeRequest('get', `/api/v1/class-feedback/admin-list/${classIds[0]}`)).body)
+            // console.log((await common.makeRequest('get', `/api/v1/user-balance/i/${companionIds[0]}`)).body)
+        })
+        it('正常出席; 正常评价; 被评价4星', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
+        })
+        it('正常出席; 没评价完; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(150)
+        })
+        it('正常出席; 24小时后评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+                feedback_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(25, 'h').toISOString()),
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+                feedback_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(25, 'h').toISOString()),
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(150)
+        })
+        it('正常出席; 12小时到24小时之间评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+                feedback_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(13, 'h').toISOString()),
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+                feedback_time: timeHelper.convertToDBFormat(moment().add(1, 'd').add(2, 'h').add(13, 'h').toISOString()),
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
+        })
+        it('迟到10分钟以上; 正常评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').add(11, 'm').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(50)
+        })
+        it('迟到5分钟到10分钟; 正常评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').add(9, 'm').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(200)
+        })
+        it('迟到5分钟内; 正常评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').add(4, 'm').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
         })
     })
 })

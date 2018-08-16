@@ -3,7 +3,7 @@ exports.up = function (knex, Promise) {
         table.bigIncrements('user_class_log_id')
         table.bigInteger('class_id').unsigned()
         table.bigInteger('user_id').unsigned()
-        table.string('type') // attend 前端点击上课;
+        table.string('type') // attend 前端点击上课; end 完成了班级结束任务
         table.timestamps(true, true)
         table.foreign('class_id').references('classes.class_id').onDelete('CASCADE').onUpdate('CASCADE')
         table.foreign('user_id').references('users.user_id').onDelete('CASCADE').onUpdate('CASCADE')
