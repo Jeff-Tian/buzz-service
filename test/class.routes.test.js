@@ -480,5 +480,36 @@ describe('routes: class schedules', () => {
             await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
             (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
         })
+        it('多次点击上课; 第一次迟到5分钟内; 第二次迟到5分钟到10分钟; 正常评价; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').add(4, 'm').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').add(9, 'm').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[1]}`, [{
+                score: 5,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 4,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
+        })
     })
 })
