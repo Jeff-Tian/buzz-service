@@ -1,5 +1,5 @@
 import logger from '../common/logger'
-import { ClassStatusCode } from '../common/constants'
+import { ClassStatusCode, UserTags } from '../common/constants'
 
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
@@ -249,6 +249,37 @@ module.exports = {
     },
 
     filterPotentials(search) {
-        return search.whereNull('user_profiles.mobile')
+        return search.andWhereRaw(`user_profiles.mobile is null or 
+        (user_profiles.city is null and user_profiles.country is null and user_profiles.location is null)
+        or user_profiles.date_of_birth is null or users.name is null
+        `)
+    },
+
+    filterLeads(search) {
+        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Leads}%`)
+            .andWhereRaw(`user_profiles.mobile is not null and (user_profiles.city is not null or user_profiles.country is not null or user_profiles.location is not null)
+        and user_profiles.date_of_birth is not null and users.name is not null
+        `)
+    },
+
+    filterPurchases(search) {
+        return search
+            .andWhereRaw('user_balance.class_hours > 0 and user_booked_class_hours.class_hours is null and user_consumed_class_hours.class_hours is null')
+    },
+
+    filterWaitingForPlacementTest(search) {
+        return search.andWhereRaw('user_placement_tests.detail is null')
+    },
+
+    filterWaitingForFirstClass(search) {
+        return this.filterPurchases(search).andWhereRaw('user_placement_tests.level is not null')
+    },
+
+    filterRenewals(search) {
+        return search.andWhere('user_tags.tags', 'like', `%${UserTags.NeedCharge}%`)
+    },
+
+    filterRefunded(search) {
+        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Refunded}%`)
     },
 }

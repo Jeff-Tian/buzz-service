@@ -155,6 +155,30 @@ module.exports = {
             return user.filterPotentials(search)
         }
 
+        if (state === 'leads') {
+            return user.filterLeads(search)
+        }
+
+        if (state === 'purchased') {
+            return user.filterPurchases(search)
+        }
+
+        if (state === 'waitingforplacementtest') {
+            return user.filterWaitingForPlacementTest(search)
+        }
+
+        if (state === 'waitingforfirstclass') {
+            return user.filterWaitingForFirstClass(search)
+        }
+
+        if (state === 'renewals') {
+            return user.filterRenewals(search)
+        }
+
+        if (state === 'refunded') {
+            return user.filterRefunded(search)
+        }
+
         return search
     },
 }

@@ -4,6 +4,7 @@ const classScheduleController = require('../controllers/classScheduleController'
 const BASE_URL = '/api/v1/class-schedule'
 router.get(`${BASE_URL}/suggested-classes`, classScheduleController.listSuggested)
 router.get(`${BASE_URL}/optional/:class_id`, classScheduleController.getOptionalByClassId)
+router.post(`${BASE_URL}/afterEnd/:class_id`, classScheduleController.afterEnd)
 router.post(`${BASE_URL}/joinOptional/:class_id`, classScheduleController.joinOptionalByClassId)
 router.get(`${BASE_URL}/optional`, classScheduleController.getOptionalList)
 router.get(`${BASE_URL}`, classScheduleController.list)

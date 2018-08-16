@@ -1,6 +1,7 @@
 export const UserTags = {
     Leads: 'leads',
     NeedCharge: '需续费',
+    Refunded: '退费',
 }
 
 export const SystemUserTags = {

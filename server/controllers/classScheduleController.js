@@ -19,6 +19,7 @@ const knex = require('knex')(knexConfig)
 const classSchedules = require('../bll/class-schedules')
 const { getUsersByClassId, getClassesByUserId } = require('../bll/user')
 const { getAllClassHours } = require('../bll/class-hours')
+const integralBll = require('../bll/integral')
 const config = require('../config/index')
 const listSuggested = async ctx => {
     try {
@@ -1135,6 +1136,94 @@ const joinOptionalByClassId = async ctx => {
     }
 }
 
+const afterEnd = async ctx => {
+    const trx = await promisify(knex.transaction)
+    try {
+        const { class_id } = ctx.params
+
+        if (!_.isEmpty(await trx('user_class_log').where({ type: 'end', class_id }))) {
+            throw new Error('already done')
+        }
+
+        const companions = await trx('classes')
+            .leftJoin('companion_class_schedule', 'classes.class_id', 'companion_class_schedule.class_id')
+            .where('classes.class_id', class_id)
+            .select('companion_class_schedule.user_id', 'classes.start_time', 'classes.end_time')
+        const students = await trx('classes')
+            .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
+            .where('classes.class_id', class_id)
+            .select('student_class_schedule.user_id')
+        await bluebird.map(companions, async ({ user_id, start_time, end_time }) => {
+            const user_class_logs = await trx('user_class_log')
+                .where({ class_id, user_id })
+                .orderBy('created_at', 'asc')
+            const attend_log = _.find(user_class_logs, ['type', 'attend'])
+            if (!attend_log) {
+                // 缺席：扣除500
+                await integralBll.consume(trx, user_id, 500, `absent from class id = ${class_id}`)
+            } else {
+                const attend_late_time = moment(attend_log.created_at).diff(moment(start_time), 'm', true)
+                if (attend_late_time <= 0) {
+                    //
+                } else if (attend_late_time <= 5) {
+                    // 迟到5分钟内：扣除积分50
+                    await integralBll.consume(trx, user_id, 50, `<=5m late for class id = ${class_id}`)
+                } else if (attend_late_time <= 10) {
+                    // 迟到10分钟内：扣除积分100
+                    await integralBll.consume(trx, user_id, 100, `<=10m late for class id = ${class_id}`)
+                } else if (attend_late_time > 10) {
+                    // 迟到10分钟以上：扣除250
+                    await integralBll.consume(trx, user_id, 250, `>10m late for class id = ${class_id}`)
+                }
+            }
+            const from_feedbacks = await trx('class_feedback')
+                .where('from_user_id', user_id)
+                .orderBy('feedback_time', 'desc')
+            const from_feedbacks_size = _.size(from_feedbacks)
+            const students_size = _.size(students)
+            if (from_feedbacks_size < students_size) {
+                // 课后24小时仍未评价：-50
+                await integralBll.consume(trx, user_id, 50, `unfinished(${from_feedbacks_size}/${students_size}) feedback in class id = ${class_id}`)
+            } else {
+                const last_from_feedback = _.first(from_feedbacks)
+                const feedback_late_time = moment(last_from_feedback.feedback_time).diff(moment(end_time), 'h', true)
+                if (feedback_late_time <= 12) {
+                    // 课后12小时内完成评价：100
+                    await integralBll.charge(trx, user_id, 100, `<=12h feedback in class id = ${class_id}`)
+                } else if (feedback_late_time <= 24) {
+                    // 课后24小时内完成评价：50
+                    await integralBll.charge(trx, user_id, 50, `<=24h feedback in class id = ${class_id}`)
+                } else {
+                    // 课后24小时仍未评价：-50
+                    await integralBll.consume(trx, user_id, 50, `>24h feedback in class id = ${class_id}`)
+                }
+            }
+            const to_feedbacks = await trx('class_feedback')
+                .where('to_user_id', user_id)
+            const to_feedbacks_size = _.size(to_feedbacks)
+            const scores = _.times(students_size, _.constant(5))
+            _.assign(scores, _.map(to_feedbacks, 'score'))
+            const avg_score = _.mean(scores)
+            if (avg_score <= 4) {
+                // 平均4星以下(含4分)：150
+                await integralBll.charge(trx, user_id, 150, `<=4 feedback score in class id = ${class_id}`)
+            } else {
+                // 平均4星以上：200
+                await integralBll.charge(trx, user_id, 200, `>4 feedback score in class id = ${class_id}`)
+            }
+        })
+        await trx('user_class_log').insert({ type: 'end', class_id })
+        await trx.commit()
+        ctx.body = { done: true }
+    } catch (error) {
+        logger.error(error)
+        await trx.rollback()
+        ctx.status = 500
+        ctx.body = {
+            error: 'after end class action failed!',
+        }
+    }
+}
 module.exports = {
     listSuggested,
     list,
@@ -1152,4 +1241,5 @@ module.exports = {
     getOptionalList: getOptionalListCtrl,
     getOptionalByClassId,
     joinOptionalByClassId,
+    afterEnd,
 }
