@@ -1,7 +1,7 @@
 exports.up = function (knex, Promise) {
     return knex.schema.createTable('user_tags', table => {
         table.bigInteger('user_id').unsigned()
-        table.string('tag')
+        table.string('tag', 100)
         table.timestamp('created_at').defaultTo(knex.fn.now())
 
         table.primary(['user_id', 'tag'])
