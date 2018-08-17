@@ -9,13 +9,8 @@ const alert = require('./alert')
 const config = require('../config')
 const { getWechatByUserIds } = require('../dal/user')
 
-let appId = process.env.buzz_wechat_appid
-let appSecret = process.env.buzz_wechat_secret
-
-if (process.env.NODE_ENV === 'staging') {
-    appId = process.env.buzz_wechat_test_appid
-    appSecret = process.env.buzz_wechat_test_secret
-}
+const appId = process.env.buzz_wechat_appid
+const appSecret = process.env.buzz_wechat_secret
 
 const apiName = `wechat:api:${appId}`
 const api = new API(
@@ -128,7 +123,7 @@ module.exports = {
         await this.sendTpl(data)
     },
     // 续费通知
-    async  sendRenewTpl(user_id, class_hours) {
+    async sendRenewTpl(user_id, class_hours) {
         const users = await getWechatByUserIds([user_id])
         const { wechat_openid, name, role } = _.get(users, '0') || {}
         if (role !== 's') return

@@ -108,6 +108,14 @@ module.exports = {
         return user.getTags(userId)
     },
 
+    async getUserIdByOpenId(openid) {
+        return await user.getUserIdByOpenId(openid)
+    },
+
+    async getUserIdsByEmail(email) {
+        return await user.getUserIdsByEmail(email)
+    },
+
     async addTags(userId, tags, ctx) {
         await Tags.checkHttpContext(ctx, tags)
 

@@ -279,4 +279,12 @@ module.exports = {
     filterRefunded(search) {
         return search.andWhere('user_tags.tags', 'like', `%${UserTags.Refunded}%`)
     },
+
+    async getUserIdByOpenId(openid) {
+        return (await knex('user_social_accounts').where('wechat_openid', '=', openid).select('user_id'))[0].user_id
+    },
+
+    async getUserIdsByEmail(email) {
+        return (await knex('user_profiles').where('email', '=', email)).select('user_id').map(o => o.user_id)
+    },
 }
