@@ -57,6 +57,22 @@ module.exports = {
         seeds: {},
     },
 
+    qa2: {
+        client: 'mysql',
+        connection: {
+            host: process.env.RDS_BUZZ_HOST,
+            user: process.env.RDS_BUZZ_USER,
+            password: process.env.RDS_BUZZ_PASSWORD,
+            database: 'buzz2',
+            timezone: 'UTC',
+            charset: 'utf8mb4',
+        },
+        migrations: {
+            directory: path.join(BASE_PATH, 'migrations'),
+        },
+        seeds: {},
+    },
+
     production: {
         client: 'mysql',
         connection: {

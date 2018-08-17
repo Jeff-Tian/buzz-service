@@ -249,10 +249,7 @@ module.exports = {
     },
 
     filterPotentials(search) {
-        return search.andWhereRaw(`user_profiles.mobile is null or 
-        (user_profiles.city is null and user_profiles.country is null and user_profiles.location is null)
-        or user_profiles.date_of_birth is null or users.name is null
-        `)
+        return search.andWhereRaw('user_profiles.mobile is null')
     },
 
     filterLeads(search) {
