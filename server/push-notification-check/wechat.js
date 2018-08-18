@@ -19,4 +19,4 @@ function checkWechat() {
 }
 
 checkWechat()
-export default wechat
+module.exports = wechat

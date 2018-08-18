@@ -18,4 +18,4 @@ function checkMail() {
 
 checkMail()
 
-export default mail
+module.exports = mail
