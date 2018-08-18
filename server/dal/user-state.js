@@ -9,4 +9,10 @@ export default class UserState {
             timestamp: new Date(),
         })
     }
+
+    static async getLatest(userId) {
+        return (await knex('user_states').select('state', 'timestamp', 'remark')
+            .where('user_id', '=', userId)
+            .limit(1))[0]
+    }
 }

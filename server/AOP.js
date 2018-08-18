@@ -30,13 +30,13 @@ export default class AOP {
         Function.prototype.afterAsync = function (asyncFunc) {
             const self = this;
             return async function () {
-                let result = self.apply(this, arguments)
+                let result = await self.apply(this, arguments)
 
                 if (result === false) {
                     return false;
                 }
 
-                await asyncFunc.apply(this, arguments);
+                await asyncFunc.apply(self, [result, ...arguments]);
                 return result;
             }
         }
