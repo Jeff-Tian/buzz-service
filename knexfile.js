@@ -47,7 +47,7 @@ module.exports = {
             host: process.env.RDS_BUZZ_HOST,
             user: process.env.RDS_BUZZ_USER,
             password: process.env.RDS_BUZZ_PASSWORD,
-            database: process.env.RDS_BUZZ_DB,
+            database: 'buzz3', // process.env.RDS_BUZZ_DB,
             timezone: 'UTC',
             charset: 'utf8mb4',
         },
