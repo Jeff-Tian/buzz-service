@@ -12,9 +12,9 @@ const config = require('../../knexfile')[env]
 const buzzConfig = require('../config')
 const knex = require('knex')(config)
 
-const wechat = require('../common/wechat')
+const wechat = require('../push-notification-check/wechat')
 const qiniu = require('../common/qiniu')
-const mail = require('../common/mail')
+const mail = require('../push-notification-check/mail')
 const mobileCommon = require('../common/mobile')
 const timeHelper = require('../common/time-helper')
 const { countBookedClasses } = require('../bll/class-hours')

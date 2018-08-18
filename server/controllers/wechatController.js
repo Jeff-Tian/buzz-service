@@ -1,8 +1,4 @@
-const promisify = require('../common/promisify')
-const env = process.env.NODE_ENV || 'test'
-const config = require('../../knexfile')[env]
-const knex = require('knex')(config)
-const wechat = require('../common/wechat')
+const wechat = require('../push-notification-check/wechat')
 const Stream = require('stream')
 const qiniu = require('../common/qiniu')
 
