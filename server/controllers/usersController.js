@@ -476,7 +476,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
             }))
-            logger.info(`will change mobile to (${body.mobile}) `, body.mobile, '!!!')
+            logger.info(`will change mobile to (${body.mobile}) `, '!!!')
         }
 
         if (typeof body.email !== 'undefined' && body.email.indexOf('*') < 0) {
@@ -491,7 +491,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     }
 
     if (Object.keys(profiles).length > 0) {
-        const userProfile = await trx('user_profiles')
+        await trx('user_profiles')
             .where('user_id', ctx.params.user_id)
             .update(profiles)
     }

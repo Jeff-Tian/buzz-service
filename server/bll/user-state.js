@@ -3,6 +3,7 @@ import UserStateDal from '../dal/user-state'
 
 export const UserStates = {
     Potential: 'potential',
+    Lead: 'lead',
 }
 
 export default class UserState {

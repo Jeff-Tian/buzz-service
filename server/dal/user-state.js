@@ -13,6 +13,7 @@ export default class UserState {
     static async getLatest(userId) {
         return (await knex('user_states').select('state', 'timestamp', 'remark')
             .where('user_id', '=', userId)
+            .orderBy('timestamp', 'desc')
             .limit(1))[0]
     }
 }
