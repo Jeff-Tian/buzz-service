@@ -272,14 +272,14 @@ const create = async ctx => {
             throw new Error('The user already exists')
         }
 
-        const userProfile = await trx('user_profiles').insert({
+        await trx('user_profiles').insert({
             user_id: users[0],
             avatar: body.avatar || '',
             mobile: body.mobile,
             grade: body.grade,
         })
 
-        const userSocialAccounts = await trx('user_social_accounts').insert({
+        await trx('user_social_accounts').insert({
             user_id: users[0],
             facebook_id: body.facebook_id || null,
             facebook_name: body.facebook_name || '',

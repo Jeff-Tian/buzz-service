@@ -1,3 +1,6 @@
+import AOP from '../AOP'
+import * as UserState from '../bll/user-state'
+
 const Router = require('koa-router')
 const router = new Router()
 const usersController = require('../controllers/usersController')
@@ -9,7 +12,10 @@ router.get(`${BASE_URL}/by-facebook/:facebook_id`, usersController.getByFacebook
 router.get(`${BASE_URL}/by-wechat`, usersController.getByWechat)
 router.get(`${BASE_URL}/:user_id`, usersController.show)
 router.get(`${BASE_URL}/feedback/:class_id`, usersController.getUserInfoByClassId)
-router.post(`${BASE_URL}`, usersController.create)
+AOP.setAfter()
+router.post(`${BASE_URL}`, usersController.create.afterAsync(async ctx => {
+    await UserState.tag(ctx.body.user_id, UserState.States.Potential)
+}))
 router.post(`${BASE_URL}/byUserIdlist`, usersController.getByUserIdList)
 router.put(`${BASE_URL}/sign-in`, usersController.signIn)
 router.put(`${BASE_URL}/account-sign-in`, usersController.accountSignIn)

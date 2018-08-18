@@ -24,4 +24,22 @@ export default class AOP {
         }
         /* eslint-enable */
     }
+
+    static setAfter() {
+        /* eslint-disable */
+        Function.prototype.afterAsync = function (asyncFunc) {
+            const self = this;
+            return async function () {
+                let result = self.apply(this, arguments)
+
+                if (result === false) {
+                    return false;
+                }
+
+                await asyncFunc.apply(this, arguments);
+                return result;
+            }
+        }
+        /* eslint-enable */
+    }
 }
