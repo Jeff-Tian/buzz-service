@@ -22,6 +22,7 @@ export default class Checker {
     }
 
     static async allowReceivingNotificationsByEmail(email) {
+        logger.info(`check this user ${email} allowing receiving notifications...`)
         const userIds = await userBll.getUserIdsByEmail(email)
         for (let i = 0; i < userIds.length; i++) {
             // eslint-disable-next-line no-await-in-loop

@@ -290,6 +290,6 @@ module.exports = {
     },
 
     async getUserIdsByEmail(email) {
-        return (await knex('user_profiles').where('email', '=', email)).select('user_id').map(o => o.user_id)
+        return (await knex('user_profiles').where('email', '=', email).select('user_id')).map(o => o.user_id)
     },
 }
