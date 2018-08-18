@@ -10,7 +10,7 @@ function checkWechat() {
     wechat.sendScheduleTpl = wechat.sendScheduleTpl.before(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendCompanionEvaluationTpl = wechat.sendCompanionEvaluationTpl.before(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendDayClassBeginTpl = wechat.sendDayClassBeginTpl.before(Checker.checkAllowSendNotificationsByWechatOpenId)
-    wechat.sendFeedbackTpl = wechat.sendFeedbackTpl.before(async ({ to }) => await Checker.checkAllowSendNotificationsByUserId({ user_id: to }))
+    wechat.sendFeedbackTpl = wechat.sendFeedbackTpl.before(async (from, to) => await Checker.checkAllowSendNotificationsByUserId(to))
     wechat.sendMinuteClassBeginTpl = wechat.sendMinuteClassBeginTpl.before(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendNowClassBeginTpl = wechat.sendNowClassBeginTpl.before(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendRenewTpl = wechat.sendRenewTpl.before(Checker.checkAllowSendNotificationsByUserId)
