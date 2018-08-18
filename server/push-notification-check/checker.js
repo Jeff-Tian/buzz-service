@@ -15,7 +15,7 @@ export default class Checker {
         logger.info(`尝试发送通知给 ${userId}: ${openid}`)
         const result = await Checker.allowReceivingNotificationsByUserId(userId)
         if (!result) {
-            logger.info(`通知检查结果为 ${result}，取消发送 = ${result === true}`)
+            logger.info(`通知检查结果为 ${result}，取消发送 = ${result === false}`)
             logger.info(`但是由于该用户 ${userId}: ${openid} 没有接收通知标签，取消发送。`)
         }
         return result

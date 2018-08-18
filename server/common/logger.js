@@ -23,7 +23,7 @@ log4js.configure({
     },
 })
 const logger = log4js.getLogger()
-AOP.before()
+AOP.setBefore()
 logger.error = logger.error.before(function (err) {
     fundebug.notifyError.call(this, err)
 })
