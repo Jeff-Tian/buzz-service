@@ -261,7 +261,7 @@ module.exports = {
 
     filterDemo(search) {
         return search.andWhere('user_balance.class_hours', '>', 0)
-            .andWhereRaw('user_booked_class_hours.class_hours + user_consumed_class_hours.class_hours + user_balance.class_hours < 12')
+            .andWhereRaw('ifnull(user_booked_class_hours.class_hours, 0) + ifnull(user_consumed_class_hours.class_hours, 0) + ifnull(user_balance.class_hours, 0) < 12')
     },
 
     filterPurchases(search) {
