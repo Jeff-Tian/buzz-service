@@ -506,9 +506,9 @@ const upsert = async ctx => {
 
         await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
         const classInfo = await getClassById(classIds[0], trx)
+        await trx.commit()
         await addClassJob(classInfo)
         await addScheduleJob(oldClassInfo, classInfo, ctx.request.body.optional)
-        await trx.commit()
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = classInfo
