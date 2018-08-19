@@ -34,6 +34,28 @@ describe('routes: users', () => {
         })
     })
 
+    describe('用户接口', () => {
+        it('should return an error when the resource already exists', done => {
+            chai
+                .request(server)
+                .post(`${PATH}`)
+                .send({
+                    name: 'user1',
+                    user_id: '1',
+                })
+                .end((err, res) => {
+                    console.error('xxxxxxxxxxxxx')
+                    console.error(err)
+                    console.error('yyyyyyyyyyyyy')
+                    should.exist(err)
+                    res.status.should.eql(409)
+                    res.type.should.eql('application/json')
+                    res.body.error.should.eql('The user already exists')
+                    done()
+                })
+        })
+    })
+
     describe(`GET ${PATH}/:user_id`, () => {
         it('用户详情返回 booked_class_hours 和 locked_class_hours', done => {
             chai

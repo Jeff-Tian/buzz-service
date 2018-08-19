@@ -1,4 +1,5 @@
 import * as userBookings from './test-data-generators/user-bookings'
+
 const bluebird = require('bluebird')
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
@@ -199,22 +200,6 @@ describe('routes: users', () => {
                         })
                 })
         })
-        it('should return an error when the resource already exists', done => {
-            chai
-                .request(server)
-                .post(`${PATH}`)
-                .send({
-                    name: 'user1',
-                    user_id: '1',
-                })
-                .end((err, res) => {
-                    should.exist(err)
-                    res.status.should.eql(409)
-                    res.type.should.eql('application/json')
-                    res.body.error.should.eql('The user already exists')
-                    done()
-                })
-        })
         it('外籍注册成功自动添加一课时', async () => {
             const userId = await createUserWithNameAndRole('new tutor with 1 class hour', userBll.MemberType.Companion)
 
@@ -407,6 +392,10 @@ describe('routes: users', () => {
                     remark: 'test',
                 })
                 .end((err, res) => {
+                    console.log('=============================================')
+                    console.error(err)
+                    console.log(res)
+                    console.log('--------------------------------------------')
                     should.not.exist(err)
                     res.status.should.eql(200)
 

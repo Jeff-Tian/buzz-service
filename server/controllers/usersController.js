@@ -302,6 +302,7 @@ const create = async ctx => {
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
         ctx.body = users[0]
     } catch (error) {
+        logger.error('askjfsadljflkasjdfjasdkfjlskajdfklsajd;fjsdklajfdsja;jdskljfds')
         logger.error(error)
 
         await trx.rollback()

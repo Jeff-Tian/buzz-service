@@ -159,38 +159,6 @@ module.exports = {
     },
 
     filterUsersByState(search, state) {
-        if (state === 'potential') {
-            return user.filterPotentials(search)
-        }
-
-        if (state === 'leads') {
-            return user.filterLeads(search)
-        }
-
-        if (state === 'demo') {
-            return user.filterDemo(search)
-        }
-
-        if (state === 'purchased') {
-            return user.filterPurchases(search)
-        }
-
-        if (state === 'waitingforplacementtest') {
-            return user.filterWaitingForPlacementTest(search)
-        }
-
-        if (state === 'waitingforfirstclass') {
-            return user.filterWaitingForFirstClass(search)
-        }
-
-        if (state === 'renewals') {
-            return user.filterRenewals(search)
-        }
-
-        if (state === 'refunded') {
-            return user.filterRefunded(search)
-        }
-
-        return search
+        return search.andWhere('user_states.state', '=', state)
     },
 }
