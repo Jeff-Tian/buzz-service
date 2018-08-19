@@ -4,6 +4,7 @@ import UserStateDal from '../dal/user-state'
 export const UserStates = {
     Potential: 'potential',
     Lead: 'lead',
+    Demo: 'demo',
 }
 
 export default class UserState {
