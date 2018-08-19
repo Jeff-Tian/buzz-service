@@ -8,7 +8,7 @@ const BASE_URL = '/api/v1/user-balance'
 AOP.setAfter()
 router.put(`${BASE_URL}/:user_id`, userBalanceController.chargeClassHour.afterAsync(async (result, ctx) => {
     const currentState = await UserState.getLatest(ctx.params.user_id)
-    if (currentState === UserStates.Lead && ctx.request.body.class_hours < 12) {
+    if (currentState.state === UserStates.Lead && ctx.request.body.class_hours < 12) {
         await UserState.tag(ctx.params.user_id, UserStates.Demo)
     }
 }))

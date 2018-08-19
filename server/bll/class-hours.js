@@ -1,5 +1,7 @@
 import * as userBll from './user'
 import { NeedChargeThreshold, UserTags } from '../common/constants'
+import AOP from '../AOP'
+import UserState, { UserStates } from './user-state'
 
 const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
@@ -114,8 +116,17 @@ async function charge(trx, userId, classHours, remark = '', by = null) {
     }
 }
 
+AOP.setAfter()
 module.exports = {
-    consume,
+    consume: consume.afterAsync(async (result, trx, userId) => {
+        const currentState = await UserState.getLatest(userId)
+        if (currentState.state === UserStates.Demo) {
+            const user = await userBll.get(userId)
+            if (user.class_hours <= 0) {
+                await UserState.tag(userId, UserStates.WaitingForPurchase)
+            }
+        }
+    }),
     charge,
     countBookedClasses: countFrozenClassHours,
     getAllClassHours,

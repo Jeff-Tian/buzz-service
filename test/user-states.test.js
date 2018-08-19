@@ -64,4 +64,11 @@ describe('用户状态', () => {
     it('Leads 第一次获得课时数，会变成 Demo 状态', async () => {
         await testDemo()
     })
+
+    it('Demo 用户消耗完课时，就会进入 待购买 状态', async () => {
+        const userId = await testDemo()
+        await classHourBll.consume(null, userId, 1)
+        const result = await UserState.getLatest(userId)
+        result.state.should.eql(UserStates.WaitingForPurchase)
+    })
 })
