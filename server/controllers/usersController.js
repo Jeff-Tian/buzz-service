@@ -381,7 +381,12 @@ const accountSignIn = async ctx => {
         return
     }
 
-    ctx.body = users
+    ctx.body = _.map(users, i => ({
+        ...i,
+        token: jwt.sign({
+            user_id: i.user_id,
+        }, process.env.BASIC_PASS, { expiresIn: 30 * 60 }),
+    }))
 }
 
 const signInByMobileCode = async ctx => {
