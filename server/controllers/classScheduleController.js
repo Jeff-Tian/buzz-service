@@ -10,8 +10,8 @@ const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
-const wechat = require('../common/wechat')
-const mail = require('../common/mail')
+const wechat = require('../push-notification-check/wechat')
+const mail = require('../push-notification-check/mail')
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]

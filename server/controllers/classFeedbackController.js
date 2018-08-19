@@ -5,8 +5,8 @@ const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
 const _ = require('lodash')
 const user = require('../dal/user')
-const wechat = require('../common/wechat')
-const mail = require('../common/mail')
+const wechat = require('../push-notification-check/wechat')
+const mail = require('../push-notification-check/mail')
 const msgDal = require('../dal/msg')
 
 const selectFeedback = function () {

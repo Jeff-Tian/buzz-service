@@ -1,4 +1,4 @@
-const mailCommon = require('../common/mail')
+const mailCommon = require('../push-notification-check/mail')
 
 const sendVerificationMail = async ctx => {
     try {

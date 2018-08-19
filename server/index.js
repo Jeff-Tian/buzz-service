@@ -1,5 +1,4 @@
 import logger from './common/logger'
-import WechatPushNotificationChecker from './push-notification-check/wechat'
 
 const Koa = require('koa')
 const redis = require('./common/redis')
@@ -60,8 +59,6 @@ fs.readdirSync(path.join(__dirname, './routes')).forEach(file => {
 
 const server = app.listen(PORT, async () => {
     logger.info('Buzz-Service 启动完毕。')
-
-    await WechatPushNotificationChecker.start()
 })
 
 app.on('error', err => {

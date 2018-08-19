@@ -1,5 +1,5 @@
 import * as userBookings from './test-data-generators/user-bookings'
-
+const bluebird = require('bluebird')
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
@@ -714,18 +714,12 @@ describe('routes: users', () => {
                 mobile: foreignMobile,
                 code,
             })
-            body[0].user_id.should.equal(foreignUserId)
-            body[1].user_id.should.equal(foreignUserId2)
-            const { body: res } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
-                mobile: foreignMobile,
-                token: body[0].token,
+            await bluebird.map(body, async i => {
+                (await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                    mobile: foreignMobile,
+                    token: i.token,
+                })).body.user_id.should.equal(i.user_id)
             })
-            res.user_id.should.equal(foreignUserId)
-            const { body: res2 } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
-                mobile: foreignMobile,
-                token: body[1].token,
-            })
-            res2.user_id.should.equal(foreignUserId2)
         })
     })
 })

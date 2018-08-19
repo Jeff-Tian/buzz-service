@@ -259,6 +259,11 @@ module.exports = {
         `)
     },
 
+    filterDemo(search) {
+        return search.andWhere('user_balance.class_hours', '>', 0)
+            .andWhereRaw('ifnull(user_booked_class_hours.class_hours, 0) + ifnull(user_consumed_class_hours.class_hours, 0) + ifnull(user_balance.class_hours, 0) < 12')
+    },
+
     filterPurchases(search) {
         return search
             .andWhereRaw('user_balance.class_hours > 0 and user_booked_class_hours.class_hours is null and user_consumed_class_hours.class_hours is null')
@@ -285,6 +290,6 @@ module.exports = {
     },
 
     async getUserIdsByEmail(email) {
-        return (await knex('user_profiles').where('email', '=', email)).select('user_id').map(o => o.user_id)
+        return (await knex('user_profiles').where('email', '=', email).select('user_id')).map(o => o.user_id)
     },
 }

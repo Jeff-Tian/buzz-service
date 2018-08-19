@@ -1,14 +1,18 @@
+import UserState, { UserStates } from '../server/bll/user-state'
+import User from './test-helpers/user'
+import * as common from './test-helpers/common'
+
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
 
 describe('routes: users', () => {
-    before(async () => {
+    beforeEach(async () => {
         // await knex.migrate.rollback()
         await knex.migrate.latest()
         await knex.seed.run()
     })
 
-    after(async () => {
+    afterEach(async () => {
         await knex.migrate.rollback()
     })
 
@@ -42,6 +46,33 @@ describe('routes: users', () => {
                     res.body.level.should.eql('A')
                     done()
                 })
+        })
+    })
+
+    describe('用户状态', () => {
+        it('新用户会自动进入 potential 状态', async () => {
+            const userId = (await User.createUserRequest({
+                name: 'hahaha',
+            })).body
+
+            userId.should.gt(0)
+
+            const result = await UserState.getLatest(userId)
+            result.state.should.eql(UserStates.Potential)
+        })
+
+        it('新注册的用户填写手机号后，会变成 Leads 状态', async () => {
+            const userId = (await User.createUserRequest({ name: 'hahaha' })).body
+            userId.should.gt(0)
+
+            let result = await UserState.getLatest(userId)
+            result.state.should.eql(UserStates.Potential)
+
+            await common.makeRequest('put', `/api/v1/users/${userId}`, {
+                mobile: '17717373333',
+            }, { user: process.env.BASIC_NAME, pass: process.env.BASIC_PASS })
+            result = await UserState.getLatest(userId)
+            result.state.should.eql(UserStates.Lead)
         })
     })
 })
