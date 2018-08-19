@@ -78,13 +78,18 @@ describe('用户状态', () => {
         await testWaitingForPurchase()
     })
 
-    it('Demo 用户一次性购买12或者以上课时，就会进入 正式上课 状态', async () => {
+    async function testInClass() {
         const userId = await testDemo()
         await common.makeRequest('put', `/api/v1/user-balance/${userId}`, {
             class_hours: 12,
         })
         const result = await UserState.getLatest(userId)
         result.state.should.eql(UserStates.InClass)
+        return userId
+    }
+
+    it('Demo 用户一次性购买12或者以上课时，就会进入 正式上课 状态', async () => {
+        await testInClass()
     })
 
     it('Lead 用户一次性购买 12 或者以上课时，就会进入 正式上课 状态', async () => {
@@ -103,5 +108,14 @@ describe('用户状态', () => {
         })
         const result = await UserState.getLatest(userId)
         result.state.should.eql(UserStates.InClass)
+    })
+
+    it('正式用户的课时被消耗完毕时，就会变成 需续费 用户', async () => {
+        const userId = await testInClass()
+        await common.makeRequest('delete', `/api/v1/user-balance/${userId}`, {
+            class_hours: 240,
+        })
+        const result = await UserState.getLatest(userId)
+        result.state.should.eql(UserStates.WaitingForRenewal)
     })
 })
