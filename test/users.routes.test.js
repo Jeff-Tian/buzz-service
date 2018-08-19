@@ -672,4 +672,60 @@ describe('routes: users', () => {
             res.body.wechat_data.should.eql(JSON.stringify(wechatData))
         })
     })
+
+    describe('手机号验证码登录', () => {
+        const cnMobile = '18657198908'
+        const foreignMobile = '0014169314667'
+        let cnUserId
+        let foreignUserId
+        let foreignUserId2
+        beforeEach(async () => {
+            cnUserId = (await common.makeRequest('post', '/api/v1/users', {
+                mobile: cnMobile,
+                name: cnMobile,
+                role: 's',
+            })).body
+            foreignUserId = (await common.makeRequest('post', '/api/v1/users', {
+                mobile: foreignMobile,
+                name: foreignMobile,
+                role: 's',
+            })).body
+            foreignUserId2 = (await common.makeRequest('post', '/api/v1/users', {
+                mobile: foreignMobile,
+                name: `${foreignMobile}-2`,
+                role: 's',
+            })).body
+        })
+        it('中国手机号单用户验证码登录', async () => {
+            const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
+                mobile: cnMobile,
+            })
+            const { body } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                mobile: cnMobile,
+                code,
+            })
+            body.user_id.should.equal(cnUserId)
+        })
+        it('外国手机号多用户验证码登录', async () => {
+            const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
+                mobile: foreignMobile,
+            })
+            const { body } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                mobile: foreignMobile,
+                code,
+            })
+            body[0].user_id.should.equal(foreignUserId)
+            body[1].user_id.should.equal(foreignUserId2)
+            const { body: res } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                mobile: foreignMobile,
+                token: body[0].token,
+            })
+            res.user_id.should.equal(foreignUserId)
+            const { body: res2 } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                mobile: foreignMobile,
+                token: body[1].token,
+            })
+            res2.user_id.should.equal(foreignUserId2)
+        })
+    })
 })

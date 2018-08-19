@@ -23,6 +23,7 @@ const userBll = require('../bll/user')
 const userDal = require('../dal/user')
 const basicAuth = require('../security/basic-auth')
 const classHoursBll = require('../bll/class-hours')
+const jwt = require('jsonwebtoken')
 
 function selectUsers(isContextSecure) {
     return userDal.selectFields(userDal.joinTables(), isContextSecure)
@@ -381,6 +382,55 @@ const accountSignIn = async ctx => {
     }
 
     ctx.body = users
+}
+
+const signInByMobileCode = async ctx => {
+    const { mobile, code, token } = ctx.request.body
+
+    if (!mobile) {
+        return ctx.throw(403, 'Please enter your phone number or email address')
+    }
+
+    if (!code && !token) {
+        return ctx.throw(403, 'Please enter your verification code')
+    }
+
+    let filter = {}
+    if (token) {
+        const { user_id } = jwt.verify(token, process.env.BASIC_PASS)
+        filter = { 'users.user_id': user_id }
+    } else {
+        await mobileCommon.verifyByCode(mobile, code)
+        filter = { 'user_profiles.mobile': mobile }
+    }
+
+    const users = await selectUsers(true).where(filter)
+
+    if (!users.length) {
+        return ctx.throw(404, 'The requested user does not exists')
+    }
+
+    if (!users.length) {
+        return ctx.throw(403, 'Mobile or verification code error')
+    }
+
+    if (users.length === 1) {
+        ctx.cookies.set('user_id', users[0].user_id, {
+            httpOnly: true,
+            expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
+        })
+        await updateWechatInfo(users[0].user_id).catch(e => logger.error('updateWechatInfo', e))
+        ctx.body = users[0]
+
+        return
+    }
+
+    ctx.body = _.map(users, i => ({
+        ...i,
+        token: jwt.sign({
+            user_id: i.user_id,
+        }, process.env.BASIC_PASS, { expiresIn: 30 * 60 }),
+    }))
 }
 
 const signIn = async ctx => {
@@ -784,6 +834,7 @@ module.exports = {
     create,
     signIn,
     accountSignIn,
+    signInByMobileCode,
     update,
     getByUserIdList,
     delete: deleteByUserID,
