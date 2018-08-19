@@ -65,10 +65,43 @@ describe('用户状态', () => {
         await testDemo()
     })
 
-    it('Demo 用户消耗完课时，就会进入 待购买 状态', async () => {
+    async function testWaitingForPurchase() {
         const userId = await testDemo()
         await classHourBll.consume(null, userId, 1)
         const result = await UserState.getLatest(userId)
         result.state.should.eql(UserStates.WaitingForPurchase)
+
+        return userId
+    }
+
+    it('Demo 用户消耗完课时，就会进入 待购买 状态', async () => {
+        await testWaitingForPurchase()
+    })
+
+    it('Demo 用户一次性购买12或者以上课时，就会进入 正式上课 状态', async () => {
+        const userId = await testDemo()
+        await common.makeRequest('put', `/api/v1/user-balance/${userId}`, {
+            class_hours: 12,
+        })
+        const result = await UserState.getLatest(userId)
+        result.state.should.eql(UserStates.InClass)
+    })
+
+    it('Lead 用户一次性购买 12 或者以上课时，就会进入 正式上课 状态', async () => {
+        const userId = await testLead()
+        await common.makeRequest('put', `/api/v1/user-balance/${userId}`, {
+            class_hours: 12,
+        })
+        const result = await UserState.getLatest(userId)
+        result.state.should.eql(UserStates.InClass)
+    })
+
+    it('待购买 用户一次性购买 12 或者以上课时，就会进入 正式上课 状态', async () => {
+        const userId = await testWaitingForPurchase()
+        await common.makeRequest('put', `/api/v1/user-balance/${userId}`, {
+            class_hours: 12,
+        })
+        const result = await UserState.getLatest(userId)
+        result.state.should.eql(UserStates.InClass)
     })
 })
