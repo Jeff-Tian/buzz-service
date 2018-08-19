@@ -4,7 +4,6 @@ import * as common from './test-helpers/common'
 import * as classHourBll from '../server/bll/class-hours'
 
 const { server, should, chai, knex } = require('./test-helpers/prepare')
-const PATH = '/api/v1/users'
 
 describe('用户状态', () => {
     before(async () => {
@@ -117,5 +116,15 @@ describe('用户状态', () => {
         })
         const result = await UserState.getLatest(userId)
         result.state.should.eql(UserStates.WaitingForRenewal)
+    })
+
+    it('直接修改状态接口', async () => {
+        const userId = (await User.createUserRequest({ name: 'hahaha' })).body
+        await common.makeRequest('put', `/api/v1/user-states/${userId}`, {
+            newState: UserStates.Invalid,
+        })
+
+        const state = await UserState.getLatest(userId)
+        state.state.should.eql(UserStates.Invalid)
     })
 })
