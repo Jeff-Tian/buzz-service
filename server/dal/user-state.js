@@ -14,6 +14,6 @@ export default class UserState {
         return (await knex('user_states').select('state', 'timestamp', 'remark')
             .where('user_id', '=', userId)
             .orderBy('timestamp', 'desc')
-            .limit(1))[0]
+            .limit(1))[0] || {}
     }
 }

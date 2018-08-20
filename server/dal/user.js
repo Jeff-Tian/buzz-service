@@ -38,6 +38,12 @@ module.exports = {
 
         const consumedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.End], 'user_consumed_class_hours')
 
+        const stateSubQuery = knex('user_states')
+            .select('user_id', 'state', 'timestamp', 'remark')
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .as('user_states')
+
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
@@ -48,6 +54,7 @@ module.exports = {
             .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
             .leftJoin(bookedClassHoursSubQuery, 'users.user_id', 'user_booked_class_hours.user_id')
             .leftJoin(consumedClassHoursSubQuery, 'users.user_id', 'user_consumed_class_hours.user_id')
+            .leftJoin(stateSubQuery, 'users.user_id', 'user_states.user_id')
             .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
@@ -80,7 +87,8 @@ module.exports = {
                 knex.raw('sum(user_booked_class_hours.class_hours) as' +
                     ' booked_class_hours'),
                 knex.raw('sum(user_consumed_class_hours.class_hours) as' +
-                    ' consumed_class_hours')
+                    ' consumed_class_hours'),
+                'user_states.state'
             )
     },
     async get(userId, isContextSecure = false) {
@@ -246,43 +254,6 @@ module.exports = {
     async getUsersByTag(tag) {
         return await knex('user_tags')
             .where('tag', tag)
-    },
-
-    filterPotentials(search) {
-        return search.andWhereRaw('user_profiles.mobile is null')
-    },
-
-    filterLeads(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Leads}%`)
-            .andWhereRaw(`user_profiles.mobile is not null and (user_profiles.city is not null or user_profiles.country is not null or user_profiles.location is not null)
-        and user_profiles.date_of_birth is not null and users.name is not null
-        `)
-    },
-
-    filterDemo(search) {
-        return search.andWhere('user_balance.class_hours', '>', 0)
-            .andWhereRaw('ifnull(user_booked_class_hours.class_hours, 0) + ifnull(user_consumed_class_hours.class_hours, 0) + ifnull(user_balance.class_hours, 0) < 12')
-    },
-
-    filterPurchases(search) {
-        return search
-            .andWhereRaw('user_balance.class_hours > 0 and user_booked_class_hours.class_hours is null and user_consumed_class_hours.class_hours is null')
-    },
-
-    filterWaitingForPlacementTest(search) {
-        return search.andWhereRaw('user_placement_tests.detail is null')
-    },
-
-    filterWaitingForFirstClass(search) {
-        return this.filterPurchases(search).andWhereRaw('user_placement_tests.level is not null')
-    },
-
-    filterRenewals(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.NeedCharge}%`)
-    },
-
-    filterRefunded(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Refunded}%`)
     },
 
     async getUserIdByOpenId(openid) {

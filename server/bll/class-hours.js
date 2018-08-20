@@ -1,5 +1,7 @@
 import * as userBll from './user'
 import { NeedChargeThreshold, UserTags } from '../common/constants'
+import AOP from '../AOP'
+import UserState, { UserStates } from './user-state'
 
 const _ = require('lodash')
 const env = process.env.NODE_ENV || 'test'
@@ -29,11 +31,9 @@ async function getCurrentClassHours(trx, user_id) {
 }
 
 async function consume(trx, userId, classHours, remark = '', by = null) {
-    if (!trx) {
-        trx = knex
-    }
+    const transactionOrKnex = trx || knex
 
-    await trx('user_balance_history')
+    await transactionOrKnex('user_balance_history')
         .insert({
             timestamp: new Date(),
             user_id: userId,
@@ -43,7 +43,7 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
             remark,
             by,
         })
-    const currentClassHours = await getCurrentClassHours(trx, userId)
+    const currentClassHours = await getCurrentClassHours(transactionOrKnex, userId)
 
     const balance = (currentClassHours.length > 0 ? currentClassHours[0].class_hours : 0) - Number(classHours)
 
@@ -53,20 +53,20 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
     }
 
     if (currentClassHours.length > 0) {
-        await trx('user_balance')
+        await transactionOrKnex('user_balance')
             .where('user_id', userId)
             .update(newClassHours)
     } else {
-        await trx('user_balance').insert(newClassHours)
+        await transactionOrKnex('user_balance').insert(newClassHours)
     }
 
-    const frozenClassHours = await countFrozenClassHours(userId, trx)
+    const frozenClassHours = await countFrozenClassHours(userId, transactionOrKnex)
 
     if (balance + frozenClassHours <= NeedChargeThreshold) {
         await userBll.tryAddTags(userId, [{
             name: UserTags.NeedCharge,
             remark: '扣课时后课时不足自动添加此标签',
-        }], trx)
+        }], transactionOrKnex)
     }
 }
 
@@ -114,8 +114,29 @@ async function charge(trx, userId, classHours, remark = '', by = null) {
     }
 }
 
+AOP.setAfter()
 module.exports = {
-    consume,
+    consume: consume.afterAsync(async (result, trx, userId) => {
+        async function changeUserState() {
+            const user = await userBll.get(userId)
+            if (user.class_hours <= 0) {
+                const currentState = await UserState.getLatest(userId)
+                if (currentState.state === UserStates.Demo) {
+                    await UserState.tag(userId, UserStates.WaitingForPurchase, 'demo user runs out of class hours')
+                }
+
+                if (currentState.state === UserStates.InClass) {
+                    await UserState.tag(userId, UserStates.WaitingForRenewal, 'inclass user runs out of class hours')
+                }
+            }
+        }
+
+        if (trx) {
+            trx.commit = trx.commit.afterAsync(changeUserState)
+        } else {
+            await changeUserState()
+        }
+    }),
     charge,
     countBookedClasses: countFrozenClassHours,
     getAllClassHours,

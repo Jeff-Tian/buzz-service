@@ -16,7 +16,9 @@ router.get(`${BASE_URL}/:user_id`, usersController.show)
 router.get(`${BASE_URL}/feedback/:class_id`, usersController.getUserInfoByClassId)
 AOP.setAfter()
 router.post(`${BASE_URL}`, usersController.create.afterAsync(async (result, ctx) => {
-    await UserState.tag(ctx.body, UserStates.Potential)
+    if (ctx.status === 201) {
+        await UserState.tag(ctx.body, UserStates.Potential, 'newly created user')
+    }
 }))
 router.post(`${BASE_URL}/byUserIdlist`, usersController.getByUserIdList)
 router.put(`${BASE_URL}/sign-in`, usersController.signIn)
@@ -25,7 +27,7 @@ router.put(`${BASE_URL}/:user_id`, usersController.update.afterAsync(async (resu
     const latestState = await UserState.getLatest(ctx.params.user_id)
     const profile = await userBll.get(ctx.params.user_id, true)
     if (latestState.state === UserStates.Potential && profile.mobile) {
-        await UserState.tag(ctx.params.user_id, UserStates.Lead)
+        await UserState.tag(ctx.params.user_id, UserStates.Lead, 'potential user fills mobile')
     }
 }))
 router.post(`${BASE_URL}/appendOrderRemark/:user_id`, usersController.appendOrderRemark)
