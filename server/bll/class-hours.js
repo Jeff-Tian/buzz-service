@@ -122,11 +122,11 @@ module.exports = {
             if (user.class_hours <= 0) {
                 const currentState = await UserState.getLatest(userId)
                 if (currentState.state === UserStates.Demo) {
-                    await UserState.tag(userId, UserStates.WaitingForPurchase)
+                    await UserState.tag(userId, UserStates.WaitingForPurchase, 'demo user runs out of class hours')
                 }
 
                 if (currentState.state === UserStates.InClass) {
-                    await UserState.tag(userId, UserStates.WaitingForRenewal)
+                    await UserState.tag(userId, UserStates.WaitingForRenewal, 'inclass user runs out of class hours')
                 }
             }
         }
