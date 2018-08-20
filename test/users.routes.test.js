@@ -674,7 +674,8 @@ describe('routes: users', () => {
     })
 
     describe('手机号验证码登录', () => {
-        const cnMobile = '18657198908'
+        const cnMobile = '18600000000'
+        const cnMobile2 = '18600000001'
         const foreignMobile = '0014169314667'
         let cnUserId
         let foreignUserId
@@ -720,6 +721,16 @@ describe('routes: users', () => {
                     token: i.token,
                 })).body.user_id.should.equal(i.user_id)
             })
+        })
+        it('中国手机号单用户验证码自动注册', async () => {
+            const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
+                mobile: cnMobile2,
+            })
+            const { body } = await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                mobile: cnMobile2,
+                code,
+            })
+            body.mobile.should.equal(cnMobile2)
         })
     })
 })

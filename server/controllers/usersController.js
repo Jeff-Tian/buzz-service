@@ -254,49 +254,56 @@ const getByWechat = async ctx => {
     }
 }
 
+const createUser = async (body, _trx) => {
+    const trx = _trx || await promisify(knex.transaction)
+
+    const users = await trx('users')
+        .returning('user_id')
+        .insert({
+            name: body.name || '',
+            role: body.role,
+            created_at: new Date(),
+            user_id: body.user_id || undefined,
+        })
+
+    if (!users.length) {
+        throw new Error('The user already exists')
+    }
+
+    await trx('user_profiles').insert({
+        user_id: users[0],
+        avatar: body.avatar || '',
+        mobile: body.mobile,
+        grade: body.grade,
+    })
+
+    await trx('user_social_accounts').insert({
+        user_id: users[0],
+        facebook_id: body.facebook_id || null,
+        facebook_name: body.facebook_name || '',
+        wechat_openid: body.wechat_openid || null,
+        wechat_unionid: body.wechat_unionid || null,
+        wechat_name: body.wechat_name || null,
+    })
+
+    if (body.role === userBll.MemberType.Student) {
+        await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
+    }
+    if (body.role === userBll.MemberType.Companion) {
+        await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
+    }
+
+    await trx.commit()
+    return users
+}
+
 const create = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
         const { body } = ctx.request
 
-        const users = await trx('users')
-            .returning('user_id')
-            .insert({
-                name: body.name || '',
-                role: body.role,
-                created_at: new Date(),
-                user_id: body.user_id || undefined,
-            })
-
-        if (!users.length) {
-            throw new Error('The user already exists')
-        }
-
-        await trx('user_profiles').insert({
-            user_id: users[0],
-            avatar: body.avatar || '',
-            mobile: body.mobile,
-            grade: body.grade,
-        })
-
-        await trx('user_social_accounts').insert({
-            user_id: users[0],
-            facebook_id: body.facebook_id || null,
-            facebook_name: body.facebook_name || '',
-            wechat_openid: body.wechat_openid || null,
-            wechat_unionid: body.wechat_unionid || null,
-            wechat_name: body.wechat_name || null,
-        })
-
-        if (body.role === userBll.MemberType.Student) {
-            await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
-        }
-        if (body.role === userBll.MemberType.Companion) {
-            await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
-        }
-
-        await trx.commit()
+        const users = await createUser(body, trx)
 
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
@@ -409,14 +416,10 @@ const signInByMobileCode = async ctx => {
         filter = { 'user_profiles.mobile': mobile }
     }
 
-    const users = await selectUsers(true).where(filter)
+    let users = await selectUsers(true).where(filter)
 
     if (!users.length) {
-        return ctx.throw(404, 'The requested user does not exists')
-    }
-
-    if (!users.length) {
-        return ctx.throw(403, 'Mobile or verification code error')
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile }))
     }
 
     if (users.length === 1) {
