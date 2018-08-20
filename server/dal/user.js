@@ -40,8 +40,7 @@ module.exports = {
 
         const stateSubQuery = knex('user_states')
             .select('user_id', 'state', 'timestamp', 'remark')
-            .orderBy('timestamp', 'desc')
-            .limit(1)
+            .whereRaw('timestamp = (select max(t.timestamp) from user_states t where t.user_id = user_states.user_id)')
             .as('user_states')
 
         return knex('users')
