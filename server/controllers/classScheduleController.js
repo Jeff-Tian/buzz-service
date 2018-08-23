@@ -450,7 +450,6 @@ const upsert = async ctx => {
                     end_time: body.end_time,
                 }
                 if (JSON.stringify(updateForCompanions) !== '{}') {
-                    console.log('updating....')
                     await trx('companion_class_schedule')
                         .where('user_id', 'in', tbBeUpdatedCompanionSchedules)
                         .andWhere('class_id', '=', body.class_id)
