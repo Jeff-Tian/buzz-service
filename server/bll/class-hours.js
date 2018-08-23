@@ -9,13 +9,21 @@ const knexConfig = require('../../knexfile')[env]
 const knex = require('knex')(knexConfig)
 
 const countFrozenClassHours = async (user_id, trx = knex) => {
-    const result = await trx('classes')
+    const subQuery = trx('classes')
         .leftJoin('student_class_schedule', 'classes.class_id', 'student_class_schedule.class_id')
-        .select('classes.status as class_status', 'classes.class_id as class_id', 'student_class_schedule.status as schedule_status')
-        .sum('classes.class_hours as count')
+        .select(
+            'classes.status as class_status',
+            'classes.class_id as class_id',
+            'student_class_schedule.status as schedule_status',
+            knex.raw('CASE WHEN classes.class_hours is null THEN 1 ELSE classes.class_hours END as class_hours')
+        )
         .where({ user_id, 'student_class_schedule.status': 'confirmed' })
-        .whereIn('classes.status', ['opened', 'cancelled'])
-    return _.get(result, '0.count')
+        .whereIn('classes.status', ['opened', 'cancelled']).as('t')
+
+    const result = await trx(subQuery)
+        .sum('t.class_hours as class_hour_count')
+
+    return _.get(result, '0.class_hour_count') || 0
 }
 
 const getAllClassHours = async (user_id, trx = knex) => {
@@ -45,11 +53,12 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
         })
     const currentClassHours = await getCurrentClassHours(transactionOrKnex, userId)
 
-    const balance = (currentClassHours.length > 0 ? currentClassHours[0].class_hours : 0) - Number(classHours)
+    const currentBalance = currentClassHours.length > 0 ? currentClassHours[0].class_hours : 0
+    const newBalance = currentBalance - Number(classHours)
 
     const newClassHours = {
         user_id: userId,
-        class_hours: balance,
+        class_hours: newBalance,
     }
 
     if (currentClassHours.length > 0) {
@@ -62,7 +71,9 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
 
     const frozenClassHours = await countFrozenClassHours(userId, transactionOrKnex)
 
-    if (balance + frozenClassHours <= NeedChargeThreshold) {
+    const latest = await getCurrentClassHours(trx, userId)
+    const latestBalance = latest.length > 0 ? latest[0].class_hours : 0
+    if (latestBalance + frozenClassHours <= NeedChargeThreshold) {
         await userBll.tryAddTags(userId, [{
             name: UserTags.NeedCharge,
             remark: '扣课时后课时不足自动添加此标签',
