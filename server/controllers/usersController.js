@@ -556,6 +556,12 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     }
 }
 const updateUserAccountsTable = async function (body, trx, ctx) {
+    if (ctx.get('X-Requested-With') === 'buzz-corner' && (body.wechat_openid || body.wechat_unionid)) {
+        const wechatInfo = _.get(await trx('user_social_accounts').where('user_social_accounts.user_id', ctx.params.user_id), 0) || {}
+        if ((body.wechat_openid && wechatInfo.wechat_openid) || (body.wechat_unionid && wechatInfo.wechat_unionid)) {
+            throw new Error('this account is already bound to another wechat')
+        }
+    }
     const accounts = makeUpdations({
         facebook_id: body.facebook_id,
         facebook_name: body.facebook_name,
