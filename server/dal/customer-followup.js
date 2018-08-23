@@ -5,7 +5,7 @@ require('../common/knex')
 
 export default class CustomerFollowupDal {
     static getFollowupHistoryByUserId(userId, pageSize = 100, currentPage = 1) {
-        return knex('customer_follow_up')
+        return knex('customer_follow_ups')
             .select('timestamp', 'remark', 'followed_by')
             .where({
                 user_id: userId,
@@ -15,7 +15,7 @@ export default class CustomerFollowupDal {
     }
 
     static saveFollowupRecord(userId, followedBy, remark) {
-        return knex('customer_follow_up')
+        return knex('customer_follow_ups')
             .insert({
                 timestamp: new Date(),
                 remark,
