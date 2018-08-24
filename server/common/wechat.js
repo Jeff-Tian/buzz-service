@@ -141,6 +141,23 @@ module.exports = {
         }
         await this.sendTpl(data)
     },
+    // 课时返还
+    async chargeClassHours(user_id, class_hours, remark) {
+        const users = await getWechatByUserIds([user_id])
+        const { wechat_openid, name, role } = _.get(users, '0') || {}
+        if (role !== 's') return
+        const data = {
+            openid: wechat_openid,
+            id: 'w13aW6ETpOuVW65OqYnIt0umnv42KNL8MI1bhpMFvUg',
+            data: {
+                first: { value: '亲，您有一个课时返还信息\n' },
+                keyword1: { value: class_hours },
+                keyword2: { value: name || '' },
+                remark: { value: remark || '' },
+            },
+        }
+        await this.sendTpl(data)
+    },
     // 外籍给学生的课程评价通知
     async sendCompanionEvaluationTpl(wechat_openid, class_id, class_topic, class_end_time) {
         const end_time = timeHelper.zhEndTime(class_end_time)
