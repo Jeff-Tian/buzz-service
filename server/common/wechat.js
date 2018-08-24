@@ -150,10 +150,11 @@ module.exports = {
             openid: wechat_openid,
             id: 'w13aW6ETpOuVW65OqYnIt0umnv42KNL8MI1bhpMFvUg',
             data: {
-                first: { value: '亲，您有一个课时返还信息\n' },
+                first: { value: '亲，谢谢你的支持\n' },
                 keyword1: { value: String(class_hours) },
                 keyword2: { value: String(name || '') },
-                remark: { value: `\n${String(remark || '')}\n` },
+                keyword3: { value: '' },
+                // remark: { value: `${String(remark || '')}\n` },
             },
         }
         await this.sendTpl(data)
