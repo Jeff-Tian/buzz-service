@@ -5,7 +5,7 @@ const sendVerificationMail = async ctx => {
         const { mail, name, expire: setExpire } = ctx.request.body
         const { code, expire, error } = await mailCommon.sendVerificationMail(mail, name, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
         ctx.status = 200
-        ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire, error }
+        ctx.body = { code: (process.env.NODE_ENV !== 'production') && code, expire, error }
     } catch (error) {
         console.error('sendVerificationMail error: ', error)
         ctx.status = 500
