@@ -151,9 +151,9 @@ module.exports = {
             id: 'w13aW6ETpOuVW65OqYnIt0umnv42KNL8MI1bhpMFvUg',
             data: {
                 first: { value: '亲，您有一个课时返还信息\n' },
-                keyword1: { value: class_hours },
-                keyword2: { value: name || '' },
-                remark: { value: remark || '' },
+                keyword1: { value: String(class_hours) },
+                keyword2: { value: String(name || '') },
+                remark: { value: `\n${String(remark || '')}\n` },
             },
         }
         await this.sendTpl(data)
