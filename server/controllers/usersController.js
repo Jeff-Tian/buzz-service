@@ -254,7 +254,7 @@ const getByWechat = async ctx => {
     }
 }
 
-const createUser = async (body, _trx) => {
+const createUser = async (body, _trx, source) => {
     const trx = _trx || await promisify(knex.transaction)
 
     const users = await trx('users')
@@ -264,6 +264,7 @@ const createUser = async (body, _trx) => {
             role: body.role,
             created_at: new Date(),
             user_id: body.user_id || undefined,
+            source,
         })
 
     if (!users.length) {
@@ -304,13 +305,12 @@ const create = async ctx => {
     try {
         const { body } = ctx.request
 
-        const users = await createUser(body, trx)
+        const users = await createUser(body, trx, body.source)
 
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
         ctx.body = users[0]
     } catch (error) {
-        logger.error('askjfsadljflkasjdfjasdkfjlskajdfklsajd;fjsdklajfdsja;jdskljfds')
         logger.error(error)
 
         await trx.rollback()
@@ -399,7 +399,7 @@ const accountSignIn = async ctx => {
 }
 
 const signInByMobileCode = async ctx => {
-    const { mobile, code, token } = ctx.request.body
+    const { mobile, code, token, source } = ctx.request.body
 
     if (!mobile) {
         return ctx.throw(403, 'Please enter your phone number or email address')
@@ -421,7 +421,7 @@ const signInByMobileCode = async ctx => {
     let users = await selectUsers(true).where(filter)
 
     if (!users.length) {
-        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }))
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }), source || 'mobile')
     } else {
         const user_ids = _.map(users, 'user_id')
         await knex('user_profiles').whereIn('user_id', user_ids).update({
