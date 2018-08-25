@@ -274,6 +274,7 @@ const createUser = async (body, _trx) => {
         user_id: users[0],
         avatar: body.avatar || '',
         mobile: body.mobile,
+        mobile_confirmed: body.mobile_confirmed,
         grade: body.grade,
     })
 
@@ -420,7 +421,13 @@ const signInByMobileCode = async ctx => {
     let users = await selectUsers(true).where(filter)
 
     if (!users.length) {
-        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile }))
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }))
+    } else {
+        const user_ids = _.map(users, 'user_id')
+        await knex('user_profiles').whereIn('user_id', user_ids).update({
+            mobile_confirmed: true,
+        })
+        users = await selectUsers(true).whereIn('users.user_id', user_ids)
     }
 
     if (users.length === 1) {
@@ -522,6 +529,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         country: body.country,
         city: body.city,
         state: body.state,
+        mobile_confirmed: body.mobile_confirmed,
         school_name: body.school_name,
         time_zone: body.time_zone,
         order_remark: body.order_remark,
@@ -599,6 +607,11 @@ const update = async ctx => {
 
     try {
         const { body } = ctx.request
+        const { mobile, code } = body
+        if (mobile && code) {
+            await mobileCommon.verifyByCode(mobile, code)
+            body.mobile_confirmed = true
+        }
         await updateUsersTable(body, trx, ctx)
         await updateUserProfilesTable(body, trx, ctx)
         await updateUserAccountsTable(body, trx, ctx)

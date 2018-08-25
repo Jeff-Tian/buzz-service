@@ -662,7 +662,7 @@ describe('routes: users', () => {
         })
     })
 
-    describe('手机号验证码登录', () => {
+    describe('手机号验证码登录/使用验证码更新手机号', () => {
         const cnMobile = '18600000000'
         const cnMobile2 = '18600000001'
         const foreignMobile = '0014169314667'
@@ -686,6 +686,17 @@ describe('routes: users', () => {
                 role: 's',
             })).body
         })
+        it('使用验证码更新手机号', async () => {
+            const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
+                mobile: cnMobile,
+            })
+            const { body } = await common.makeRequest('put', `/api/v1/users/${cnUserId}`, {
+                mobile: cnMobile,
+                code,
+            })
+            body.user_id.should.equal(cnUserId)
+            body.mobile_confirmed.should.equal(1)
+        })
         it('中国手机号单用户验证码登录', async () => {
             const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
                 mobile: cnMobile,
@@ -695,6 +706,7 @@ describe('routes: users', () => {
                 code,
             })
             body.user_id.should.equal(cnUserId)
+            body.mobile_confirmed.should.equal(1)
         })
         it('外国手机号多用户验证码登录', async () => {
             const { body: { code } } = await common.makeRequest('post', '/api/v1/mobile/sms', {
@@ -705,10 +717,12 @@ describe('routes: users', () => {
                 code,
             })
             await bluebird.map(body, async i => {
-                (await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
+                const { body } = (await common.makeRequest('post', `${PATH}/signInByMobileCode`, {
                     mobile: foreignMobile,
                     token: i.token,
-                })).body.user_id.should.equal(i.user_id)
+                }))
+                body.user_id.should.equal(i.user_id)
+                body.mobile_confirmed.should.equal(1)
             })
         })
         it('中国手机号单用户验证码自动注册', async () => {
@@ -720,6 +734,7 @@ describe('routes: users', () => {
                 code,
             })
             body.mobile.should.equal(cnMobile2)
+            body.mobile_confirmed.should.equal(1)
         })
     })
 })

@@ -70,6 +70,7 @@ module.exports = {
                 'user_profiles.description as description', 'user_profiles.grade as grade',
                 'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
                 'user_profiles.city as city',
+                'user_profiles.mobile_confirmed as mobile_confirmed',
                 'user_social_accounts.facebook_id as facebook_id',
                 'user_social_accounts.wechat_data as wechat_data',
                 'user_social_accounts.facebook_name as facebook_name',
