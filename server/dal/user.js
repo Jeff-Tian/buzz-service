@@ -59,7 +59,7 @@ module.exports = {
     selectFields(joinedTables, isContextSecure) {
         return joinedTables
             .select(
-                'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at', 'users.source as source',
+                'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at', 'users.source as source', 'users.follower as follower',
                 'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
                 'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
                 'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.intro_done as intro_done', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',

@@ -506,10 +506,11 @@ const updateUsersTable = async function (body, trx, ctx) {
     const user = makeUpdations({
         name: body.name,
         remark: body.remark,
+        follower: body.follower,
     })
 
     if (Object.keys(user).length > 0) {
-        const users = await trx('users')
+        await trx('users')
             .where('user_id', ctx.params.user_id)
             .update(user)
     }
