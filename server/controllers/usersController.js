@@ -421,7 +421,7 @@ const signInByMobileCode = async ctx => {
     let users = await selectUsers(true).where(filter)
 
     if (!users.length) {
-        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }), source || 'mobile')
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }), source || '通过手机号注册')
     } else {
         const user_ids = _.map(users, 'user_id')
         await knex('user_profiles').whereIn('user_id', user_ids).update({
