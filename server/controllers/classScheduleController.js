@@ -1153,15 +1153,15 @@ const afterEnd = async ctx => {
             .where('classes.class_id', class_id)
             .select('student_class_schedule.user_id')
         await bluebird.map(companions, async ({ user_id, start_time, end_time }) => {
-            const user_class_logs = await trx('user_class_log')
-                .where({ class_id, user_id })
+            const attend_logs = await trx('user_class_log')
+                .where({ class_id, type: 'attend' })
                 .orderBy('created_at', 'asc')
-            const attend_log = _.find(user_class_logs, ['type', 'attend'])
-            if (!attend_log) {
+            const companion_attend_log = _.find(attend_logs, { user_id })
+            if (!companion_attend_log) {
                 // 缺席：扣除500
                 await integralBll.consume(trx, user_id, 500, `absent from class id = ${class_id}`)
             } else {
-                const attend_late_time = moment(attend_log.created_at).diff(moment(start_time), 'm', true)
+                const attend_late_time = moment(companion_attend_log.created_at).diff(moment(start_time), 'm', true)
                 if (attend_late_time <= 0) {
                     //
                 } else if (attend_late_time <= 5) {
@@ -1179,7 +1179,11 @@ const afterEnd = async ctx => {
                 .where('from_user_id', user_id)
                 .orderBy('feedback_time', 'desc')
             const from_feedbacks_size = _.size(from_feedbacks)
-            const students_size = _.size(students)
+            const student_ids = _.map(students, 'user_id')
+            const students_size = _.chain(attend_logs)
+                .filter(i => _.includes(student_ids, i.user_id))
+                .size()
+                .value()
             if (from_feedbacks_size < students_size) {
                 // 课后24小时仍未评价：-50
                 await integralBll.consume(trx, user_id, 50, `unfinished(${from_feedbacks_size}/${students_size}) feedback in class id = ${class_id}`)

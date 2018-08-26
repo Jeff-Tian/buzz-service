@@ -286,6 +286,18 @@ describe('routes: class schedules', () => {
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 5,
                 comment: '',
@@ -310,6 +322,18 @@ describe('routes: class schedules', () => {
             await common.makeRequest('post', '/api/v1/userClassLog', {
                 type: 'attend',
                 user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
@@ -338,6 +362,18 @@ describe('routes: class schedules', () => {
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 3,
                 comment: '',
@@ -351,10 +387,48 @@ describe('routes: class schedules', () => {
             await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
             (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(150)
         })
+        it('正常出席; 评价完了参与的学习方; 被评价4星以上', async () => {
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${classmateIds[0]}/evaluate/${companionIds[0]}`, [{
+                score: 3,
+                comment: '',
+                remark: '',
+            }])
+            await common.makeRequest('post', `${PATH}/afterEnd/${classIds[0]}`);
+            (await common.makeRequest('get', `/api/v1/users/${companionIds[0]}`)).body.integral.should.eql(250)
+        })
         it('正常出席; 24小时后评价; 被评价4星以上', async () => {
             await common.makeRequest('post', '/api/v1/userClassLog', {
                 type: 'attend',
                 user_id: companionIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
@@ -385,6 +459,18 @@ describe('routes: class schedules', () => {
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 3,
                 comment: '',
@@ -412,6 +498,18 @@ describe('routes: class schedules', () => {
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').add(11, 'm').toDate(),
             })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 5,
                 comment: '',
@@ -437,6 +535,18 @@ describe('routes: class schedules', () => {
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').add(9, 'm').toDate(),
             })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 5,
                 comment: '',
@@ -461,6 +571,18 @@ describe('routes: class schedules', () => {
                 user_id: companionIds[0],
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').add(4, 'm').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 5,
@@ -492,6 +614,18 @@ describe('routes: class schedules', () => {
                 user_id: companionIds[0],
                 class_id: classIds[0],
                 created_at: moment().add(1, 'd').add(2, 'h').add(9, 'm').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[0],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
+            })
+            await common.makeRequest('post', '/api/v1/userClassLog', {
+                type: 'attend',
+                user_id: classmateIds[1],
+                class_id: classIds[0],
+                created_at: moment().add(1, 'd').add(2, 'h').toDate(),
             })
             await common.makeRequest('post', `/api/v1/class-feedback/${classIds[0]}/${companionIds[0]}/evaluate/${classmateIds[0]}`, [{
                 score: 5,
