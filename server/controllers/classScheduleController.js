@@ -689,9 +689,11 @@ const sendMinuteClassBeginMsg = async ctx => {
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
                 await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
-            } else if (i.email) {
+            }
+            if (i.email) {
                 await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
-            } else if (i.mobile) {
+            }
+            if (i.mobile) {
                 await sms.sendMinuteClassBeginSms(i.mobile)
             }
         })
