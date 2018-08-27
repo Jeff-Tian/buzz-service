@@ -116,6 +116,10 @@ module.exports = {
         return await user.getUserIdsByEmail(email)
     },
 
+    async getUserIdsByMobile(mobile) {
+        return await user.getUserIdsByMobile(mobile)
+    },
+
     async addTags(userId, tags, ctx) {
         await Tags.checkHttpContext(ctx, tags)
 

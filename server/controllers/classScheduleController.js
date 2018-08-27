@@ -12,6 +12,7 @@ const Scheduling = require('../bll/scheduling')
 const promisify = require('../common/promisify')
 const wechat = require('../push-notification-check/wechat')
 const mail = require('../push-notification-check/mail')
+const sms = require('../push-notification-check/sms')
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
@@ -690,6 +691,8 @@ const sendMinuteClassBeginMsg = async ctx => {
                 await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
             } else if (i.email) {
                 await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            } else if (i.mobile) {
+                await sms.sendMinuteClassBeginSms(i.mobile)
             }
         })
         ctx.status = 200

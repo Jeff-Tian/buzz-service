@@ -15,7 +15,7 @@ module.exports = {
     //         TemplateCode: 'SMS_137670378',
     //     },
     // })
-    async send(mobile, sign, tpl, param) {
+    async send(mobile, sign, tpl, param = {}) {
         const { Code, Message } = await sms.sendSms({
             PhoneNumbers: _.isArray(mobile) ? mobile : [mobile],
             SignName: sign,
@@ -23,5 +23,8 @@ module.exports = {
             TemplateParam: JSON.stringify(param),
         })
         if (Code !== 'OK' && Message !== 'OK') throw new Error(`${Code}: ${Message}`)
+    },
+    async sendMinuteClassBeginSms(mobile) {
+        await this.send(mobile, 'BuzzBuzz', 'SMS_142954112')
     },
 }

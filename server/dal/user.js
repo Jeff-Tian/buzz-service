@@ -123,6 +123,7 @@ module.exports = {
                     'user_social_accounts.wechat_name as wechat_name',
                     'student_class_schedule.user_id as user_id',
                     'user_profiles.email as email',
+                    'user_profiles.mobile as mobile',
                     'user_profiles.time_zone as time_zone',
                     'users.name as name',
                 )
@@ -139,6 +140,7 @@ module.exports = {
                     'user_social_accounts.wechat_name as wechat_name',
                     'companion_class_schedule.user_id as user_id',
                     'user_profiles.email as email',
+                    'user_profiles.mobile as mobile',
                     'user_profiles.time_zone as time_zone',
                     'users.name as name',
                 )
@@ -262,5 +264,9 @@ module.exports = {
 
     async getUserIdsByEmail(email) {
         return (await knex('user_profiles').where('email', '=', email).select('user_id')).map(o => o.user_id)
+    },
+
+    async getUserIdsByMobile(mobile) {
+        return (await knex('user_profiles').where('mobile', '=', mobile).select('user_id')).map(o => o.user_id)
     },
 }

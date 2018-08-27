@@ -34,6 +34,19 @@ export default class Checker {
 
         return true
     }
+    static async checkAllowSendNotificationsBySms(mobile) {
+        logger.info(`check this user ${mobile} allowing receiving notifications...`)
+        const userIds = await userBll.getUserIdsByMobile(mobile)
+        for (let i = 0; i < userIds.length; i++) {
+            // eslint-disable-next-line no-await-in-loop
+            if (!(await Checker.allowReceivingNotificationsByUserId(userIds[i])
+            )) {
+                return false
+            }
+        }
+
+        return true
+    }
 
     static async checkAllowSendNotificationsByOpenId({ openid }) {
         if (inProduction) {

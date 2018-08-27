@@ -7,6 +7,7 @@ function checkWechat() {
     AOP.setBefore()
     wechat.sendTpl = wechat.sendTpl.beforeAsync(Checker.checkAllowSendNotificationsByOpenId)
     wechat.sendSubTpl = wechat.sendSubTpl.beforeAsync(Checker.checkAllowSendNotificationsByWechatOpenId)
+    wechat.chargeClassHours = wechat.chargeClassHours.beforeAsync(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendScheduleTpl = wechat.sendScheduleTpl.beforeAsync(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendCompanionEvaluationTpl = wechat.sendCompanionEvaluationTpl.beforeAsync(Checker.checkAllowSendNotificationsByWechatOpenId)
     wechat.sendDayClassBeginTpl = wechat.sendDayClassBeginTpl.beforeAsync(Checker.checkAllowSendNotificationsByWechatOpenId)
