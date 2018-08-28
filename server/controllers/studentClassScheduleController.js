@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import * as ClassScheduleBll from '../bll/class-schedules'
 
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
@@ -183,4 +184,11 @@ const batchList = async ctx => {
     ctx.body = schedules
 }
 
-module.exports = { list, create, cancel, listAll, batchList }
+const getDemoClass = async ctx => {
+    const user_id = ctx.params.user_id
+    const demoClass = await ClassScheduleBll.getDemoClass(user_id)
+
+    ctx.body = demoClass
+}
+
+module.exports = { list, create, cancel, listAll, batchList, getDemoClass }

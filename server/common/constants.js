@@ -23,5 +23,3 @@ export const ClassStatusCode = {
 
 export const NeedChargeThreshold = 0
 
-export default class Constants {
-}
