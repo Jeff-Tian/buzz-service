@@ -7,5 +7,6 @@ router.get(`${BASE_URL}`, studentClassScheduleController.listAll)
 router.get(`${BASE_URL}/:user_id`, studentClassScheduleController.list)
 router.post(`${BASE_URL}/:user_id`, studentClassScheduleController.create)
 router.put(`${BASE_URL}/:user_id`, studentClassScheduleController.cancel)
+router.get(`${BASE_URL}/demo-class/:user_id`, studentClassScheduleController.getDemoClass)
 
 module.exports = router

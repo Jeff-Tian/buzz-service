@@ -19,6 +19,13 @@ export function getSubscribersByClassIdSubQuery(classId = undefined, trx = knex)
     return q
 }
 
+function getTutorsByClassIdSubQuery() {
+    return knex('companion_class_schedule')
+        .select(knex.raw('group_concat(user_id) as tutors, class_id'))
+        .groupBy('companion_class_schedule.class_id')
+        .as('tutors_table')
+}
+
 export default class ClassScheduleDAL {
     static async hasClassSchedules(userId) {
         function searchClassSchedulesFrom(table) {
@@ -58,5 +65,9 @@ export default class ClassScheduleDAL {
         }
 
         return 1
+    }
+
+    static async getClass(userId, condition) {
+        return (await knex('classes').leftJoin(getTutorsByClassIdSubQuery(), 'classes.class_id', 'tutors_table.class_id').select('classes.class_id', 'classes.start_time', 'classes.end_time', 'classes.topic', 'tutors_table.tutors').orderBy('classes.start_time', 'desc').where(condition))[0] || {}
     }
 }
