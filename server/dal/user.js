@@ -88,7 +88,7 @@ module.exports = {
                     ' booked_class_hours'),
                 knex.raw('sum(user_consumed_class_hours.class_hours) as' +
                     ' consumed_class_hours'),
-                'user_states.state'
+                'user_states.state', 'user_states.timestamp as state_timestamp', 'user_states.remark as state_remark'
             )
     },
     async get(userId, isContextSecure = false) {

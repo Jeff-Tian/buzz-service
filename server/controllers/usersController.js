@@ -49,7 +49,7 @@ const search = async ctx => {
         }
 
         let search = userDal.joinTables(filters)
-            .orderBy('users.created_at', 'desc')
+            .orderBy(ctx.query.orderBy || 'users.created_at', ctx.query.orderDirection || 'desc')
 
         if (role) {
             filters['users.role'] = role
