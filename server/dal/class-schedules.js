@@ -67,7 +67,7 @@ export default class ClassScheduleDAL {
         return 1
     }
 
-    static async getClass(userId, condition) {
-        return (await knex('classes').leftJoin(getTutorsByClassIdSubQuery(), 'classes.class_id', 'tutors_table.class_id').select('classes.class_id', 'classes.start_time', 'classes.end_time', 'classes.topic', 'tutors_table.tutors').orderBy('classes.start_time', 'desc').where(condition))[0] || {}
+    static async getClass(userId, condition, orderByField, orderByDirection) {
+        return (await knex('classes').leftJoin(getTutorsByClassIdSubQuery(), 'classes.class_id', 'tutors_table.class_id').select('classes.class_id', 'classes.start_time', 'classes.end_time', 'classes.topic', 'tutors_table.tutors').orderBy(orderByField, orderByDirection).where(condition))[0] || {}
     }
 }

@@ -186,9 +186,12 @@ const batchList = async ctx => {
 
 const getDemoClass = async ctx => {
     const user_id = ctx.params.user_id
-    const demoClass = await ClassScheduleBll.getDemoClass(user_id)
-
-    ctx.body = demoClass
+    ctx.body = await ClassScheduleBll.getDemoClass(user_id)
 }
 
-module.exports = { list, create, cancel, listAll, batchList, getDemoClass }
+const getLatestEndClass = async ctx => {
+    const user_id = ctx.params.user_id
+    ctx.body = await ClassScheduleBll.getLatestEndClass(user_id)
+}
+
+module.exports = { list, create, cancel, listAll, batchList, getDemoClass, getLatestEndClass }

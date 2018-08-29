@@ -50,6 +50,10 @@ module.exports = {
     },
 
     async getDemoClass(userId) {
-        return await ClassScheduleDAL.getClass(userId, { 'classes.status': ClassStatusCode.Open })
+        return await ClassScheduleDAL.getClass(userId, { 'classes.status': ClassStatusCode.Open }, 'classes.start_time', 'desc')
+    },
+
+    async getLatestEndClass(userId) {
+        return await ClassScheduleDAL.getClass(userId, { 'classes.status': ClassStatusCode.End }, 'classes.start_time', 'desc')
     },
 }
