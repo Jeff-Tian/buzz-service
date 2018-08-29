@@ -507,6 +507,7 @@ const updateUsersTable = async function (body, trx, ctx) {
         name: body.name,
         remark: body.remark,
         follower: body.follower,
+        source: body.source,
     })
 
     if (Object.keys(user).length > 0) {
