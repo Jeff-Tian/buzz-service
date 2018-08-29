@@ -26,6 +26,13 @@ function getTutorsByClassIdSubQuery() {
         .as('tutors_table')
 }
 
+function getStudentsByStudentIdSubQuery(userId) {
+    return knex('student_class_schedule')
+        .where('user_id', '=', userId)
+        .select('class_id')
+        .as('students_table')
+}
+
 export default class ClassScheduleDAL {
     static async hasClassSchedules(userId) {
         function searchClassSchedulesFrom(table) {
@@ -68,6 +75,14 @@ export default class ClassScheduleDAL {
     }
 
     static async getClass(userId, condition, orderByField, orderByDirection) {
-        return (await knex('classes').leftJoin(getTutorsByClassIdSubQuery(), 'classes.class_id', 'tutors_table.class_id').select('classes.class_id', 'classes.start_time', 'classes.end_time', 'classes.topic', 'tutors_table.tutors').orderBy(orderByField, orderByDirection).where(condition))[0] || {}
+        return (
+            await knex('classes')
+                .innerJoin(getStudentsByStudentIdSubQuery(userId), 'classes.class_id', 'students_table.class_id')
+                .leftJoin(getTutorsByClassIdSubQuery(), 'classes.class_id', 'tutors_table.class_id')
+                // .select('classes.class_id', 'classes.start_time', 'classes.end_time', 'classes.topic', 'tutors_table.tutors')
+                .select('*')
+                .orderBy(orderByField, orderByDirection)
+                .where(condition)
+        )[0] || {}
     }
 }
