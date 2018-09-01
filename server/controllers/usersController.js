@@ -609,6 +609,12 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
             .insert(values)
     }
 }
+const updateUser = async (body, trx, ctx) => {
+    await updateUsersTable(body, trx, ctx)
+    await updateUserProfilesTable(body, trx, ctx)
+    await updateUserAccountsTable(body, trx, ctx)
+    await updateUserInterestsTable(body, trx, ctx)
+}
 const update = async ctx => {
     const trx = await promisify(knex.transaction)
 
@@ -619,10 +625,7 @@ const update = async ctx => {
             await mobileCommon.verifyByCode(mobile, code)
             body.mobile_confirmed = true
         }
-        await updateUsersTable(body, trx, ctx)
-        await updateUserProfilesTable(body, trx, ctx)
-        await updateUserAccountsTable(body, trx, ctx)
-        await updateUserInterestsTable(body, trx, ctx)
+        updateUser(body, trx, ctx)
         await trx.commit()
 
         await systemLogsDal.log(ctx.state.user.user_id, `update user ${ctx.params.user_id} to ${JSON.stringify(body)}`)
@@ -864,10 +867,11 @@ const importUser = async ctx => {
     const trx = await promisify(knex.transaction)
     const errors = []
     try {
-        const { data, type } = ctx.request.body
-        await bluebird.each(data, async ({ wechat_name, mobile, source, grade, order_remark, schedule_requirement, class_hour }) => {
+        const { data, type, output_detail } = ctx.request.body
+        const output = []
+        await bluebird.each(data, async ({ wechat_name, mobile, source, grade, order_remark, schedule_requirement, class_hours }) => {
             const [normalizedMobile, country] = mobileCommon.normalize(mobile, 'CHN')
-            if (_.size(_.trim(normalizedMobile)) === 0) {
+            if (_.size(_.trim(normalizedMobile)) !== 11) {
                 return errors.push(`${mobile} 不是合法的中国手机号`)
             }
             let users = await trx('user_profiles')
@@ -875,6 +879,7 @@ const importUser = async ctx => {
                 .where({ 'user_profiles.mobile': normalizedMobile })
             if (_.size(users) === 0) {
                 users = await createUser({
+                    role: userBll.MemberType.Student,
                     mobile: normalizedMobile,
                     mobile_confirmed: true,
                     grade,
@@ -886,7 +891,7 @@ const importUser = async ctx => {
                 if (users[0].role !== userBll.MemberType.Student) {
                     return errors.push(`${mobile} 不是学生身份: ${users[0].role}`)
                 }
-                const state = await UserState.getLatest(users[0].user_id, trx)
+                const state = _.get(await UserState.getLatest(users[0].user_id, trx), 'state')
                 if (!state || state === UserStates.Invalid) {
                     // 都行
                 } else if (state === UserStates.Lead && !_.includes([UserStates.Demo, UserStates.InClass], type)) {
@@ -899,16 +904,33 @@ const importUser = async ctx => {
                     return errors.push(`${mobile} 当前状态 待续费, 不可转为 ${type}`)
                 }
                 await UserState.tag(users[0].user_id, type, `import ${type} user`, trx)
+                const oldRemark = users[0].order_remark ? `\n${users[0].order_remark}` : ''
+                const body = {
+                    mobile: normalizedMobile,
+                    mobile_confirmed: true,
+                    grade,
+                    source,
+                    wechat_name,
+                    order_remark: `跟进记录: ${order_remark}\n上课需求时间: ${schedule_requirement}${oldRemark}`,
+                }
+                ctx.params.user_id = users[0].user_id
+                await updateUser(body, trx, ctx)
             } else {
-                return errors.push(`${mobile} 存在多个账号: ${users}`)
+                return errors.push(`${mobile} 存在多个账号: ${_.map(users, 'user_id')}`)
             }
-            if (class_hour > 0 && _.includes(['in_class', 'demo'], type)) {
-                await classHoursBll.charge(trx, _.get(users, '0.user_id') || users[0], class_hour, `import ${type} user`, null, true)
+            if (class_hours > 0 && _.includes(['in_class', 'demo'], type)) {
+                await classHoursBll.charge(trx, _.get(users, '0.user_id') || users[0], class_hours, `import ${type} user`, null, true)
             }
+            output.push(_.get(users, '0.user_id') || users[0])
         })
         await trx.commit()
-        ctx.body = { done: true }
+        if (_.isEmpty(errors)) {
+            ctx.body = { input: _.size(data), output: output_detail ? await selectUsers(true).whereIn('users.user_id', output) : output }
+        } else {
+            ctx.body = { errors }
+        }
     } catch (error) {
+        console.log(error)
         await trx.rollback()
         ctx.body = { errors, error }
     }
