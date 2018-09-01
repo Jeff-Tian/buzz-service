@@ -12,11 +12,11 @@ export const UserStates = {
 }
 
 export default class UserState {
-    static async tag(userId, state, remark) {
-        await UserStateDal.insert({ user_id: userId, state, remark })
+    static async tag(userId, state, remark, trx) {
+        await UserStateDal.insert({ user_id: userId, state, remark }, trx)
     }
 
-    static async getLatest(userId) {
-        return await UserStateDal.getLatest(userId)
+    static async getLatest(userId, trx) {
+        return await UserStateDal.getLatest(userId, trx)
     }
 }

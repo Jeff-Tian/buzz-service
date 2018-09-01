@@ -483,14 +483,12 @@ const upsert = async ctx => {
                         .update(updateForStudent)
                 }
             }
-
             studentSchedules = studentSchedules.filter(s => originalStudents.indexOf(s.user_id) < 0)
         } else {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
         }
-
         if (studentSchedules.length) {
             await classSchedules.addStudents(trx, studentSchedules, classIds[0], ctx.state.user_id)
         }
@@ -503,7 +501,6 @@ const upsert = async ctx => {
                     return s
                 }))
         }
-
         await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
         const classInfo = await getClassById(classIds[0], trx)
         await trx.commit()

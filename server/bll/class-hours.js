@@ -71,7 +71,7 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
 
     const frozenClassHours = await countFrozenClassHours(userId, transactionOrKnex)
 
-    const latest = await getCurrentClassHours(trx, userId)
+    const latest = await getCurrentClassHours(transactionOrKnex, userId)
     const latestBalance = latest.length > 0 ? latest[0].class_hours : 0
     if (latestBalance + frozenClassHours <= NeedChargeThreshold) {
         await userBll.tryAddTags(userId, [{
@@ -81,7 +81,7 @@ async function consume(trx, userId, classHours, remark = '', by = null) {
     }
 }
 
-async function charge(trx, userId, classHours, remark = '', by = null) {
+async function charge(trx, userId, classHours, remark = '', by = null, skipTag) {
     if (trx === null) {
         trx = knex
     }
@@ -112,16 +112,18 @@ async function charge(trx, userId, classHours, remark = '', by = null) {
         await trx('user_balance').insert(newClassHours)
     }
 
-    await userBll.tryDeleteTags(userId, [UserTags.Leads], trx)
+    if (!skipTag) {
+        await userBll.tryDeleteTags(userId, [UserTags.Leads], trx)
 
-    const allClassHours = await getAllClassHours(userId, trx)
-    if (allClassHours <= NeedChargeThreshold) {
-        await userBll.tryAddTags(userId, [{
-            name: UserTags.NeedCharge,
-            remark: '充值后课时仍然不足自动添加此标签',
-        }], trx)
-    } else {
-        await userBll.tryDeleteTags(userId, [UserTags.NeedCharge], trx)
+        const allClassHours = await getAllClassHours(userId, trx)
+        if (allClassHours <= NeedChargeThreshold) {
+            await userBll.tryAddTags(userId, [{
+                name: UserTags.NeedCharge,
+                remark: '充值后课时仍然不足自动添加此标签',
+            }], trx)
+        } else {
+            await userBll.tryDeleteTags(userId, [UserTags.NeedCharge], trx)
+        }
     }
 }
 

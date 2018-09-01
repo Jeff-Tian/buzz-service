@@ -1,6 +1,7 @@
 import logger from '../common/logger'
 import Password from '../security/password'
 import { UserTags } from '../common/constants'
+import UserState, { UserStates } from '../bll/user-state'
 import * as systemLogsDal from '../bll/system-logs'
 import { countryCodeMap } from '../common/country-code-map'
 /* eslint-disable no-template-curly-in-string */
@@ -11,6 +12,7 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const buzzConfig = require('../config')
 const knex = require('knex')(config)
+const bluebird = require('bluebird')
 
 const wechat = require('../push-notification-check/wechat')
 const qiniu = require('../common/qiniu')
@@ -254,7 +256,7 @@ const getByWechat = async ctx => {
     }
 }
 
-const createUser = async (body, _trx, source) => {
+const createUser = async (body, _trx, source, no_commit) => {
     const trx = _trx || await promisify(knex.transaction)
 
     const users = await trx('users')
@@ -277,6 +279,7 @@ const createUser = async (body, _trx, source) => {
         mobile: body.mobile,
         mobile_confirmed: body.mobile_confirmed,
         grade: body.grade,
+        order_remark: body.order_remark,
     })
 
     await trx('user_social_accounts').insert({
@@ -295,7 +298,9 @@ const createUser = async (body, _trx, source) => {
         await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
     }
 
-    await trx.commit()
+    if (!no_commit) {
+        await trx.commit()
+    }
     return users
 }
 
@@ -421,7 +426,7 @@ const signInByMobileCode = async ctx => {
     let users = await selectUsers(true).where(filter)
 
     if (!users.length) {
-        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }), source || '通过手机号注册')
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }, null, source || '通过手机号注册'))
     } else {
         const user_ids = _.map(users, 'user_id')
         await knex('user_profiles').whereIn('user_id', user_ids).update({
@@ -855,7 +860,62 @@ const getSocialAccountProfile = async ctx => {
     ctx.body = await userBll.getSocialAccountProfile(ctx.params.user_id)
 }
 
+const importUser = async ctx => {
+    const trx = await promisify(knex.transaction)
+    const errors = []
+    try {
+        const { data, type } = ctx.request.body
+        await bluebird.each(data, async ({ wechat_name, mobile, source, grade, order_remark, schedule_requirement, class_hour }) => {
+            const [normalizedMobile, country] = mobileCommon.normalize(mobile, 'CHN')
+            if (_.size(_.trim(normalizedMobile)) === 0) {
+                return errors.push(`${mobile} 不是合法的中国手机号`)
+            }
+            let users = await trx('user_profiles')
+                .leftJoin('users', 'users.user_id', 'user_profiles.user_id')
+                .where({ 'user_profiles.mobile': normalizedMobile })
+            if (_.size(users) === 0) {
+                users = await createUser({
+                    mobile: normalizedMobile,
+                    mobile_confirmed: true,
+                    grade,
+                    wechat_name,
+                    order_remark: `跟进记录: ${order_remark}\n上课需求时间: ${schedule_requirement}`,
+                }, trx, source, true)
+                await UserState.tag(users[0], type, `import ${type} user`, trx)
+            } else if (_.size(users) === 1) {
+                if (users[0].role !== userBll.MemberType.Student) {
+                    return errors.push(`${mobile} 不是学生身份: ${users[0].role}`)
+                }
+                const state = await UserState.getLatest(users[0].user_id, trx)
+                if (!state || state === UserStates.Invalid) {
+                    // 都行
+                } else if (state === UserStates.Lead && !_.includes([UserStates.Demo, UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Leads, 不可转为 ${type}`)
+                } else if (state === UserStates.Demo && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Demo, 不可转为 ${type}`)
+                } else if (state === UserStates.WaitingForPurchase && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Buy, 不可转为 ${type}`)
+                } else if (state === UserStates.WaitingForRenewal && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 待续费, 不可转为 ${type}`)
+                }
+                await UserState.tag(users[0].user_id, type, `import ${type} user`, trx)
+            } else {
+                return errors.push(`${mobile} 存在多个账号: ${users}`)
+            }
+            if (class_hour > 0 && _.includes(['in_class', 'demo'], type)) {
+                await classHoursBll.charge(trx, _.get(users, '0.user_id') || users[0], class_hour, `import ${type} user`, null, true)
+            }
+        })
+        await trx.commit()
+        ctx.body = { done: true }
+    } catch (error) {
+        await trx.rollback()
+        ctx.body = { errors, error }
+    }
+}
+
 module.exports = {
+    importUser,
     search,
     show,
     getUserInfoByClassId,

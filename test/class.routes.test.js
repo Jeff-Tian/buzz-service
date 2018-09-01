@@ -138,6 +138,19 @@ describe('routes: class schedules', () => {
         })
     })
     describe('Class Schedule Update', () => {
+        const classmateIds = []
+        beforeEach(async () => {
+            classmateIds[0] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '同学1',
+                role: 's',
+                grade: 4,
+            })).body
+            classmateIds[1] = (await common.makeRequest('post', '/api/v1/users', {
+                name: '同学2',
+                role: 's',
+                grade: 4,
+            })).body
+        })
         it('should allow change students in a class without changing companion', async () => {
             const createClassResponse = await common.makeRequest('post', `${PATH}`, {
                 adviser_id: 1,
@@ -157,16 +170,14 @@ describe('routes: class schedules', () => {
             createClassResponse.status.should.eql(201)
             createClassResponse.type.should.eql('application/json')
             const classId = createClassResponse.body.class_id
-
             const updateGroupResponse = await common.makeRequest('post', `${PATH}`, {
                 class_id: classId,
                 end_time: '2029-03-30T16:53:00Z',
-                students: [3, 8, 9],
+                students: [3, classmateIds[0], classmateIds[1]],
             })
-
             updateGroupResponse.status.should.eql(200)
             updateGroupResponse.type.should.eql('application/json')
-            updateGroupResponse.body.students.should.eql('3,8,9')
+            updateGroupResponse.body.students.should.eql(`3,${classmateIds[0]},${classmateIds[1]}`)
         })
     })
 

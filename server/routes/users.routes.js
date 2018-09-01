@@ -6,6 +6,7 @@ const Router = require('koa-router')
 const router = new Router()
 const usersController = require('../controllers/usersController')
 const BASE_URL = '/api/v1/users'
+router.post(`${BASE_URL}/import`, usersController.importUser)
 router.post(`${BASE_URL}/signInByMobileCode`, usersController.signInByMobileCode)
 router.get(`${BASE_URL}/available`, usersController.getAvailableUsers)
 router.get(`${BASE_URL}/withAvailability`, usersController.getWithAvailability)
