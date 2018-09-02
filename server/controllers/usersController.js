@@ -589,9 +589,11 @@ const updateUserAccountsTable = async function (body, trx, ctx) {
     logger.info(`Updating facebook or wechat data to ${JSON.stringify(accounts)}`)
 
     if (Object.keys(accounts).length > 0) {
+        // logger.info({ user_id: ctx.params.user_id, accounts })
         await trx('user_social_accounts')
             .where('user_social_accounts.user_id', ctx.params.user_id)
             .update(accounts)
+        // logger.info(await trx('user_social_accounts').where('user_social_accounts.user_id', ctx.params.user_id))
     }
 }
 const updateUserInterestsTable = async function (body, trx, ctx) {
@@ -625,7 +627,7 @@ const update = async ctx => {
             await mobileCommon.verifyByCode(mobile, code)
             body.mobile_confirmed = true
         }
-        updateUser(body, trx, ctx)
+        await updateUser(body, trx, ctx)
         await trx.commit()
 
         await systemLogsDal.log(ctx.state.user.user_id, `update user ${ctx.params.user_id} to ${JSON.stringify(body)}`)

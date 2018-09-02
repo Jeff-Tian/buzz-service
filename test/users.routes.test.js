@@ -677,7 +677,9 @@ describe('routes: users', () => {
                 name: 'name1',
                 role: 's',
                 mobile: '18600000000',
+                wechat_name: '1',
             })).body
+            // console.log((await common.makeRequest('get', `/api/v1/users/${oldUser}`)).body)
             const user = {
                 wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
             }
@@ -686,6 +688,7 @@ describe('routes: users', () => {
                 type: UserStates.InClass,
                 data: [user],
             })
+            // console.log(output)
             should.exist(_.find(output, _.omit({ ...user, order_remark: `跟进记录: ${user.order_remark}\n上课需求时间: ${user.schedule_requirement}` }, ['schedule_requirement'])))
             // console.log(_.pick(output[0], _.keys(user)), _.omit({ ...user, order_remark: `跟进记录: ${user.order_remark}\n上课需求时间: ${user.schedule_requirement}` }, ['schedule_requirement']))
             output[0].user_id.should.eql(oldUser)
