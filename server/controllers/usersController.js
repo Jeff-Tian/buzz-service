@@ -82,7 +82,7 @@ const search = async ctx => {
             search = search.andWhere('users.name', 'like', `%${ctx.query.name}%`)
         }
         if (ctx.query.follower) {
-            search = search.andWhereIn('users.follower', knex('users')
+            search = search.andWhere('users.follower', 'in', knex('users')
                 .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
                 .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
                 // .where('users.name', ctx.query.follower)
