@@ -81,6 +81,19 @@ const search = async ctx => {
         if (ctx.query.name) {
             search = search.andWhere('users.name', 'like', `%${ctx.query.name}%`)
         }
+        if (ctx.query.follower) {
+            search = search.andWhereIn('users.follower', knex('users')
+                .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+                .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+                // .where('users.name', ctx.query.follower)
+                // .orWhere('user_profiles.display_name', ctx.query.follower)
+                // .orWhere('user_social_accounts.wechat_name', ctx.query.follower)
+                .where('users.name', 'like', `%${ctx.query.follower}%`)
+                .orWhere('user_profiles.display_name', 'like', `%${ctx.query.follower}%`)
+                .orWhere('user_social_accounts.wechat_name', 'like', `%${ctx.query.follower}%`)
+                .select('users.user_id'))
+                .orderBy('users.follower', 'desc')
+        }
 
         if (ctx.query.display_name) {
             // search = search.andWhereRaw('(user_profiles.display_name like ? or users.name like ?)', [`%${ctx.query.display_name}%`, `%${ctx.query.display_name}%`])
