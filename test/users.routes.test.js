@@ -1,5 +1,5 @@
-import * as userBookings from './test-data-generators/user-bookings'
-
+import { UserStates } from '../server/bll/user-state'
+const _ = require('lodash')
 const common = require('./test-helpers/common')
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
@@ -199,22 +199,6 @@ describe('routes: users', () => {
                         })
                 })
         })
-        it('should return an error when the resource already exists', done => {
-            chai
-                .request(server)
-                .post(`${PATH}`)
-                .send({
-                    name: 'user1',
-                    user_id: '1',
-                })
-                .end((err, res) => {
-                    should.exist(err)
-                    res.status.should.eql(409)
-                    res.type.should.eql('application/json')
-                    res.body.error.should.eql('The user already exists')
-                    done()
-                })
-        })
         it('外籍注册成功自动添加一课时', async () => {
             const userId = await createUserWithNameAndRole('new tutor with 1 class hour', userBll.MemberType.Companion)
 
@@ -407,6 +391,10 @@ describe('routes: users', () => {
                     remark: 'test',
                 })
                 .end((err, res) => {
+                    console.log('=============================================')
+                    console.error(err)
+                    console.log(res)
+                    console.log('--------------------------------------------')
                     should.not.exist(err)
                     res.status.should.eql(200)
 
@@ -670,6 +658,137 @@ describe('routes: users', () => {
 
             res.status.should.eql(200)
             res.body.wechat_data.should.eql(JSON.stringify(wechatData))
+        })
+    })
+    describe('导入用户', () => {
+        it('正常导入用户', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            const { body: { output } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.InClass,
+                data: [user],
+            })
+            should.exist(_.find(output, _.omit({ ...user, order_remark: `跟进记录: ${user.order_remark}\n上课需求时间: ${user.schedule_requirement}` }, ['schedule_requirement'])))
+        })
+        it('正常导入用户: 存在一个账号', async () => {
+            const oldUser = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'name1',
+                role: 's',
+                mobile: '18600000000',
+                wechat_name: '1',
+            })).body
+            // console.log((await common.makeRequest('get', `/api/v1/users/${oldUser}`)).body)
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            const { body: { output } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.InClass,
+                data: [user],
+            })
+            // console.log(output)
+            should.exist(_.find(output, _.omit({ ...user, order_remark: `跟进记录: ${user.order_remark}\n上课需求时间: ${user.schedule_requirement}` }, ['schedule_requirement'])))
+            // console.log(_.pick(output[0], _.keys(user)), _.omit({ ...user, order_remark: `跟进记录: ${user.order_remark}\n上课需求时间: ${user.schedule_requirement}` }, ['schedule_requirement']))
+            output[0].user_id.should.eql(oldUser)
+        })
+        it('导入用户错误: 存在多个账号', async () => {
+            const oldUser = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'name1',
+                role: 's',
+                mobile: '18600000000',
+            })).body
+            const oldUser2 = (await common.makeRequest('post', '/api/v1/users', {
+                name: 'name2',
+                role: 's',
+                mobile: '18600000000',
+            })).body
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            const { body: { errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.InClass,
+                data: [user],
+            })
+            errors[0].should.eql(`${user.mobile} 存在多个账号: ${oldUser},${oldUser2}`)
+        })
+        it('导入用户错误: 手机号不合法', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '123', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            const { body: { error, errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.InClass,
+                data: [user],
+            })
+            errors.length.should.eql(1)
+            errors[0].should.eql(`${user.mobile} 不是合法的中国手机号`)
+        })
+        it('导入用户错误: Leads 状态', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Lead,
+                data: [user],
+            })
+            const { body: { errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Lead,
+                data: [user],
+            })
+            errors[0].should.eql(`${user.mobile} 当前状态 Leads, 不可转为 lead`)
+        })
+        it('导入用户错误: Demo 状态', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Demo,
+                data: [user],
+            })
+            const { body: { errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Lead,
+                data: [user],
+            })
+            errors[0].should.eql(`${user.mobile} 当前状态 Demo, 不可转为 lead`)
+        })
+        it('导入用户错误: Buy 状态', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.WaitingForPurchase,
+                data: [user],
+            })
+            const { body: { errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Lead,
+                data: [user],
+            })
+            errors[0].should.eql(`${user.mobile} 当前状态 Buy, 不可转为 lead`)
+        })
+        it('导入用户错误: 待续费 状态', async () => {
+            const user = {
+                wechat_name: 'wechat_name0', mobile: '18600000000', source: 'source0', grade: '1', order_remark: 'order_remark0', schedule_requirement: 'schedule_requirement0', class_hours: 1.5,
+            }
+            await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.WaitingForRenewal,
+                data: [user],
+            })
+            const { body: { errors } } = await common.makeRequest('post', '/api/v1/users/import', {
+                output_detail: true,
+                type: UserStates.Lead,
+                data: [user],
+            })
+            errors[0].should.eql(`${user.mobile} 当前状态 待续费, 不可转为 lead`)
         })
     })
 })

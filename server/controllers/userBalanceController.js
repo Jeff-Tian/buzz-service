@@ -2,6 +2,7 @@ import logger from '../common/logger'
 import BalanceHistoryBll from '../bll/balance-history'
 
 const promisify = require('../common/promisify')
+const wechat = require('../push-notification-check/wechat')
 const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const knex = require('knex')(config)
@@ -22,7 +23,9 @@ const chargeClassHour = async ctx => {
         await classHoursBll.charge(trx, userId, classHours, body.remark, ctx.state.user.user_id)
 
         await trx.commit()
-
+        await wechat.chargeClassHours(userId, classHours, body.remark).catch(e => {
+            logger.error('wechat chargeClassHours error', e)
+        })
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = (await knex('user_balance').select('class_hours').where({ user_id: userId }))[0]

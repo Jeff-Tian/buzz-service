@@ -1,6 +1,7 @@
 import logger from '../common/logger'
 import Password from '../security/password'
 import { UserTags } from '../common/constants'
+import UserState, { UserStates } from '../bll/user-state'
 import * as systemLogsDal from '../bll/system-logs'
 import { countryCodeMap } from '../common/country-code-map'
 /* eslint-disable no-template-curly-in-string */
@@ -11,10 +12,11 @@ const env = process.env.NODE_ENV || 'test'
 const config = require('../../knexfile')[env]
 const buzzConfig = require('../config')
 const knex = require('knex')(config)
+const bluebird = require('bluebird')
 
-const wechat = require('../common/wechat')
+const wechat = require('../push-notification-check/wechat')
 const qiniu = require('../common/qiniu')
-const mail = require('../common/mail')
+const mail = require('../push-notification-check/mail')
 const mobileCommon = require('../common/mobile')
 const timeHelper = require('../common/time-helper')
 const { countBookedClasses } = require('../bll/class-hours')
@@ -23,6 +25,7 @@ const userBll = require('../bll/user')
 const userDal = require('../dal/user')
 const basicAuth = require('../security/basic-auth')
 const classHoursBll = require('../bll/class-hours')
+const jwt = require('jsonwebtoken')
 
 function selectUsers(isContextSecure) {
     return userDal.selectFields(userDal.joinTables(), isContextSecure)
@@ -48,7 +51,7 @@ const search = async ctx => {
         }
 
         let search = userDal.joinTables(filters)
-            .orderBy('users.created_at', 'desc')
+            .orderBy(ctx.query.orderBy || 'users.created_at', ctx.query.orderDirection || 'desc')
 
         if (role) {
             filters['users.role'] = role
@@ -77,6 +80,19 @@ const search = async ctx => {
 
         if (ctx.query.name) {
             search = search.andWhere('users.name', 'like', `%${ctx.query.name}%`)
+        }
+        if (ctx.query.follower) {
+            search = search.andWhere('users.follower', 'in', knex('users')
+                .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
+                .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
+                // .where('users.name', ctx.query.follower)
+                // .orWhere('user_profiles.display_name', ctx.query.follower)
+                // .orWhere('user_social_accounts.wechat_name', ctx.query.follower)
+                .where('users.name', 'like', `%${ctx.query.follower}%`)
+                .orWhere('user_profiles.display_name', 'like', `%${ctx.query.follower}%`)
+                .orWhere('user_social_accounts.wechat_name', 'like', `%${ctx.query.follower}%`)
+                .select('users.user_id'))
+                .orderBy('users.follower', 'desc')
         }
 
         if (ctx.query.display_name) {
@@ -253,49 +269,61 @@ const getByWechat = async ctx => {
     }
 }
 
+const createUser = async (body, _trx, source, no_commit) => {
+    const trx = _trx || await promisify(knex.transaction)
+
+    const users = await trx('users')
+        .returning('user_id')
+        .insert({
+            name: body.name || '',
+            role: body.role,
+            created_at: new Date(),
+            user_id: body.user_id || undefined,
+            source,
+        })
+
+    if (!users.length) {
+        throw new Error('The user already exists')
+    }
+
+    await trx('user_profiles').insert({
+        user_id: users[0],
+        avatar: body.avatar || '',
+        mobile: body.mobile,
+        mobile_confirmed: body.mobile_confirmed,
+        grade: body.grade,
+        order_remark: body.order_remark,
+    })
+
+    await trx('user_social_accounts').insert({
+        user_id: users[0],
+        facebook_id: body.facebook_id || null,
+        facebook_name: body.facebook_name || '',
+        wechat_openid: body.wechat_openid || null,
+        wechat_unionid: body.wechat_unionid || null,
+        wechat_name: body.wechat_name || null,
+    })
+
+    if (body.role === userBll.MemberType.Student) {
+        await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
+    }
+    if (body.role === userBll.MemberType.Companion) {
+        await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
+    }
+
+    if (!no_commit) {
+        await trx.commit()
+    }
+    return users
+}
+
 const create = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
         const { body } = ctx.request
 
-        const users = await trx('users')
-            .returning('user_id')
-            .insert({
-                name: body.name || '',
-                role: body.role,
-                created_at: new Date(),
-                user_id: body.user_id || undefined,
-            })
-
-        if (!users.length) {
-            throw new Error('The user already exists')
-        }
-
-        const userProfile = await trx('user_profiles').insert({
-            user_id: users[0],
-            avatar: body.avatar || '',
-            mobile: body.mobile,
-            grade: body.grade,
-        })
-
-        const userSocialAccounts = await trx('user_social_accounts').insert({
-            user_id: users[0],
-            facebook_id: body.facebook_id || null,
-            facebook_name: body.facebook_name || '',
-            wechat_openid: body.wechat_openid || null,
-            wechat_unionid: body.wechat_unionid || null,
-            wechat_name: body.wechat_name || null,
-        })
-
-        if (body.role === userBll.MemberType.Student) {
-            await userDal.tryAddTags(users[0], [UserTags.Leads], trx)
-        }
-        if (body.role === userBll.MemberType.Companion) {
-            await classHoursBll.charge(trx, users[0], 1, 'System gives newly created companion 1 class hour by default', users[0])
-        }
-
-        await trx.commit()
+        const users = await createUser(body, trx, body.source)
 
         ctx.status = 201
         ctx.set('Location', `${ctx.request.URL}/${users[0]}`)
@@ -380,7 +408,63 @@ const accountSignIn = async ctx => {
         return
     }
 
-    ctx.body = users
+    ctx.body = _.map(users, i => ({
+        ...i,
+        token: jwt.sign({
+            user_id: i.user_id,
+        }, process.env.BASIC_PASS, { expiresIn: 30 * 60 }),
+    }))
+}
+
+const signInByMobileCode = async ctx => {
+    const { mobile, code, token, source } = ctx.request.body
+
+    if (!mobile) {
+        return ctx.throw(403, 'Please enter your phone number or email address')
+    }
+
+    if (!code && !token) {
+        return ctx.throw(403, 'Please enter your verification code')
+    }
+
+    let filter = {}
+    if (token) {
+        const { user_id } = jwt.verify(token, process.env.BASIC_PASS)
+        filter = { 'users.user_id': user_id }
+    } else {
+        await mobileCommon.verifyByCode(mobile, code)
+        filter = { 'user_profiles.mobile': mobile }
+    }
+
+    let users = await selectUsers(true).where(filter)
+
+    if (!users.length) {
+        users = await selectUsers(true).whereIn('users.user_id', await createUser({ mobile, mobile_confirmed: true }, null, source || '通过手机号注册'))
+    } else {
+        const user_ids = _.map(users, 'user_id')
+        await knex('user_profiles').whereIn('user_id', user_ids).update({
+            mobile_confirmed: true,
+        })
+        users = await selectUsers(true).whereIn('users.user_id', user_ids)
+    }
+
+    if (users.length === 1) {
+        ctx.cookies.set('user_id', users[0].user_id, {
+            httpOnly: true,
+            expires: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)),
+        })
+        await updateWechatInfo(users[0].user_id).catch(e => logger.error('updateWechatInfo', e))
+        ctx.body = users[0]
+
+        return
+    }
+
+    ctx.body = _.map(users, i => ({
+        ...i,
+        token: jwt.sign({
+            user_id: i.user_id,
+        }, process.env.BASIC_PASS, { expiresIn: 30 * 60 }),
+    }))
 }
 
 const signIn = async ctx => {
@@ -440,10 +524,12 @@ const updateUsersTable = async function (body, trx, ctx) {
     const user = makeUpdations({
         name: body.name,
         remark: body.remark,
+        follower: body.follower,
+        source: body.source,
     })
 
     if (Object.keys(user).length > 0) {
-        const users = await trx('users')
+        await trx('users')
             .where('user_id', ctx.params.user_id)
             .update(user)
     }
@@ -463,6 +549,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
         country: body.country,
         city: body.city,
         state: body.state,
+        mobile_confirmed: body.mobile_confirmed,
         school_name: body.school_name,
         time_zone: body.time_zone,
         order_remark: body.order_remark,
@@ -476,7 +563,7 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
             profiles = Object.assign(profiles, makeUpdations({
                 mobile: body.mobile,
             }))
-            logger.info(`will change mobile to (${body.mobile}) `, body.mobile, '!!!')
+            logger.info(`will change mobile to (${body.mobile}) `, '!!!')
         }
 
         if (typeof body.email !== 'undefined' && body.email.indexOf('*') < 0) {
@@ -491,12 +578,18 @@ const updateUserProfilesTable = async function (body, trx, ctx) {
     }
 
     if (Object.keys(profiles).length > 0) {
-        const userProfile = await trx('user_profiles')
+        await trx('user_profiles')
             .where('user_id', ctx.params.user_id)
             .update(profiles)
     }
 }
 const updateUserAccountsTable = async function (body, trx, ctx) {
+    if (ctx.get('X-Requested-With') === 'buzz-corner' && (body.wechat_openid || body.wechat_unionid)) {
+        const wechatInfo = _.get(await trx('user_social_accounts').where('user_social_accounts.user_id', ctx.params.user_id), 0) || {}
+        if ((body.wechat_openid && wechatInfo.wechat_openid) || (body.wechat_unionid && wechatInfo.wechat_unionid)) {
+            throw new Error('this account is already bound to another wechat')
+        }
+    }
     const accounts = makeUpdations({
         facebook_id: body.facebook_id,
         facebook_name: body.facebook_name,
@@ -509,9 +602,11 @@ const updateUserAccountsTable = async function (body, trx, ctx) {
     logger.info(`Updating facebook or wechat data to ${JSON.stringify(accounts)}`)
 
     if (Object.keys(accounts).length > 0) {
+        // logger.info({ user_id: ctx.params.user_id, accounts })
         await trx('user_social_accounts')
             .where('user_social_accounts.user_id', ctx.params.user_id)
             .update(accounts)
+        // logger.info(await trx('user_social_accounts').where('user_social_accounts.user_id', ctx.params.user_id))
     }
 }
 const updateUserInterestsTable = async function (body, trx, ctx) {
@@ -529,15 +624,23 @@ const updateUserInterestsTable = async function (body, trx, ctx) {
             .insert(values)
     }
 }
+const updateUser = async (body, trx, ctx) => {
+    await updateUsersTable(body, trx, ctx)
+    await updateUserProfilesTable(body, trx, ctx)
+    await updateUserAccountsTable(body, trx, ctx)
+    await updateUserInterestsTable(body, trx, ctx)
+}
 const update = async ctx => {
     const trx = await promisify(knex.transaction)
 
     try {
         const { body } = ctx.request
-        await updateUsersTable(body, trx, ctx)
-        await updateUserProfilesTable(body, trx, ctx)
-        await updateUserAccountsTable(body, trx, ctx)
-        await updateUserInterestsTable(body, trx, ctx)
+        const { mobile, code } = body
+        if (mobile && code) {
+            await mobileCommon.verifyByCode(mobile, code)
+            body.mobile_confirmed = true
+        }
+        await updateUser(body, trx, ctx)
         await trx.commit()
 
         await systemLogsDal.log(ctx.state.user.user_id, `update user ${ctx.params.user_id} to ${JSON.stringify(body)}`)
@@ -775,7 +878,81 @@ const getSocialAccountProfile = async ctx => {
     ctx.body = await userBll.getSocialAccountProfile(ctx.params.user_id)
 }
 
+const importUser = async ctx => {
+    const trx = await promisify(knex.transaction)
+    const errors = []
+    try {
+        const { data, type, output_detail } = ctx.request.body
+        const output = []
+        await bluebird.each(data, async ({ wechat_name, mobile, source, grade, order_remark, schedule_requirement, class_hours }) => {
+            const [normalizedMobile, country] = mobileCommon.normalize(mobile, 'CHN')
+            if (_.size(_.trim(normalizedMobile)) !== 11) {
+                return errors.push(`${mobile} 不是合法的中国手机号`)
+            }
+            let users = await trx('user_profiles')
+                .leftJoin('users', 'users.user_id', 'user_profiles.user_id')
+                .where({ 'user_profiles.mobile': normalizedMobile })
+            if (_.size(users) === 0) {
+                users = await createUser({
+                    role: userBll.MemberType.Student,
+                    mobile: normalizedMobile,
+                    mobile_confirmed: true,
+                    grade,
+                    wechat_name,
+                    order_remark: `跟进记录: ${order_remark}\n上课需求时间: ${schedule_requirement}`,
+                }, trx, source, true)
+                await UserState.tag(users[0], type, `import ${type} user`, trx)
+            } else if (_.size(users) === 1) {
+                if (users[0].role !== userBll.MemberType.Student) {
+                    return errors.push(`${mobile} 不是学生身份: ${users[0].role}`)
+                }
+                const state = _.get(await UserState.getLatest(users[0].user_id, trx), 'state')
+                if (!state || state === UserStates.Invalid) {
+                    // 都行
+                } else if (state === UserStates.Lead && !_.includes([UserStates.Demo, UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Leads, 不可转为 ${type}`)
+                } else if (state === UserStates.Demo && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Demo, 不可转为 ${type}`)
+                } else if (state === UserStates.WaitingForPurchase && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 Buy, 不可转为 ${type}`)
+                } else if (state === UserStates.WaitingForRenewal && !_.includes([UserStates.InClass], type)) {
+                    return errors.push(`${mobile} 当前状态 待续费, 不可转为 ${type}`)
+                }
+                await UserState.tag(users[0].user_id, type, `import ${type} user`, trx)
+                const oldRemark = users[0].order_remark ? `\n${users[0].order_remark}` : ''
+                const body = {
+                    mobile: normalizedMobile,
+                    mobile_confirmed: true,
+                    grade,
+                    source,
+                    wechat_name,
+                    order_remark: `跟进记录: ${order_remark}\n上课需求时间: ${schedule_requirement}${oldRemark}`,
+                }
+                ctx.params.user_id = users[0].user_id
+                await updateUser(body, trx, ctx)
+            } else {
+                return errors.push(`${mobile} 存在多个账号: ${_.map(users, 'user_id')}`)
+            }
+            if (class_hours > 0 && _.includes(['in_class', 'demo'], type)) {
+                await classHoursBll.charge(trx, _.get(users, '0.user_id') || users[0], class_hours, `import ${type} user`, null, true)
+            }
+            output.push(_.get(users, '0.user_id') || users[0])
+        })
+        await trx.commit()
+        if (_.isEmpty(errors)) {
+            ctx.body = { input: _.size(data), output: output_detail ? await selectUsers(true).whereIn('users.user_id', output) : output }
+        } else {
+            ctx.body = { errors }
+        }
+    } catch (error) {
+        console.log(error)
+        await trx.rollback()
+        ctx.body = { errors, error }
+    }
+}
+
 module.exports = {
+    importUser,
     search,
     show,
     getUserInfoByClassId,
@@ -784,6 +961,7 @@ module.exports = {
     create,
     signIn,
     accountSignIn,
+    signInByMobileCode,
     update,
     getByUserIdList,
     delete: deleteByUserID,

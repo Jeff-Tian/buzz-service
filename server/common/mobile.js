@@ -94,6 +94,14 @@ const Mobile = {
         country_short_name: i.alpha2,
         country_code: i.country_code,
     })),
+    async sendMinuteClassBeginSms(full) {
+        const { mobile, country } = Mobile.split(full)
+        if (_.get(country, 'country_short_name') !== 'CN') {
+            await sms.send(mobile, 'BuzzBuzz', 'SMS_142954112')
+        } else {
+            await sms.send(mobile, 'BuzzBuzz', 'SMS_142954443')
+        }
+    },
 }
 
 module.exports = Mobile

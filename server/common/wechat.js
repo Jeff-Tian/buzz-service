@@ -9,13 +9,8 @@ const alert = require('./alert')
 const config = require('../config')
 const { getWechatByUserIds } = require('../dal/user')
 
-let appId = process.env.buzz_wechat_appid
-let appSecret = process.env.buzz_wechat_secret
-
-if (process.env.NODE_ENV === 'staging') {
-    appId = process.env.buzz_wechat_test_appid
-    appSecret = process.env.buzz_wechat_test_secret
-}
+const appId = process.env.buzz_wechat_appid
+const appSecret = process.env.buzz_wechat_secret
 
 const apiName = `wechat:api:${appId}`
 const api = new API(
@@ -128,7 +123,7 @@ module.exports = {
         await this.sendTpl(data)
     },
     // 续费通知
-    async  sendRenewTpl(user_id, class_hours) {
+    async sendRenewTpl(user_id, class_hours) {
         const users = await getWechatByUserIds([user_id])
         const { wechat_openid, name, role } = _.get(users, '0') || {}
         if (role !== 's') return
@@ -142,6 +137,24 @@ module.exports = {
                 keyword2: { value: 'BuzzBuzz 语言角' },
                 keyword3: { value: class_hours || 0 },
                 remark: { value: '\n为了不影响你的后续排课，请提前充值。\n充值>>' },
+            },
+        }
+        await this.sendTpl(data)
+    },
+    // 课时返还
+    async chargeClassHours(user_id, class_hours, remark) {
+        const users = await getWechatByUserIds([user_id])
+        const { wechat_openid, name, role } = _.get(users, '0') || {}
+        if (role !== 's') return
+        const data = {
+            openid: wechat_openid,
+            id: 'w13aW6ETpOuVW65OqYnIt0umnv42KNL8MI1bhpMFvUg',
+            data: {
+                first: { value: '亲，谢谢你的支持\n' },
+                keyword1: { value: String(class_hours) },
+                keyword2: { value: String(name || '') },
+                keyword3: { value: '' },
+                // remark: { value: `${String(remark || '')}\n` },
             },
         }
         await this.sendTpl(data)

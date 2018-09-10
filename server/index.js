@@ -57,7 +57,7 @@ fs.readdirSync(path.join(__dirname, './routes')).forEach(file => {
     app.use(r.routes())
 })
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
     logger.info('Buzz-Service 启动完毕。')
 })
 

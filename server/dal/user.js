@@ -38,6 +38,11 @@ module.exports = {
 
         const consumedClassHoursSubQuery = countClassHoursSubQuery([ClassStatusCode.End], 'user_consumed_class_hours')
 
+        const stateSubQuery = knex('user_states')
+            .select('user_id', 'state', 'timestamp', 'remark')
+            .whereRaw('timestamp = (select max(t.timestamp) from user_states t where t.user_id = user_states.user_id)')
+            .as('user_states')
+
         return knex('users')
             .leftJoin('user_profiles', 'users.user_id', 'user_profiles.user_id')
             .leftJoin('user_social_accounts', 'users.user_id', 'user_social_accounts.user_id')
@@ -48,12 +53,13 @@ module.exports = {
             .leftJoin(lockedClassHoursSubQuery, 'users.user_id', 'user_locked_class_hours.user_id')
             .leftJoin(bookedClassHoursSubQuery, 'users.user_id', 'user_booked_class_hours.user_id')
             .leftJoin(consumedClassHoursSubQuery, 'users.user_id', 'user_consumed_class_hours.user_id')
+            .leftJoin(stateSubQuery, 'users.user_id', 'user_states.user_id')
             .groupBy('users.user_id')
     },
     selectFields(joinedTables, isContextSecure) {
         return joinedTables
             .select(
-                'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at',
+                'users.user_id as user_id', 'users.name as name', 'users.created_at as created_at', 'users.source as source', 'users.follower as follower',
                 'users.role as role', 'users.remark as remark', 'user_profiles.avatar as avatar',
                 'user_profiles.display_name as display_name', 'user_profiles.school_name as school_name', 'user_profiles.time_zone as time_zone', 'user_profiles.order_remark as order_remark',
                 'user_profiles.youzan_mobile as youzan_mobile', 'user_profiles.intro_done as intro_done', 'user_profiles.weekly_schedule_requirements as weekly_schedule_requirements', 'user_profiles.gender as gender',
@@ -64,6 +70,7 @@ module.exports = {
                 'user_profiles.description as description', 'user_profiles.grade as grade',
                 'user_profiles.parent_name as parent_name', 'user_profiles.country as country',
                 'user_profiles.city as city',
+                'user_profiles.mobile_confirmed as mobile_confirmed',
                 'user_social_accounts.facebook_id as facebook_id',
                 'user_social_accounts.wechat_data as wechat_data',
                 'user_social_accounts.facebook_name as facebook_name',
@@ -80,7 +87,8 @@ module.exports = {
                 knex.raw('sum(user_booked_class_hours.class_hours) as' +
                     ' booked_class_hours'),
                 knex.raw('sum(user_consumed_class_hours.class_hours) as' +
-                    ' consumed_class_hours')
+                    ' consumed_class_hours'),
+                'user_states.state', 'user_states.timestamp as state_timestamp', 'user_states.remark as state_remark'
             )
     },
     async get(userId, isContextSecure = false) {
@@ -115,6 +123,7 @@ module.exports = {
                     'user_social_accounts.wechat_name as wechat_name',
                     'student_class_schedule.user_id as user_id',
                     'user_profiles.email as email',
+                    'user_profiles.mobile as mobile',
                     'user_profiles.time_zone as time_zone',
                     'users.name as name',
                 )
@@ -131,6 +140,7 @@ module.exports = {
                     'user_social_accounts.wechat_name as wechat_name',
                     'companion_class_schedule.user_id as user_id',
                     'user_profiles.email as email',
+                    'user_profiles.mobile as mobile',
                     'user_profiles.time_zone as time_zone',
                     'users.name as name',
                 )
@@ -218,21 +228,22 @@ module.exports = {
     },
 
     async addTags(userId, tags, trx = knex) {
-        return await trx('user_tags')
-            .returning('user_id')
-            .insert(tags.map(tag => {
-                if (typeof tag === 'string') {
-                    return {
-                        user_id: userId,
-                        tag,
-                    }
-                }
+        const data = tags.map(tag => {
+            if (typeof tag === 'string') {
                 return {
                     user_id: userId,
-                    tag: tag.name,
-                    remark: tag.remark,
+                    tag,
                 }
-            }))
+            }
+            return {
+                user_id: userId,
+                tag: tag.name,
+                remark: tag.remark,
+            }
+        })
+        return await trx('user_tags')
+            .returning('user_id')
+            .insert(data)
     },
 
     async tryAddTags(userId, tags, trx = knex) {
@@ -248,38 +259,15 @@ module.exports = {
             .where('tag', tag)
     },
 
-    filterPotentials(search) {
-        return search.andWhereRaw(`user_profiles.mobile is null or 
-        (user_profiles.city is null and user_profiles.country is null and user_profiles.location is null)
-        or user_profiles.date_of_birth is null or users.name is null
-        `)
+    async getUserIdByOpenId(openid) {
+        return (await knex('user_social_accounts').where('wechat_openid', '=', openid).select('user_id'))[0].user_id
     },
 
-    filterLeads(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Leads}%`)
-            .andWhereRaw(`user_profiles.mobile is not null and (user_profiles.city is not null or user_profiles.country is not null or user_profiles.location is not null)
-        and user_profiles.date_of_birth is not null and users.name is not null
-        `)
+    async getUserIdsByEmail(email) {
+        return (await knex('user_profiles').where('email', '=', email).select('user_id')).map(o => o.user_id)
     },
 
-    filterPurchases(search) {
-        return search
-            .andWhereRaw('user_balance.class_hours > 0 and user_booked_class_hours.class_hours is null and user_consumed_class_hours.class_hours is null')
-    },
-
-    filterWaitingForPlacementTest(search) {
-        return search.andWhereRaw('user_placement_tests.detail is null')
-    },
-
-    filterWaitingForFirstClass(search) {
-        return this.filterPurchases(search).andWhereRaw('user_placement_tests.level is not null')
-    },
-
-    filterRenewals(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.NeedCharge}%`)
-    },
-
-    filterRefunded(search) {
-        return search.andWhere('user_tags.tags', 'like', `%${UserTags.Refunded}%`)
+    async getUserIdsByMobile(mobile) {
+        return (await knex('user_profiles').where('mobile', '=', mobile).select('user_id')).map(o => o.user_id)
     },
 }

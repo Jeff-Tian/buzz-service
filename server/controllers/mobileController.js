@@ -5,7 +5,7 @@ const sendVerificationSms = async ctx => {
         const { mobile, mobile_country, expire: setExpire } = ctx.request.body
         const { code, expire, error } = await mobileCommon.sendVerificationSms(mobile, mobile_country, undefined, (process.env.NODE_ENV !== 'production') ? setExpire : undefined)
         ctx.status = 200
-        ctx.body = { code: (process.env.NODE_ENV === 'test') && code, expire, error }
+        ctx.body = { code: (process.env.NODE_ENV !== 'production') && code, expire, error }
     } catch (error) {
         console.error('sendVerificationSms error: ', error)
         ctx.status = 500

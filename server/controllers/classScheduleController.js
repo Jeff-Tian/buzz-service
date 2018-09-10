@@ -10,8 +10,9 @@ const request = require('request-promise-native')
 const Scheduling = require('../bll/scheduling')
 
 const promisify = require('../common/promisify')
-const wechat = require('../common/wechat')
-const mail = require('../common/mail')
+const wechat = require('../push-notification-check/wechat')
+const mail = require('../push-notification-check/mail')
+const mobile = require('../push-notification-check/mobile')
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
 const knexConfig = require('../../knexfile')[env]
@@ -122,7 +123,7 @@ const getClassByClassId = async ctx => {
         const minClass = _.chain(result)
             .minBy('start_time')
             .value()
-        const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(8).minute(30).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(8).minute(30).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'start_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         body = [{
             CURRENT_TIMESTAMP: moment().utc().format(),
@@ -482,14 +483,12 @@ const upsert = async ctx => {
                         .update(updateForStudent)
                 }
             }
-
             studentSchedules = studentSchedules.filter(s => originalStudents.indexOf(s.user_id) < 0)
         } else {
             classIds = await trx('classes')
                 .returning('class_id')
                 .insert(data)
         }
-
         if (studentSchedules.length) {
             await classSchedules.addStudents(trx, studentSchedules, classIds[0], ctx.state.user_id)
         }
@@ -502,12 +501,11 @@ const upsert = async ctx => {
                     return s
                 }))
         }
-
         await classSchedules.saveSubscribers(trx, body.subscribers || [], classIds[0])
         const classInfo = await getClassById(classIds[0], trx)
+        await trx.commit()
         await addClassJob(classInfo)
         await addScheduleJob(oldClassInfo, classInfo, ctx.request.body.optional)
-        await trx.commit()
         ctx.status = body.class_id ? 200 : 201
         ctx.set('Location', `${ctx.request.URL}`)
         ctx.body = classInfo
@@ -688,8 +686,12 @@ const sendMinuteClassBeginMsg = async ctx => {
         await bluebird.map(companions, async i => {
             if (i.wechat_openid) {
                 await wechat.sendMinuteClassBeginTpl(i.wechat_openid, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, classInfo.end_time).catch(logger.error)
-            } else if (i.email) {
+            }
+            if (i.email) {
                 await mail.sendMinuteClassBeginMail(i.email, i.name, classInfo.class_id, classInfo.topic, classInfo.start_time, i.time_zone)
+            }
+            if (i.mobile) {
+                await mobile.sendMinuteClassBeginSms(i.mobile)
             }
         })
         ctx.status = 200
@@ -877,7 +879,7 @@ const listByUserId = async ctx => {
             .minBy('class_start_time')
             .value()
         const CURRENT_TIMESTAMP = moment().utc().format()
-        const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(8).minute(30).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_start_time')).subtract(1, 'd').hour(8).minute(30).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_end_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         result.push({
             CURRENT_TIMESTAMP: moment().utc().format(),
@@ -1153,15 +1155,15 @@ const afterEnd = async ctx => {
             .where('classes.class_id', class_id)
             .select('student_class_schedule.user_id')
         await bluebird.map(companions, async ({ user_id, start_time, end_time }) => {
-            const user_class_logs = await trx('user_class_log')
-                .where({ class_id, user_id })
+            const attend_logs = await trx('user_class_log')
+                .where({ class_id, type: 'attend' })
                 .orderBy('created_at', 'asc')
-            const attend_log = _.find(user_class_logs, ['type', 'attend'])
-            if (!attend_log) {
+            const companion_attend_log = _.find(attend_logs, { user_id })
+            if (!companion_attend_log) {
                 // 缺席：扣除500
                 await integralBll.consume(trx, user_id, 500, `absent from class id = ${class_id}`)
             } else {
-                const attend_late_time = moment(attend_log.created_at).diff(moment(start_time), 'm', true)
+                const attend_late_time = moment(companion_attend_log.created_at).diff(moment(start_time), 'm', true)
                 if (attend_late_time <= 0) {
                     //
                 } else if (attend_late_time <= 5) {
@@ -1179,7 +1181,11 @@ const afterEnd = async ctx => {
                 .where('from_user_id', user_id)
                 .orderBy('feedback_time', 'desc')
             const from_feedbacks_size = _.size(from_feedbacks)
-            const students_size = _.size(students)
+            const student_ids = _.map(students, 'user_id')
+            const students_size = _.chain(attend_logs)
+                .filter(i => _.includes(student_ids, i.user_id))
+                .size()
+                .value()
             if (from_feedbacks_size < students_size) {
                 // 课后24小时仍未评价：-50
                 await integralBll.consume(trx, user_id, 50, `unfinished(${from_feedbacks_size}/${students_size}) feedback in class id = ${class_id}`)

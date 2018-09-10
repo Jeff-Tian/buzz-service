@@ -1,3 +1,5 @@
+import AOP from '../AOP'
+
 const log4js = require('log4js')
 
 const fundebug = require('fundebug-nodejs')
@@ -21,20 +23,7 @@ log4js.configure({
     },
 })
 const logger = log4js.getLogger()
-
-/* eslint-disable */
-Function.prototype.before = function (func) {
-    const self = this
-    return function () {
-        if (func.apply(this, arguments) === false) {
-            return false;
-        }
-
-        return self.apply(this, arguments)
-    }
-}
-/* eslint-enable */
-
+AOP.setBefore()
 logger.error = logger.error.before(function (err) {
     fundebug.notifyError.call(this, err)
 })

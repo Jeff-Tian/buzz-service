@@ -1,6 +1,6 @@
 exports.up = function (knex, Promise) {
     return knex.schema.table('class_feedback', table => {
-        table.string('type')
+        table.string('type', 100)
     })
 }
 

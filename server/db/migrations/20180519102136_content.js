@@ -1,10 +1,10 @@
 exports.up = function (knex, Promise) {
     return knex.schema.createTable('content', table => {
         table.bigIncrements('content_id')
-        table.string('module')
-        table.string('topic')
-        table.string('topic_level')
-        table.string('level')
+        table.string('module', 100)
+        table.string('topic', 100)
+        table.string('topic_level', 100)
+        table.string('level', 100)
         table.text('exercises')
         table.text('student_textbook')
         table.text('tutor_textbook')

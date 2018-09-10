@@ -1,4 +1,5 @@
 import logger from '../common/logger'
+import * as ClassScheduleBll from '../bll/class-schedules'
 
 const timeHelper = require('../common/time-helper')
 const env = process.env.NODE_ENV || 'test'
@@ -75,7 +76,7 @@ const list = async ctx => {
             .minBy('class_start_time')
             .value()
         const CURRENT_TIMESTAMP = moment().utc().format()
-        const startTime = status === 'confirmed' ? moment().hour(10).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_start_time')).subtract(1, 'd').hour(10).minute(0).second(0).millisecond(0).utc().format()
+        const startTime = status === 'confirmed' ? moment().hour(8).minute(30).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_start_time')).subtract(1, 'd').hour(8).minute(30).second(0).millisecond(0).utc().format()
         const endTime = status === 'confirmed' ? moment().hour(22).minute(0).second(0).millisecond(0).utc().format() : moment(_.get(minClass, 'class_end_time')).subtract(1, 'd').hour(22).minute(0).second(0).millisecond(0).utc().format()
         result.push({
             CURRENT_TIMESTAMP: moment().utc().format(),
@@ -183,4 +184,14 @@ const batchList = async ctx => {
     ctx.body = schedules
 }
 
-module.exports = { list, create, cancel, listAll, batchList }
+const getDemoClass = async ctx => {
+    const user_id = ctx.params.user_id
+    ctx.body = await ClassScheduleBll.getDemoClass(user_id)
+}
+
+const getLatestEndClass = async ctx => {
+    const user_id = ctx.params.user_id
+    ctx.body = await ClassScheduleBll.getLatestEndClass(user_id)
+}
+
+module.exports = { list, create, cancel, listAll, batchList, getDemoClass, getLatestEndClass }

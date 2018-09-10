@@ -1,14 +1,19 @@
+import UserState, { UserStates } from '../server/bll/user-state'
+import User from './test-helpers/user'
+import * as common from './test-helpers/common'
+import * as classHourBll from '../server/bll/class-hours'
+
 const { server, should, chai, knex } = require('./test-helpers/prepare')
 const PATH = '/api/v1/users'
 
 describe('routes: users', () => {
-    before(async () => {
+    beforeEach(async () => {
         // await knex.migrate.rollback()
         await knex.migrate.latest()
         await knex.seed.run()
     })
 
-    after(async () => {
+    afterEach(async () => {
         await knex.migrate.rollback()
     })
 
@@ -24,6 +29,28 @@ describe('routes: users', () => {
                     res.type.should.eql('application/json')
                     res.body.length.should.eql(2)
                     res.body[0].should.include.keys('user_id', 'name', 'created_at', 'role', 'avatar', 'facebook_id', 'wechat_data', 'country', 'city', 'booked_class_hours', 'locked_class_hours', 'consumed_class_hours')
+                    done()
+                })
+        })
+    })
+
+    describe('用户接口', () => {
+        it('should return an error when the resource already exists', done => {
+            chai
+                .request(server)
+                .post(`${PATH}`)
+                .send({
+                    name: 'user1',
+                    user_id: '1',
+                })
+                .end((err, res) => {
+                    console.error('xxxxxxxxxxxxx')
+                    console.error(err)
+                    console.error('yyyyyyyyyyyyy')
+                    should.exist(err)
+                    res.status.should.eql(409)
+                    res.type.should.eql('application/json')
+                    res.body.error.should.eql('The user already exists')
                     done()
                 })
         })

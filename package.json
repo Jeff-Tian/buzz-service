@@ -49,6 +49,7 @@
         "co-wechat-oauth": "^2.0.1",
         "fundebug-nodejs": "0.0.9",
         "ioredis": "^3.2.2",
+        "jsonwebtoken": "^8.3.0",
         "knex": "^0.14.6",
         "koa": "^2.5.0",
         "koa-bodyparser": "^4.2.0",

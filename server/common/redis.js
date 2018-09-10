@@ -3,6 +3,15 @@ import logger from '../common/logger'
 const Redis = require('ioredis')
 const config = require('../config')
 
+if (process.env.NODE_ENV === 'test') {
+    module.export = {
+        get() {
+        },
+        set() {
+        },
+    }
+}
+
 const redis = new Redis(config.endPoints.redis)
 
 redis.on('ready', () => {

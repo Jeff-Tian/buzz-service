@@ -1,4 +1,5 @@
 import ClassScheduleDAL from '../dal/class-schedules'
+import { ClassStatusCode } from '../common/constants'
 
 const classHours = require('./class-hours')
 
@@ -46,5 +47,13 @@ module.exports = {
 
     async getSubscribers(classId) {
         return await ClassScheduleDAL.getSubscribers(classId)
+    },
+
+    async getDemoClass(userId) {
+        return await ClassScheduleDAL.getClass(userId, { 'classes.status': ClassStatusCode.Open }, 'classes.start_time', 'desc')
+    },
+
+    async getLatestEndClass(userId) {
+        return await ClassScheduleDAL.getClass(userId, { 'classes.status': ClassStatusCode.End }, 'classes.start_time', 'desc')
     },
 }
